@@ -17,7 +17,27 @@ import { SOCKET_EVENTS } from '../config/constants.js';
 export const initializeSocket = (httpServer) => {
     const io = new Server(httpServer, {
         cors: {
-            origin: env.FRONTEND_URL,
+            origin: (origin, callback) => {
+                // Allow requests with no origin
+                if (!origin) return callback(null, true);
+
+                // Allow localhost
+                if (origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1')) {
+                    return callback(null, true);
+                }
+
+                // Allow configured frontend URL
+                if (origin === env.FRONTEND_URL) {
+                    return callback(null, true);
+                }
+
+                // In development, allow all
+                if (env.NODE_ENV === 'development') {
+                    return callback(null, true);
+                }
+
+                callback(new Error('Not allowed by CORS'));
+            },
             credentials: true,
         },
         pingTimeout: 60000,

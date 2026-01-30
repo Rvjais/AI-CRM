@@ -62,13 +62,17 @@ export const disconnect = asyncHandler(async (req, res) => {
  */
 export const getStatus = asyncHandler(async (req, res) => {
     const session = await WhatsAppSession.findOne({ userId: req.userId });
-    const isConnected = whatsappService.isConnected(req.userId);
+
+    // Check real connection status from session
+    const isAuthenticating = whatsappService.isConnected(req.userId);
+    const isTrulyConnected = session?.status === 'connected';
 
     const status = {
-        connected: isConnected,
+        connected: isTrulyConnected,
         status: session?.status || 'disconnected',
         phoneNumber: session?.phoneNumber || null,
         lastConnected: session?.lastConnected || null,
+        isAuthenticating // helper flag if needed
     };
 
     return successResponse(res, 200, 'Status retrieved', status);

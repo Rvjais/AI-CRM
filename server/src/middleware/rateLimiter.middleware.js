@@ -77,7 +77,7 @@ export const uploadLimiter = rateLimit({
  */
 export const connectionLimiter = rateLimit({
     windowMs: 60 * 60 * 1000, // 1 hour
-    max: 3,
+    max: 100,
     message: 'Too many connection attempts, please try again later',
     handler: rateLimitHandler,
     keyGenerator: (req) => {

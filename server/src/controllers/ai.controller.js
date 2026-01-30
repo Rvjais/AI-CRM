@@ -1,16 +1,15 @@
-import User from '../models/User.js';
-import { successResponse, errorResponse } from '../utils/response.util.js';
+import { successResponse, notFoundResponse, internalErrorResponse } from '../utils/response.util.js';
 
 export const getAIConfig = async (req, res) => {
     try {
-        const user = await User.findById(req.user.userId);
-        if (!user) {
-            return errorResponse(res, 'User not found', 404);
+        // User is already attached by auth middleware
+        if (!req.user) {
+            return internalErrorResponse(res, 'User context missing');
         }
-        return successResponse(res, user.aiSettings, 'AI configuration retrieved');
+        return successResponse(res, 200, 'AI configuration retrieved', req.user.aiSettings);
     } catch (error) {
         console.error('Get AI Config Error:', error);
-        return errorResponse(res, 'Internal Server Error', 500);
+        return internalErrorResponse(res, 'Internal Server Error');
     }
 };
 
@@ -18,9 +17,9 @@ export const updateAIConfig = async (req, res) => {
     try {
         const { systemPrompt, enabled, autoReply, maxTokens, temperature } = req.body;
 
-        const user = await User.findById(req.user.userId);
+        const user = req.user;
         if (!user) {
-            return errorResponse(res, 'User not found', 404);
+            return internalErrorResponse(res, 'User context missing');
         }
 
         // Update fields
@@ -34,9 +33,9 @@ export const updateAIConfig = async (req, res) => {
 
         await user.save();
 
-        return successResponse(res, user.aiSettings, 'AI configuration updated');
+        return successResponse(res, 200, 'AI configuration updated', user.aiSettings);
     } catch (error) {
         console.error('Update AI Config Error:', error);
-        return errorResponse(res, 'Internal Server Error', 500);
+        return internalErrorResponse(res, 'Internal Server Error');
     }
 };

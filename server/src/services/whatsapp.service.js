@@ -82,6 +82,9 @@ export const connectWhatsApp = async (userId, io) => {
 
                 logger.info(`Connection closed for user ${userId}, reconnect: ${shouldReconnect}`);
 
+                // Always remove from active connections on close to allow reconnection
+                connections.delete(userId.toString());
+
                 if (shouldReconnect) {
                     // Reconnect
                     setTimeout(() => connectWhatsApp(userId, io), 3000);
@@ -89,7 +92,6 @@ export const connectWhatsApp = async (userId, io) => {
                     // Logged out
                     await updateSessionStatus(userId, CONNECTION_STATUS.DISCONNECTED);
                     await updateUserWhatsAppStatus(userId, false);
-                    connections.delete(userId.toString());
 
                     io.to(userId.toString()).emit('whatsapp:disconnected', {
                         reason: 'Logged out'
@@ -159,16 +161,30 @@ export const disconnectWhatsApp = async (userId) => {
         const sock = connections.get(userId.toString());
 
         if (sock) {
-            await sock.logout();
+            try {
+                await sock.logout();
+            } catch (logoutError) {
+                logger.warn(`Logout failed for user ${userId} (ignoring):`, logoutError.message);
+            }
+
+            // Clean up connection map regardless of logout success
             connections.delete(userId.toString());
-
-            await updateSessionStatus(userId, CONNECTION_STATUS.DISCONNECTED);
-            await updateUserWhatsAppStatus(userId, false);
-
-            logger.info(`WhatsApp disconnected for user ${userId}`);
         }
+
+        // Always ensure DB state is cleared
+        // Import dynamically to avoid circular dependency if needed, or better, ensure clean imports
+        // For now, we use the method from auth.handler
+        const { clearAuthState } = await import('../whatsapp/auth.handler.js');
+        await clearAuthState(userId);
+
+        await updateSessionStatus(userId, CONNECTION_STATUS.DISCONNECTED);
+        await updateUserWhatsAppStatus(userId, false);
+
+        logger.info(`WhatsApp disconnected/cleaned up for user ${userId}`);
     } catch (error) {
-        logger.error(`Disconnect error for user ${userId}:`, error);
+        logger.error(`Disconnect cleanup error for user ${userId}:`, error);
+        // Even if DB update fails, we tried our best. 
+        // Throwing here might be okay if DB is down, but generally we want to allow retry.
         throw error;
     }
 };
@@ -229,10 +245,22 @@ export const sendMediaMessage = async (userId, jid, mediaData) => {
 // Helper functions
 
 async function updateSessionStatus(userId, status, phoneNumber = null) {
+    // If we are setting status to CONNECTING, check if it's already QR_READY
+    // We don't want to overwrite QR_READY with CONNECTING as it hides the QR code from frontend
+    if (status === CONNECTION_STATUS.CONNECTING) {
+        const currentSession = await WhatsAppSession.findOne({ userId });
+        if (currentSession?.status === CONNECTION_STATUS.QR_READY) {
+            return; // Skip update to preserve QR_READY state
+        }
+    }
+
     const update = { status };
     if (status === CONNECTION_STATUS.CONNECTED) {
         update.lastConnected = new Date();
         if (phoneNumber) update.phoneNumber = phoneNumber;
+
+        // Clear QR code when connected
+        update.qrCode = null;
     }
 
     await WhatsAppSession.findOneAndUpdate(

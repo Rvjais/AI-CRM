@@ -2,16 +2,45 @@ import { useState, useEffect } from 'react';
 import ChatList from './ChatList';
 import ChatWindow from './ChatWindow';
 import AIInsights from './AIInsights';
+import QRScanner from './QRScanner';
 
 function WhatsAppView({ token, onLogout }) {
     const [selectedChat, setSelectedChat] = useState(null);
     const [chats, setChats] = useState([]);
     const [messages, setMessages] = useState([]);
     const [aiEnabled, setAiEnabled] = useState(false);
+    const [isConnected, setIsConnected] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        fetchChats();
+        checkConnectionStatus();
     }, []);
+
+    const checkConnectionStatus = async () => {
+        try {
+            const response = await fetch('http://localhost:3000/api/whatsapp/status', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (response.status === 401) {
+                onLogout();
+                return;
+            }
+
+            const data = await response.json();
+            if (data.success && data.data.connected) {
+                setIsConnected(true);
+                fetchChats();
+            } else {
+                setIsConnected(false);
+            }
+        } catch (error) {
+            console.error('Connection check failed:', error);
+            setIsConnected(false);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     const fetchChats = async () => {
         try {
@@ -37,6 +66,18 @@ function WhatsAppView({ token, onLogout }) {
             setSelectedChat(updatedChat);
         }
     };
+
+    const handleConnected = () => {
+        setIsConnected(true);
+        fetchChats();
+    };
+
+    if (isLoading) {
+        return <div className="loading">Checking connection...</div>;
+    }
+    if (!isConnected) {
+        return <QRScanner token={token} onConnected={handleConnected} onLogout={onLogout} />;
+    }
 
     return (
         <div className="whatsapp-view">
