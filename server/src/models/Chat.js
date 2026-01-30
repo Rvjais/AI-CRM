@@ -1,0 +1,54 @@
+import mongoose from 'mongoose';
+
+/**
+ * Chat Schema
+ * Stores chat-level features like archive and mute status
+ */
+
+const chatSchema = new mongoose.Schema(
+    {
+        userId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+            required: true,
+            index: true,
+        },
+        chatJid: {
+            type: String,
+            required: true,
+        },
+        isArchived: {
+            type: Boolean,
+            default: false,
+        },
+        isMuted: {
+            type: Boolean,
+            default: false,
+        },
+        mutedUntil: {
+            type: Date,
+        },
+        isPinned: {
+            type: Boolean,
+            default: false,
+        },
+        unreadCount: {
+            type: Number,
+            default: 0,
+        },
+        lastMessageAt: {
+            type: Date,
+        },
+    },
+    {
+        timestamps: true,
+    }
+);
+
+// Compound index for unique chat per user
+chatSchema.index({ userId: 1, chatJid: 1 }, { unique: true });
+chatSchema.index({ userId: 1, isArchived: 1, lastMessageAt: -1 });
+
+const Chat = mongoose.model('Chat', chatSchema);
+
+export default Chat;

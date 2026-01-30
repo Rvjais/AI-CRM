@@ -1,0 +1,112 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: #f0f2f5;
+}
+
+.app {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px;
+}
+
+/* App Container - Flex layout for Sidebar + Main Content */
+.app-container {
+  width: 100%;
+  max-width: 1800px;
+  height: 95vh;
+  display: flex;
+  gap: 0;
+  background: white;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.main-content {
+  flex: 1;
+  height: 100%;
+  overflow: hidden;
+  background: white;
+  position: relative;
+}
+
+/* WhatsApp View - Grid layout for 3-panel chat */
+.whatsapp-view {
+  display: grid;
+  grid-template-columns: 320px 1fr 380px;
+  height: 100%;
+  width: 100%;
+}
+
+@media (max-width: 1200px) {
+  .whatsapp-view {
+    grid-template-columns: 280px 1fr;
+  }
+
+  .ai-insights {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .app {
+    padding: 0;
+  }
+
+  .app-container {
+    max-width: 100%;
+    height: 100vh;
+    border-radius: 0;
+  }
+
+  .whatsapp-view {
+    grid-template-columns: 1fr;
+  }
+
+  .chat-list {
+    display: none;
+  }
+
+  .chat-list.mobile-visible {
+    display: flex;
+  }
+
+  .chat-window.mobile-visible {
+    display: flex;
+  }
+
+  /* Adjust Sidebar for mobile if needed, or hide it/make it a drawer */
+  /* For now, assuming Sidebar handles its own responsiveness via Sidebar.css */
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}

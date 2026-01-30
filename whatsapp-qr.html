@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp QR Code - Auto Connect</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .logo {
+            font-size: 60px;
+            margin-bottom: 10px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        p {
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #25D366;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        #loginForm {
+            display: block;
+        }
+
+        #qrContainer {
+            display: none;
+        }
+
+        #qrCode {
+            max-width: 100%;
+            height: auto;
+            border: 5px solid white;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            margin: 20px 0;
+        }
+
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            font-weight: 500;
+            display: none;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            display: block;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            display: block;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            display: block;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #25D366;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .instructions {
+            background: #e7f8f0;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            text-align: left;
+        }
+
+        .instructions h3 {
+            color: #128C7E;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .instructions ol {
+            margin-left: 20px;
+            color: #333;
+        }
+
+        .instructions li {
+            margin-bottom: 8px;
+        }
+
+        .quick-login {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .quick-login p {
+            margin: 0;
+            font-size: 13px;
+            color: #666;
+        }
+
+        .quick-login button {
+            margin-top: 10px;
+            background: #667eea;
+            font-size: 14px;
+            padding: 10px;
+        }
+
+        .connected-info {
+            background: #d4edda;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .connected-info h2 {
+            color: #155724;
+            margin-bottom: 10px;
+        }
+
+        .phone-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #128C7E;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="logo">📱</div>
+        <h1>WhatsApp Connect</h1>
+        <p>Link your WhatsApp account</p>
+
+        <!-- Login Form -->
+        <div id="loginForm">
+            <div class="quick-login">
+                <p><strong>Quick Login</strong></p>
+                <p>Use your test account to get started</p>
+                <button onclick="quickLogin()">Login as Test User</button>
+            </div>
+
+            <div style="margin: 20px 0; color: #999;">OR</div>
+
+            <form onsubmit="login(event)">
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="email" placeholder="your@email.com" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="password" placeholder="Your password" required>
+                </div>
+
+                <button type="submit" id="loginBtn">Login & Connect</button>
+            </form>
+        </div>
+
+        <!-- QR Container -->
+        <div id="qrContainer">
+            <div id="qrCodeWrapper">
+                <img id="qrCode" alt="WhatsApp QR Code">
+            </div>
+
+            <div class="instructions">
+                <h3>📲 How to Scan:</h3>
+                <ol>
+                    <li>Open <strong>WhatsApp</strong> on your phone</li>
+                    <li>Tap <strong>Menu</strong> (⋮) or <strong>Settings</strong></li>
+                    <li>Select <strong>Linked Devices</strong></li>
+                    <li>Tap <strong>Link a Device</strong></li>
+                    <li>Point your phone at this screen</li>
+                </ol>
+            </div>
+
+            <button onclick="disconnect()" style="background: #dc3545; margin-top: 20px;">
+                Disconnect
+            </button>
+        </div>
+
+        <!-- Connected Info -->
+        <div id="connectedInfo" class="connected-info" style="display: none;">
+            <h2>✅ Connected!</h2>
+            <p>Your WhatsApp is now connected</p>
+            <div class="phone-number" id="phoneNumber"></div>
+            <button onclick="disconnect()" style="background: #dc3545;">
+                Disconnect
+            </button>
+        </div>
+
+        <div id="status" class="status"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3000/api';
+        let token = '';
+        let qrCheckInterval = null;
+
+        // Check if already logged in
+        window.onload = function () {
+            const savedToken = localStorage.getItem('whatsapp_token');
+            if (savedToken) {
+                token = savedToken;
+                checkConnectionStatus();
+            }
+        };
+
+        async function quickLogin() {
+            document.getElementById('email').value = 'test@example.com';
+            document.getElementById('password').value = 'Test1234';
+            login(new Event('submit'));
+        }
+
+        async function login(event) {
+            event.preventDefault();
+
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const loginBtn = document.getElementById('loginBtn');
+
+            loginBtn.disabled = true;
+            loginBtn.innerHTML = 'Logging in... <div class="loading"></div>';
+
+            try {
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || 'Login failed');
+                }
+
+                token = data.data.accessToken;
+                localStorage.setItem('whatsapp_token', token);
+
+                showStatus('Login successful! Connecting WhatsApp...', 'success');
+
+                // Auto-connect WhatsApp
+                setTimeout(connectWhatsApp, 1000);
+
+            } catch (error) {
+                showStatus('Login failed: ' + error.message, 'error');
+                loginBtn.disabled = false;
+                loginBtn.innerHTML = 'Login & Connect';
+            }
+        }
+
+        async function connectWhatsApp() {
+            showStatus('Connecting WhatsApp...', 'info');
+
+            try {
+                const response = await fetch(`${API_BASE}/whatsapp/connect`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || 'Connection failed');
+                }
+
+                showStatus('Generating QR code...', 'info');
+
+                // Hide login form
+                document.getElementById('loginForm').style.display = 'none';
+                document.getElementById('qrContainer').style.display = 'block';
+
+                // Start fetching QR
+                setTimeout(fetchQR, 2000);
+                qrCheckInterval = setInterval(fetchQR, 3000);
+
+            } catch (error) {
+                showStatus('Connection error: ' + error.message, 'error');
+            }
+        }
+
+        async function fetchQR() {
+            try {
+                const qrRes = await fetch(`${API_BASE}/whatsapp/qr`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const qrData = await qrRes.json();
+
+                if (qrData.success && qrData.data.qrCode) {
+                    document.getElementById('qrCode').src = qrData.data.qrCode;
+                    showStatus('✅ Scan QR code with WhatsApp', 'success');
+                }
+
+                // Check if connected
+                const statusRes = await fetch(`${API_BASE}/whatsapp/status`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const statusData = await statusRes.json();
+
+                if (statusData.data.connected && statusData.data.phoneNumber) {
+                    clearInterval(qrCheckInterval);
+                    showConnected(statusData.data.phoneNumber);
+                }
+
+            } catch (error) {
+                console.error('QR fetch error:', error);
+            }
+        }
+
+        function showConnected(phoneNumber) {
+            document.getElementById('qrContainer').style.display = 'none';
+            document.getElementById('connectedInfo').style.display = 'block';
+            document.getElementById('phoneNumber').textContent = '+' + phoneNumber;
+            showStatus('', 'success');
+        }
+
+        async function checkConnectionStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/whatsapp/status`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.data.connected) {
+                    document.getElementById('loginForm').style.display = 'none';
+                    showConnected(data.data.phoneNumber);
+                }
+            } catch (error) {
+                // Token might be expired, show login
+                localStorage.removeItem('whatsapp_token');
+            }
+        }
+
+        async function disconnect() {
+            if (!confirm('Are you sure you want to disconnect WhatsApp?')) {
+                return;
+            }
+
+            try {
+                await fetch(`${API_BASE}/whatsapp/disconnect`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                localStorage.removeItem('whatsapp_token');
+                location.reload();
+            } catch (error) {
+                showStatus('Disconnect error: ' + error.message, 'error');
+            }
+        }
+
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = 'status ' + type;
+        }
+
+        window.onbeforeunload = function () {
+            if (qrCheckInterval) {
+                clearInterval(qrCheckInterval);
+            }
+        };
+    </script>
+</body>
+
+</html>

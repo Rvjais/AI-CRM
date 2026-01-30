@@ -1,0 +1,270 @@
+import makeWASocket, {
+    DisconnectReason,
+    useMultiFileAuthState,
+    fetchLatestBaileysVersion,
+} from '@whiskeysockets/baileys';
+import { Boom } from '@hapi/boom';
+import pino from 'pino';
+import WhatsAppSession from '../models/WhatsAppSession.js';
+import User from '../models/User.js';
+import { CONNECTION_STATUS } from '../config/constants.js';
+import { encryptObject, decryptObject } from '../utils/encryption.util.js';
+import logger from '../utils/logger.util.js';
+import { loadAuthState } from '../whatsapp/auth.handler.js';
+import { handleIncomingMessage } from '../whatsapp/message.handler.js';
+
+/**
+ * WhatsApp service - Baileys integration
+ * Manages WhatsApp connections for multiple users
+ */
+
+// Store active connections: Map<userId, socket>
+const connections = new Map();
+
+/**
+ * Initialize WhatsApp connection for a user
+ * @param {String} userId - User ID
+ * @param {Object} io - Socket.io instance
+ * @returns {Object} Connection result
+ */
+export const connectWhatsApp = async (userId, io) => {
+    try {
+        // Check if already connected
+        if (connections.has(userId.toString())) {
+            logger.info(`User ${userId} already has an active connection`);
+            return { status: 'already_connected' };
+        }
+
+        // Get latest Baileys version
+        const { version } = await fetchLatestBaileysVersion();
+
+        // Load auth state from database
+        const { state, saveCreds } = await loadAuthState(userId);
+
+        // Create logger
+        const socketLogger = pino({ level: 'silent' }); // Set to 'debug' for detailed logs
+
+        // Create socket
+        const sock = makeWASocket({
+            version,
+            logger: socketLogger,
+            printQRInTerminal: false,
+            auth: state,
+            browser: ['WhatsApp Business Platform', 'Chrome', '1.0.0'],
+            getMessage: async (key) => {
+                // Return undefined if message not found
+                return undefined;
+            },
+        });
+
+        // Store connection
+        connections.set(userId.toString(), sock);
+
+        // Handle connection updates
+        sock.ev.on('connection.update', async (update) => {
+            const { connection, lastDisconnect, qr } = update;
+
+            // Update session status
+            await updateSessionStatus(userId, CONNECTION_STATUS.CONNECTING);
+
+            // QR code received
+            if (qr) {
+                logger.info(`QR code generated for user ${userId}`);
+                await updateSessionQR(userId, qr);
+
+                // Emit QR to user via socket
+                io.to(userId.toString()).emit('whatsapp:qr', { qrCode: qr });
+            }
+
+            // Connection state changed
+            if (connection === 'close') {
+                const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
+
+                logger.info(`Connection closed for user ${userId}, reconnect: ${shouldReconnect}`);
+
+                if (shouldReconnect) {
+                    // Reconnect
+                    setTimeout(() => connectWhatsApp(userId, io), 3000);
+                } else {
+                    // Logged out
+                    await updateSessionStatus(userId, CONNECTION_STATUS.DISCONNECTED);
+                    await updateUserWhatsAppStatus(userId, false);
+                    connections.delete(userId.toString());
+
+                    io.to(userId.toString()).emit('whatsapp:disconnected', {
+                        reason: 'Logged out'
+                    });
+                }
+            } else if (connection === 'open') {
+                logger.info(`Connection opened for user ${userId}`);
+
+                const phoneNumber = sock.user.id.split(':')[0];
+
+                await updateSessionStatus(userId, CONNECTION_STATUS.CONNECTED, phoneNumber);
+                await updateUserWhatsAppStatus(userId, true);
+
+                io.to(userId.toString()).emit('whatsapp:connected', {
+                    phoneNumber,
+                    deviceInfo: {
+                        browser: 'WhatsApp Business Platform',
+                        version: '1.0.0',
+                    },
+                });
+            }
+        });
+
+        // Handle credential updates
+        sock.ev.on('creds.update', saveCreds);
+
+        // Handle incoming messages
+        sock.ev.on('messages.upsert', async ({ messages, type }) => {
+            if (type === 'notify') {
+                for (const msg of messages) {
+                    const sendResponse = async (jid, text) => {
+                        await sock.sendMessage(jid, { text });
+                    };
+                    await handleIncomingMessage(userId, msg, io, sendResponse);
+                }
+            }
+        });
+
+        // Handle message updates (read, delivered, etc.)
+        sock.ev.on('messages.update', async (updates) => {
+            for (const update of updates) {
+                if (update.update.status) {
+                    io.to(userId.toString()).emit('message:update', {
+                        messageId: update.key.id,
+                        status: update.update.status,
+                    });
+                }
+            }
+        });
+
+        logger.info(`WhatsApp connection initiated for user ${userId}`);
+
+        return { status: 'connecting' };
+    } catch (error) {
+        logger.error(`WhatsApp connection error for user ${userId}:`, error);
+        await updateSessionStatus(userId, CONNECTION_STATUS.DISCONNECTED);
+        throw error;
+    }
+};
+
+/**
+ * Disconnect WhatsApp for a user
+ * @param {String} userId - User ID
+ */
+export const disconnectWhatsApp = async (userId) => {
+    try {
+        const sock = connections.get(userId.toString());
+
+        if (sock) {
+            await sock.logout();
+            connections.delete(userId.toString());
+
+            await updateSessionStatus(userId, CONNECTION_STATUS.DISCONNECTED);
+            await updateUserWhatsAppStatus(userId, false);
+
+            logger.info(`WhatsApp disconnected for user ${userId}`);
+        }
+    } catch (error) {
+        logger.error(`Disconnect error for user ${userId}:`, error);
+        throw error;
+    }
+};
+
+/**
+ * Get connection for user
+ * @param {String} userId - User ID
+ * @returns {Object} Socket connection
+ */
+export const getConnection = (userId) => {
+    return connections.get(userId.toString());
+};
+
+/**
+ * Check if user is connected
+ * @param {String} userId - User ID
+ * @returns {Boolean} Is connected
+ */
+export const isConnected = (userId) => {
+    return connections.has(userId.toString());
+};
+
+/**
+ * Send text message
+ * @param {String} userId - User ID
+ * @param {String} jid - Recipient JID
+ * @param {String} text - Message text
+ * @returns {Object} Sent message
+ */
+export const sendTextMessage = async (userId, jid, text) => {
+    const sock = getConnection(userId);
+    if (!sock) throw new Error('WhatsApp not connected');
+
+    return await sock.sendMessage(jid, { text });
+};
+
+/**
+ * Send media message
+ * @param {String} userId - User ID
+ * @param {String} jid - Recipient JID
+ * @param {Object} mediaData - Media data (url, caption, type)
+ * @returns {Object} Sent message
+ */
+export const sendMediaMessage = async (userId, jid, mediaData) => {
+    const sock = getConnection(userId);
+    if (!sock) throw new Error('WhatsApp not connected');
+
+    const { url, caption, type } = mediaData;
+
+    const message = {
+        [type]: { url },
+        caption,
+    };
+
+    return await sock.sendMessage(jid, message);
+};
+
+// Helper functions
+
+async function updateSessionStatus(userId, status, phoneNumber = null) {
+    const update = { status };
+    if (status === CONNECTION_STATUS.CONNECTED) {
+        update.lastConnected = new Date();
+        if (phoneNumber) update.phoneNumber = phoneNumber;
+    }
+
+    await WhatsAppSession.findOneAndUpdate(
+        { userId },
+        update,
+        { upsert: true }
+    );
+}
+
+async function updateSessionQR(userId, qrText) {
+    // Import QR handler dynamically to avoid circular dependency
+    const { generateQRCode } = await import('../whatsapp/qr.handler.js');
+
+    // Convert QR text to data URL
+    const qrCodeDataURL = await generateQRCode(qrText);
+
+    await WhatsAppSession.findOneAndUpdate(
+        { userId },
+        { qrCode: qrCodeDataURL, status: CONNECTION_STATUS.QR_READY },
+        { upsert: true }
+    );
+}
+
+async function updateUserWhatsAppStatus(userId, connected) {
+    await User.findByIdAndUpdate(userId, { whatsappConnected: connected });
+}
+
+export default {
+    connectWhatsApp,
+    disconnectWhatsApp,
+    getConnection,
+    isConnected,
+    sendTextMessage,
+    sendMediaMessage,
+};
