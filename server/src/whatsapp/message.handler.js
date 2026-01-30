@@ -27,10 +27,18 @@ import { generateAIResponse } from '../services/ai.service.js';
  */
 export const handleIncomingMessage = async (userId, msg, io, sendResponse) => {
     try {
+        console.log(`📩 [handleIncomingMessage] User ${userId}: Processing message`, {
+            messageId: msg.key.id,
+            from: msg.key.remoteJid,
+            fromMe: msg.key.fromMe,
+            messageKeys: Object.keys(msg.message || {})
+        });
+
         const messageType = Object.keys(msg.message || {})[0];
 
         // Skip if protocol message or empty
         if (!messageType || messageType === 'protocolMessage' || messageType === 'senderKeyDistributionMessage') {
+            console.log(`⏭️  [handleIncomingMessage] User ${userId}: Skipping message type: ${messageType}`);
             return;
         }
 
@@ -53,6 +61,47 @@ export const handleIncomingMessage = async (userId, msg, io, sendResponse) => {
             status: MESSAGE_STATUS.READ, // Incoming messages are auto-read
         };
 
+        console.log(`💾 [handleIncomingMessage] User ${userId}: Saving message`, {
+            messageId: messageData.messageId,
+            chatJid: messageData.chatJid,
+            type: messageData.type,
+            text: content.text?.substring(0, 50) || 'N/A'
+        });
+
+        // --- Update Contact Info ---
+        try {
+            const pushName = msg.pushName;
+            const phoneNumber = chatJid.split('@')[0];
+
+            // Only update name if it's not from me (or if it is from me and I'm chatting with myself/unknown)
+            // But typically pushName on a message is the SENDER's name.
+            // If !fromMe, sender is the contact. pushName is contact's name.
+            if (!fromMe && pushName) {
+                await Contact.findOneAndUpdate(
+                    { userId, jid: chatJid },
+                    {
+                        name: pushName,
+                        phoneNumber: phoneNumber
+                    },
+                    { upsert: true, new: true }
+                );
+                console.log(`👤 [handleIncomingMessage] Updated contact info for ${chatJid}: ${pushName}`);
+            }
+            // Ensure Contact exists even if no pushName (init with number)
+            else {
+                await Contact.findOneAndUpdate(
+                    { userId, jid: chatJid },
+                    {
+                        $setOnInsert: { name: phoneNumber }, // Default name to number if new
+                        phoneNumber: phoneNumber
+                    },
+                    { upsert: true, new: true }
+                );
+            }
+        } catch (contactError) {
+            console.error('Error updating contact:', contactError);
+        }
+
         // Handle quoted message
         if (msg.message[messageType]?.contextInfo?.quotedMessage) {
             const quotedMsgId = msg.message[messageType].contextInfo.stanzaId;
@@ -65,6 +114,8 @@ export const handleIncomingMessage = async (userId, msg, io, sendResponse) => {
 
         // Save message to database
         const savedMessage = await saveMessage(messageData);
+
+        console.log(`✅ [handleIncomingMessage] User ${userId}: Message saved successfully:`, savedMessage._id);
 
         // Emit message to user via socket
         io.to(userId.toString()).emit('message:new', { message: savedMessage });

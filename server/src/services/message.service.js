@@ -15,7 +15,12 @@ import logger from '../utils/logger.util.js';
  */
 export const saveMessage = async (messageData) => {
     try {
-        const message = await Message.create(messageData);
+        // Use findOneAndUpdate with upsert to prevent duplicate key errors
+        const message = await Message.findOneAndUpdate(
+            { messageId: messageData.messageId, userId: messageData.userId },
+            messageData,
+            { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
 
         // Update chat last message timestamp
         await Chat.findOneAndUpdate(

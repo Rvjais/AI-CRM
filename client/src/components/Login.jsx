@@ -1,9 +1,12 @@
 import { useState } from 'react';
+import api from '../utils/apiClient';
 import './Login.css';
 
 function Login({ onLogin }) {
-    const [email, setEmail] = useState('test@example.com');
-    const [password, setPassword] = useState('Test1234');
+    const [isLogin, setIsLogin] = useState(true);
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [name, setName] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
@@ -13,26 +16,35 @@ function Login({ onLogin }) {
         setError('');
 
         try {
-            const response = await fetch('http://localhost:3000/api/auth/login', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ email, password }),
-            });
+            const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register';
+            const payload = isLogin ? { email, password } : { email, password, name };
 
-            const data = await response.json();
+            const data = await api.post(endpoint, payload);
 
             if (data.success) {
-                onLogin(data.data.accessToken);
+                // For both login and register, we get a token back
+                // Register returns: { user, accessToken, refreshToken }
+                // Login returns: { user, accessToken, refreshToken }
+                const token = data.data.accessToken || data.data.token;
+                if (token) {
+                    onLogin(token);
+                } else {
+                    setError('Authentication successful but no token received.');
+                }
             } else {
-                setError(data.message || 'Login failed');
+                setError(data.message || 'Authentication failed');
             }
         } catch (err) {
-            setError('Connection error. Make sure the server is running.');
+            setError(err.message || 'Connection error. Make sure the server is running.');
         } finally {
             setLoading(false);
         }
+    };
+
+    const toggleMode = () => {
+        setIsLogin(!isLogin);
+        setError('');
+        // Optional: Clear form or keep it
     };
 
     return (
@@ -52,11 +64,25 @@ function Login({ onLogin }) {
                             </defs>
                         </svg>
                     </div>
-                    <h1>WhatsApp CRM</h1>
-                    <p>AI-Powered Business Platform</p>
+                    <h1>{isLogin ? 'Welcome Back' : 'Create Account'}</h1>
+                    <p>{isLogin ? 'Sign in to your account' : 'Get started with your free account'}</p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="login-form">
+                    {!isLogin && (
+                        <div className="form-group">
+                            <label htmlFor="name">Full Name</label>
+                            <input
+                                type="text"
+                                id="name"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                required={!isLogin}
+                                placeholder="Enter your full name"
+                            />
+                        </div>
+                    )}
+
                     <div className="form-group">
                         <label htmlFor="email">Email</label>
                         <input
@@ -78,19 +104,34 @@ function Login({ onLogin }) {
                             onChange={(e) => setPassword(e.target.value)}
                             required
                             placeholder="Enter your password"
+                            minLength={8}
                         />
                     </div>
 
                     {error && <div className="error-message">{error}</div>}
 
                     <button type="submit" className="login-button" disabled={loading}>
-                        {loading ? 'Signing in...' : 'Sign In'}
+                        {loading
+                            ? (isLogin ? 'Signing in...' : 'Creating account...')
+                            : (isLogin ? 'Sign In' : 'Sign Up')
+                        }
                     </button>
 
-                    <div className="demo-note">
-                        <p>💡 Demo credentials pre-filled</p>
-                        <p className="small">Make sure backend server is running on port 3000</p>
+                    <div className="auth-toggle">
+                        <p>
+                            {isLogin ? "Don't have an account? " : "Already have an account? "}
+                            <button type="button" className="toggle-button" onClick={toggleMode}>
+                                {isLogin ? 'Sign Up' : 'Sign In'}
+                            </button>
+                        </p>
                     </div>
+
+                    {isLogin && (
+                        <div className="demo-note">
+                            <p>💡 Demo credentials:</p>
+                            <p className="small">test@example.com / Test1234</p>
+                        </div>
+                    )}
                 </form>
             </div>
         </div>

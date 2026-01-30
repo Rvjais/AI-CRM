@@ -121,8 +121,6 @@
 }
 
 .demo-note {
-    text-align: center;
-    padding: 16px;
     background: #f3f4f6;
     border-radius: 10px;
     margin-top: 8px;
@@ -137,4 +135,27 @@
 .demo-note .small {
     font-size: 12px;
     color: #9ca3af;
+}
+
+.auth-toggle {
+    text-align: center;
+    margin-top: 16px;
+    font-size: 14px;
+    color: #6b7280;
+}
+
+.toggle-button {
+    background: none;
+    border: none;
+    color: #667eea;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 0;
+    margin-left: 4px;
+}
+
+.toggle-button:hover {
+    text-decoration: underline;
+    color: #764ba2;
 }

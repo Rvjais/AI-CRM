@@ -50,7 +50,7 @@ export const connectWhatsApp = async (userId, io) => {
             logger: socketLogger,
             printQRInTerminal: false,
             auth: state,
-            browser: ['WhatsApp Business Platform', 'Chrome', '1.0.0'],
+            browser: ['Chrome (Linux)', '', ''],
             getMessage: async (key) => {
                 // Return undefined if message not found
                 return undefined;
@@ -70,10 +70,10 @@ export const connectWhatsApp = async (userId, io) => {
             // QR code received
             if (qr) {
                 logger.info(`QR code generated for user ${userId}`);
-                await updateSessionQR(userId, qr);
+                const qrCodeUrl = await updateSessionQR(userId, qr);
 
                 // Emit QR to user via socket
-                io.to(userId.toString()).emit('whatsapp:qr', { qrCode: qr });
+                io.to(userId.toString()).emit('whatsapp:qr', { qrCode: qrCodeUrl });
             }
 
             // Connection state changed
@@ -90,6 +90,12 @@ export const connectWhatsApp = async (userId, io) => {
                     setTimeout(() => connectWhatsApp(userId, io), 3000);
                 } else {
                     // Logged out
+                    logger.info(`User ${userId} logged out. Clearing auth state...`);
+
+                    // Clear auth state from disk/DB
+                    const { clearAuthState } = await import('../whatsapp/auth.handler.js');
+                    await clearAuthState(userId);
+
                     await updateSessionStatus(userId, CONNECTION_STATUS.DISCONNECTED);
                     await updateUserWhatsAppStatus(userId, false);
 
@@ -99,6 +105,7 @@ export const connectWhatsApp = async (userId, io) => {
                 }
             } else if (connection === 'open') {
                 logger.info(`Connection opened for user ${userId}`);
+                console.log(`✅ [WhatsApp] Connection OPEN for user ${userId} - Ready to receive messages!`);
 
                 const phoneNumber = sock.user.id.split(':')[0];
 
@@ -108,8 +115,8 @@ export const connectWhatsApp = async (userId, io) => {
                 io.to(userId.toString()).emit('whatsapp:connected', {
                     phoneNumber,
                     deviceInfo: {
-                        browser: 'WhatsApp Business Platform',
-                        version: '1.0.0',
+                        browser: 'Chrome (Linux)',
+                        version: '',
                     },
                 });
             }
@@ -120,15 +127,22 @@ export const connectWhatsApp = async (userId, io) => {
 
         // Handle incoming messages
         sock.ev.on('messages.upsert', async ({ messages, type }) => {
+            console.log(`🔔 [messages.upsert] Event triggered! Type: ${type}, Messages:`, messages.length);
             if (type === 'notify') {
                 for (const msg of messages) {
+                    console.log(`📨 [messages.upsert] Processing message (FULL_LOG):`, JSON.stringify(msg, null, 2));
+
                     const sendResponse = async (jid, text) => {
                         await sock.sendMessage(jid, { text });
                     };
                     await handleIncomingMessage(userId, msg, io, sendResponse);
                 }
+            } else {
+                console.log(`⏭️  [messages.upsert] Skipping type: ${type}`);
             }
         });
+
+        console.log(`✅ [WhatsApp] Event listener 'messages.upsert' attached for user ${userId}`);
 
         // Handle message updates (read, delivered, etc.)
         sock.ev.on('messages.update', async (updates) => {
@@ -282,6 +296,8 @@ async function updateSessionQR(userId, qrText) {
         { qrCode: qrCodeDataURL, status: CONNECTION_STATUS.QR_READY },
         { upsert: true }
     );
+
+    return qrCodeDataURL;
 }
 
 async function updateUserWhatsAppStatus(userId, connected) {

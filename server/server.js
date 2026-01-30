@@ -29,6 +29,24 @@ const startServer = async () => {
         // Configure Cloudinary
         configureCloudinary();
 
+        // Restore active WhatsApp sessions
+        try {
+            const WhatsAppSession = (await import('./src/models/WhatsAppSession.js')).default;
+            const { connectWhatsApp } = await import('./src/services/whatsapp.service.js');
+
+            const activeSessions = await WhatsAppSession.find({ status: 'connected' });
+            logger.info(`Found ${activeSessions.length} active sessions to restore`);
+
+            for (const session of activeSessions) {
+                logger.info(`Restoring session for user ${session.userId}`);
+                connectWhatsApp(session.userId, io).catch(err => {
+                    logger.error(`Failed to restore session for user ${session.userId}:`, err);
+                });
+            }
+        } catch (error) {
+            logger.error('Error restoring sessions:', error);
+        }
+
         // Start listening
         httpServer.listen(env.PORT, () => {
             logger.info(`

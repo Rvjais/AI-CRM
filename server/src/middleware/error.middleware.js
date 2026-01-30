@@ -65,6 +65,16 @@ export const errorHandler = (err, req, res, next) => {
         );
     }
 
+    // Auth errors
+    if (err.message === 'Invalid credentials' || err.message === 'Account is deactivated') {
+        return errorResponse(
+            res,
+            401,
+            err.message,
+            ERROR_CODES.AUTHENTICATION_ERROR
+        );
+    }
+
     // Multer errors (file upload)
     if (err.name === 'MulterError') {
         return errorResponse(

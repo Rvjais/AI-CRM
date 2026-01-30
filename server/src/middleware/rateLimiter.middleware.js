@@ -75,9 +75,13 @@ export const uploadLimiter = rateLimit({
  * WhatsApp connection rate limiter
  * 3 connection attempts per hour per user
  */
+/**
+ * WhatsApp connection rate limiter
+ * Relaxed for testing: 100 connection attempts per hour per user
+ */
 export const connectionLimiter = rateLimit({
     windowMs: 60 * 60 * 1000, // 1 hour
-    max: 100,
+    max: 100, // Increased from 3 to 100 for dev/testing
     message: 'Too many connection attempts, please try again later',
     handler: rateLimitHandler,
     keyGenerator: (req) => {

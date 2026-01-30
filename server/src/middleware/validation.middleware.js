@@ -84,8 +84,9 @@ export const schemas = {
     // Message schemas
     sendMessage: {
         body: Joi.object({
-            chatJid: Joi.string().required(),
-            type: Joi.string().valid('text', 'image', 'video', 'audio', 'document', 'sticker', 'location', 'contact').required(),
+            // New format
+            chatJid: Joi.string(),
+            type: Joi.string().valid('text', 'image', 'video', 'audio', 'document', 'sticker', 'location', 'contact'),
             content: Joi.object({
                 text: Joi.string(),
                 mediaUrl: Joi.string(),
@@ -96,10 +97,13 @@ export const schemas = {
                 longitude: Joi.number(),
                 contactName: Joi.string(),
                 contactNumber: Joi.string(),
-            }).required(),
+            }),
             quotedMessageId: Joi.string(),
             mentions: Joi.array().items(Joi.string()),
-        }),
+            // Legacy format (backward compatibility)
+            to: Joi.string(),
+            message: Joi.string(),
+        }).or('chatJid', 'to'), // At least one of chatJid or to must be present
     },
 
     getMessages: {

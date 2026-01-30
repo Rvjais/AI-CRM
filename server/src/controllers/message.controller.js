@@ -65,6 +65,7 @@ export const getAllChats = asyncHandler(async (req, res) => {
         includeArchived === 'true'
     );
 
+    // Return chats directly - successResponse wraps it in { success: true, data: chats }
     return successResponse(res, 200, 'Chats retrieved successfully', chats);
 });
 

@@ -79,7 +79,12 @@ export const encryptObject = (obj) => {
  */
 export const decryptObject = (encryptedText) => {
     const jsonString = decrypt(encryptedText);
-    return JSON.parse(jsonString);
+    return JSON.parse(jsonString, (key, value) => {
+        if (value && value.type === 'Buffer' && Array.isArray(value.data)) {
+            return Buffer.from(value.data);
+        }
+        return value;
+    });
 };
 
 /**

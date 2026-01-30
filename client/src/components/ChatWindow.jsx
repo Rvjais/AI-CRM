@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { FaPaperPlane, FaSmile } from 'react-icons/fa';
 import Message from './Message';
+import api from '../utils/apiClient';
 import './ChatWindow.css';
 
 function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat }) {
@@ -27,22 +28,7 @@ function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat }
             // Use JID if available, fallback to phone logic
             const jidToUse = selectedChat.jid || (selectedChat.phone.includes('@') ? selectedChat.phone : `${selectedChat.phone}@s.whatsapp.net`);
 
-            const response = await fetch(`http://localhost:3000/api/contacts/${jidToUse}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ aiEnabled: newStatus })
-            });
-
-            if (!response.ok) {
-                console.error('Failed to update AI status');
-                // Revert on failure
-                if (onUpdateChat) {
-                    onUpdateChat({ ...selectedChat, aiEnabled: !newStatus });
-                }
-            }
+            await api.put(`/api/contacts/${jidToUse}`, { aiEnabled: newStatus });
         } catch (error) {
             console.error('Error toggling AI:', error);
             // Revert on error
@@ -67,18 +53,16 @@ function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat }
     }, [selectedChat]);
 
     const fetchMessages = async () => {
-        if (!selectedChat?.phone) return;
+        if (!selectedChat) return;
+
+        // Use JID if available (preferred for LID support), otherwise construct it
+        const chatIdentifier = selectedChat.jid || selectedChat.phone;
+        if (!chatIdentifier) return;
 
         try {
-            const response = await fetch(
-                `http://localhost:3000/api/messages/${selectedChat.phone}`,
-                {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                }
-            );
-            const data = await response.json();
+            // Encode the identifier to handle @ characters safely in URL
+            const encodedId = encodeURIComponent(chatIdentifier);
+            const data = await api.get(`/api/messages/${encodedId}`);
             if (data.success) {
                 setMessages(data.data.messages || []);
             }
@@ -93,22 +77,20 @@ function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat }
 
         setLoading(true);
         try {
-            const response = await fetch('http://localhost:3000/api/messages/send', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    to: selectedChat.phone,
-                    message: newMessage
-                })
-            });
+            // Use new format with full JID for correct routing (LID support)
+            const payload = {
+                chatJid: selectedChat.jid || selectedChat.phone,
+                type: 'text',
+                content: { text: newMessage }
+            };
 
-            const data = await response.json();
+            const data = await api.post('/api/messages/send', payload);
+
             if (data.success) {
                 setMessages([...messages, {
                     _id: Date.now(),
+                    content: { text: newMessage },
+                    // fallback so it works with Message component legacy check too
                     message: newMessage,
                     fromMe: true,
                     timestamp: new Date().toISOString()

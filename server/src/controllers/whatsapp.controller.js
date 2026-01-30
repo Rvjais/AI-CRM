@@ -2,6 +2,7 @@ import * as whatsappService from '../services/whatsapp.service.js';
 import WhatsAppSession from '../models/WhatsAppSession.js';
 import { successResponse } from '../utils/response.util.js';
 import { asyncHandler } from '../middleware/error.middleware.js';
+import logger from '../utils/logger.util.js';
 
 /**
  * WhatsApp controller
@@ -25,7 +26,15 @@ export const connect = asyncHandler(async (req, res) => {
  * GET /api/whatsapp/qr
  */
 export const getQRCode = asyncHandler(async (req, res) => {
+    logger.info(`Getting QR code for user: ${req.userId}`);
     const session = await WhatsAppSession.findOne({ userId: req.userId });
+
+    logger.info(`Session found:`, {
+        exists: !!session,
+        status: session?.status,
+        hasQR: !!session?.qrCode,
+        qrLength: session?.qrCode?.length
+    });
 
     if (!session || !session.qrCode) {
         return successResponse(res, 200, 'No QR code available', { qrCode: null });

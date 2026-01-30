@@ -1,16 +1,17 @@
 import { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
 import { FaQrcode, FaRedo } from 'react-icons/fa';
+import api from '../utils/apiClient';
 import './QRScanner.css';
 
 function QRScanner({ token, onConnected, onLogout }) {
     const [qrCode, setQrCode] = useState(null);
-    const [status, setStatus] = useState('initializing'); // initializing, scaling, exhausted, connected
+    const [status, setStatus] = useState('initializing'); // initializing, idle, scanning, connected, exhausted
     const [socket, setSocket] = useState(null);
 
     useEffect(() => {
-        // Initialize socket
-        const newSocket = io('http://localhost:3000', {
+        // Initialize socket with dynamic URL
+        const newSocket = io(api.getBaseURL(), {
             auth: { token }
         });
 
@@ -29,7 +30,7 @@ function QRScanner({ token, onConnected, onLogout }) {
         });
 
         newSocket.on('whatsapp:disconnected', () => {
-            setStatus('initializing');
+            setStatus('idle');
             setQrCode(null);
         });
 
@@ -39,84 +40,70 @@ function QRScanner({ token, onConnected, onLogout }) {
 
         setSocket(newSocket);
         checkStatus();
-        initiateConnection();
 
-        return () => newSocket.disconnect();
+        return () => {
+            if (newSocket) newSocket.disconnect();
+        };
     }, [token]);
-
-    // Helper to handle fetch with auth check
-    const authenticatedFetch = async (url, options = {}) => {
-        try {
-            const response = await fetch(url, {
-                ...options,
-                headers: {
-                    ...options.headers,
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-
-            if (response.status === 401) {
-                if (onLogout) onLogout();
-                throw new Error('Unauthorized');
-            }
-            return response;
-        } catch (error) {
-            throw error;
-        }
-    };
 
     const checkStatus = async () => {
         try {
-            const response = await authenticatedFetch('http://localhost:3000/api/whatsapp/status');
-            const data = await response.json();
+            const data = await api.get('/api/whatsapp/status');
             if (data.data.connected) {
                 setStatus('connected');
                 onConnected();
-            } else if (data.data.status === 'QR_READY' || data.data.status === 'connecting') {
-                // Fetch existing QR if available
-                fetchQR();
+            } else {
+                // Force manual generation for all other states
+                // This ensures the button is always shown initially
+                setStatus('idle');
+                setQrCode(null);
             }
         } catch (error) {
             console.error('Status check failed:', error);
+            if (error.message === 'Unauthorized' && onLogout) {
+                onLogout();
+            }
+            setStatus('idle');
+            setQrCode(null);
         }
     };
 
     const fetchQR = async () => {
         try {
-            const response = await authenticatedFetch('http://localhost:3000/api/whatsapp/qr');
-            const data = await response.json();
+            const data = await api.get('/api/whatsapp/qr');
             if (data.data.qrCode) {
                 setQrCode(data.data.qrCode);
                 setStatus('scanning');
             } else {
-                initiateConnection();
+                // If it claimed to be ready but no code, go to idle
+                setStatus('idle');
             }
         } catch (error) {
             console.error('Fetch QR failed:', error);
+            setStatus('idle');
         }
     };
 
     const initiateConnection = async () => {
+        setStatus('initializing');
+        setQrCode(null);
         try {
-            await authenticatedFetch('http://localhost:3000/api/whatsapp/connect', {
-                method: 'POST'
-            });
+            await api.post('/api/whatsapp/connect');
         } catch (error) {
             console.error('Connection init failed:', error);
+            setStatus('idle');
         }
     };
 
-    const handleManualRefresh = async () => {
+    const handleGenerateQR = async () => {
         setStatus('initializing');
         setQrCode(null);
 
-        // Force disconnect first to clear stuck sessions
+        // Force disconnect first to clear stuck sessions if any
         try {
-            await authenticatedFetch('http://localhost:3000/api/whatsapp/disconnect', {
-                method: 'POST'
-            });
+            await api.post('/api/whatsapp/disconnect');
         } catch (e) {
-            console.warn('Disconnect failed, ignoring', e);
+            console.warn('Disconnect check failed, ignoring', e);
         }
 
         // Then connect
@@ -134,13 +121,18 @@ function QRScanner({ token, onConnected, onLogout }) {
                 <div className="qr-display">
                     {status === 'connected' ? (
                         <div className="status-message success">
-                            Connect Successfully! Redirecting...
+                            Connected Successfully! Redirecting...
                         </div>
-                    ) : status === 'exhausted' ? (
-                        <div className="qr-timeout-overlay">
-                            <p>{qrCode ? 'QR Code Expired' : 'Use the button below to generate a QR Code'}</p>
-                            <button className="refresh-btn" onClick={handleManualRefresh}>
-                                <FaRedo /> Generate QR Code
+                    ) : (status === 'idle' || status === 'exhausted') ? (
+                        <div className="qr-action-container">
+                            <div className="qr-placeholder">
+                                <FaQrcode size={64} className="qr-icon-placeholder" />
+                            </div>
+                            <p className="qr-status-text">
+                                {status === 'exhausted' ? 'QR Code Expired' : 'Ready to Connect'}
+                            </p>
+                            <button className="generate-btn" onClick={handleGenerateQR}>
+                                {status === 'exhausted' ? 'Generate New QR Code' : 'Generate QR Code'}
                             </button>
                         </div>
                     ) : qrCode ? (
@@ -148,7 +140,7 @@ function QRScanner({ token, onConnected, onLogout }) {
                     ) : (
                         <div className="loading-spinner">
                             <div className="spinner"></div>
-                            <p>Generating QR Code... Status: {status}</p>
+                            <p>Generating QR Code...</p>
                         </div>
                     )}
                 </div>

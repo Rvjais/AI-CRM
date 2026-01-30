@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { FaRobot, FaSave, FaUndo } from 'react-icons/fa';
+import api from '../utils/apiClient';
 import './AIConfig.css';
 
 function AIConfig({ token }) {
@@ -17,19 +18,12 @@ function AIConfig({ token }) {
     const fetchConfig = async () => {
         if (!token) return;
         try {
-            const response = await fetch('http://localhost:3000/api/ai/config', {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
+            const data = await api.get('/api/ai/config');
 
-            if (response.ok) {
-                const data = await response.json();
-                if (data.data) {
-                    setSystemPrompt(data.data.systemPrompt || "You are a helpful customer support assistant for RainCRM. Be professional, concise, and friendly.");
-                    // Assume we might add temperature later to backend, for now just local state or mock
-                    // setTemperature(data.data.temperature || 0.7);
-                }
+            if (data.success && data.data) {
+                setSystemPrompt(data.data.systemPrompt || "You are a helpful customer support assistant for RainCRM. Be professional, concise, and friendly.");
+                // Assume we might add temperature later to backend, for now just local state or mock
+                //setTemperature(data.data.temperature || 0.7);
             }
         } catch (error) {
             console.error('Error fetching AI config:', error);
@@ -40,20 +34,13 @@ function AIConfig({ token }) {
 
     const handleSave = async () => {
         try {
-            const response = await fetch('http://localhost:3000/api/ai/config', {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    systemPrompt,
-                    temperature,
-                    enabled: true // Always ensure enabled if we are saving config
-                })
+            const data = await api.put('/api/ai/config', {
+                systemPrompt,
+                temperature,
+                enabled: true // Always ensure enabled if we are saving config
             });
 
-            if (response.ok) {
+            if (data.success) {
                 setSaved(true);
                 setTimeout(() => setSaved(false), 3000);
             } else {

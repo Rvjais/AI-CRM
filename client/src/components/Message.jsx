@@ -22,7 +22,9 @@ function Message({ message }) {
             )}
 
             <div className="message-bubble">
-                <p className="message-text">{message.message || message.text}</p>
+                <p className="message-text">
+                    {message.content?.text || message.message || message.text || 'Unsupported message type'}
+                </p>
                 <span className="message-time">{formatTime(message.timestamp)}</span>
             </div>
         </div>
