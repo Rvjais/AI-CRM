@@ -7,6 +7,7 @@ function AIConfig({ token }) {
     const [systemPrompt, setSystemPrompt] = useState(
         "You are a helpful customer support assistant for RainCRM. Be professional, concise, and friendly."
     );
+    const [apiKey, setApiKey] = useState('');
     const [temperature, setTemperature] = useState(0.7);
     const [saved, setSaved] = useState(false);
     const [loading, setLoading] = useState(true);
@@ -22,8 +23,12 @@ function AIConfig({ token }) {
 
             if (data.success && data.data) {
                 setSystemPrompt(data.data.systemPrompt || "You are a helpful customer support assistant for RainCRM. Be professional, concise, and friendly.");
-                // Assume we might add temperature later to backend, for now just local state or mock
-                //setTemperature(data.data.temperature || 0.7);
+                // API key is usually not returned for security, or returned masked.
+                // If the backend returns it masked, we can show it, otherwise keep blank to indicate "unchanged" unless typed
+                if (data.data.hasApiKey) {
+                    setApiKey('********');
+                }
+                setTemperature(data.data.temperature || 0.7);
             }
         } catch (error) {
             console.error('Error fetching AI config:', error);
@@ -34,11 +39,18 @@ function AIConfig({ token }) {
 
     const handleSave = async () => {
         try {
-            const data = await api.put('/api/ai/config', {
+            const payload = {
                 systemPrompt,
                 temperature,
-                enabled: true // Always ensure enabled if we are saving config
-            });
+                enabled: true
+            };
+
+            // Only send API key if it's not the masked placeholder
+            if (apiKey && apiKey !== '********') {
+                payload.apiKey = apiKey;
+            }
+
+            const data = await api.put('/api/ai/config', payload);
 
             if (data.success) {
                 setSaved(true);
@@ -54,6 +66,7 @@ function AIConfig({ token }) {
     const handleReset = () => {
         setSystemPrompt("You are a helpful customer support assistant for RainCRM. Be professional, concise, and friendly.");
         setTemperature(0.7);
+        setApiKey('');
     };
 
     if (loading) {
@@ -71,20 +84,20 @@ function AIConfig({ token }) {
                 <div className="config-card">
                     <div className="card-header">
                         <FaRobot className="card-icon" />
-                        <h2>System Prompt</h2>
+                        <h2>Bot Settings</h2>
                     </div>
                     <p className="description">
-                        Define the persona and behavior of your AI agent. This instruction will be sent to the AI model for every response.
+                        Define the persona and behavior of your AI agent.
                     </p>
 
                     <div className="form-group">
-                        <label>Bot Persona & Instructions</label>
+                        <label>System Prompt</label>
                         <textarea
                             value={systemPrompt}
                             onChange={(e) => setSystemPrompt(e.target.value)}
                             placeholder="e.g., You are a sales representative..."
                             className="prompt-textarea"
-                            rows={12}
+                            rows={10}
                         />
                     </div>
 

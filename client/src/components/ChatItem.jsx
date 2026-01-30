@@ -35,7 +35,16 @@ function ChatItem({ chat, isSelected, onClick }) {
 
             <div className="chat-info">
                 <div className="chat-header-row">
-                    <h4 className="chat-name">{chat.name || chat.phone}</h4>
+                    <div className="name-with-sentiment">
+                        <h4 className="chat-name">{chat.name || chat.phone}</h4>
+                        {chat.sentiment && (
+                            <span
+                                className={`sentiment-dot ${chat.sentiment}`}
+                                title={`Sentiment: ${chat.sentiment}`}
+                            />
+                        )}
+                        {chat.aiEnabled && <span title="AI Enabled">🤖</span>}
+                    </div>
                     <span className="chat-time">{getLastMessageTime()}</span>
                 </div>
                 <div className="chat-message-row">

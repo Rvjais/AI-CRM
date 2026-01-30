@@ -168,3 +168,23 @@ export const markAsRead = asyncHandler(async (req, res) => {
 
     return successResponse(res, 200, 'Messages marked as read');
 });
+
+/**
+ * Toggle AI for chat
+ * POST /api/messages/:chatJid/toggle-ai
+ */
+export const toggleAI = asyncHandler(async (req, res) => {
+    const { chatJid } = req.params;
+    const { enabled } = req.body;
+
+    // Use Chat model directly or via service
+    const Chat = (await import('../models/Chat.js')).default;
+
+    const chat = await Chat.findOneAndUpdate(
+        { userId: req.userId, chatJid },
+        { aiEnabled: enabled },
+        { new: true, upsert: true } // Create if not exists
+    );
+
+    return successResponse(res, 200, `AI ${enabled ? 'enabled' : 'disabled'} for chat`, chat);
+});

@@ -39,6 +39,15 @@ const chatSchema = new mongoose.Schema(
         lastMessageAt: {
             type: Date,
         },
+        aiEnabled: {
+            type: Boolean,
+            default: false,
+        },
+        sentiment: {
+            type: String,
+            enum: ['positive', 'neutral', 'negative'],
+            default: 'neutral',
+        },
     },
     {
         timestamps: true,
@@ -48,6 +57,7 @@ const chatSchema = new mongoose.Schema(
 // Compound index for unique chat per user
 chatSchema.index({ userId: 1, chatJid: 1 }, { unique: true });
 chatSchema.index({ userId: 1, isArchived: 1, lastMessageAt: -1 });
+chatSchema.index({ userId: 1, sentiment: 1 });
 
 const Chat = mongoose.model('Chat', chatSchema);
 

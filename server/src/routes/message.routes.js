@@ -23,5 +23,6 @@ router.delete('/:messageId', validate(schemas.idParam), messageController.delete
 router.put('/:messageId/edit', validate(schemas.editMessage), messageController.editMessage);
 router.post('/:messageId/react', validate(schemas.reactToMessage), messageController.reactToMessage);
 router.post('/:messageId/forward', validate(schemas.forwardMessage), messageController.forwardMessage);
+router.post('/:chatJid/toggle-ai', messageController.toggleAI);
 
 export default router;

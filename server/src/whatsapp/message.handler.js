@@ -16,7 +16,8 @@ import logger from '../utils/logger.util.js';
  * @param {Object} io - Socket.io instance
  */
 import Contact from '../models/Contact.js';
-import { generateAIResponse } from '../services/ai.service.js';
+import Chat from '../models/Chat.js';
+import { generateAIResponse, analyzeSentiment } from '../services/ai.service.js';
 
 /**
  * Handle incoming message
@@ -122,18 +123,48 @@ export const handleIncomingMessage = async (userId, msg, io, sendResponse) => {
 
         logger.info(`Message processed for user ${userId}: ${msg.key.id}`);
 
+        // --- Sentiment Analysis & Chat Update ---
+        if (!fromMe && content.text) {
+            try {
+                const sentiment = await analyzeSentiment(content.text);
+
+                // Update Chat with last message and sentiment
+                await Chat.findOneAndUpdate(
+                    { userId, chatJid },
+                    {
+                        sentiment,
+                        lastMessageAt: new Date()
+                    },
+                    { upsert: true } // Should already exist from message.service but safe to keep
+                );
+
+                // Emit update to refresh chat list sentiment
+                // We can emit a specific event or just rely on re-fetching. 
+                // Ideally, emitting a chat:update event would be best.
+                const updatedChat = await Chat.findOne({ userId, chatJid }).lean();
+                // Add virtual fields if needed, but for now sending raw chat update
+                io.to(userId.toString()).emit('chat:update', { chat: updatedChat });
+
+            } catch (sentimentError) {
+                logger.error('Error in sentiment analysis:', sentimentError);
+            }
+        }
+
         // --- AI Auto-Response Logic ---
         if (!fromMe && content.text && sendResponse) {
             try {
-                // Check if AI is enabled for this contact
-                const contact = await Contact.findOne({ userId, jid: chatJid });
+                // Check if AI is enabled for this CHAT (not just contact)
+                const chat = await Chat.findOne({ userId, chatJid });
 
-                if (contact && contact.aiEnabled) {
-                    logger.info(`AI enabled for contact ${chatJid}, generating response...`);
+                if (chat && chat.aiEnabled) {
+                    logger.info(`AI enabled for chat ${chatJid}, generating response...`);
+
+                    // Simulate reading delay based on length (optional but nice)
+                    // const delay = Math.min(content.text.length * 50, 2000);
+                    // await new Promise(resolve => setTimeout(resolve, delay));
 
                     // Fetch system prompt from User (implied in service or passed here)
-                    // We'll let the service fetch the config using userId
-                    const aiResponse = await generateAIResponse(userId, content.text);
+                    const aiResponse = await generateAIResponse(userId, chatJid, content.text);
 
                     if (aiResponse) {
                         // Send response
@@ -142,7 +173,7 @@ export const handleIncomingMessage = async (userId, msg, io, sendResponse) => {
                         // Save bot message to database
                         const botMessageData = {
                             userId,
-                            messageId: `AI-${Date.now()}`, // Generate proper ID or let Baileys handle it if we used sock.sendMessage result
+                            messageId: `AI-${Date.now()}`,
                             chatJid,
                             fromMe: true, // It's from "us" (the bot)
                             type: MESSAGE_TYPES.TEXT,

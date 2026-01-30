@@ -50,9 +50,11 @@ body {
   grid-template-columns: 320px 1fr 380px;
   height: 100%;
   width: 100%;
+  overflow: hidden;
+  /* Prevent parent scrolling */
 }
 
-@media (max-width: 1200px) {
+@media (max-width: 900px) {
   .whatsapp-view {
     grid-template-columns: 280px 1fr;
   }

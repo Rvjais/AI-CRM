@@ -28,7 +28,8 @@ function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat }
             // Use JID if available, fallback to phone logic
             const jidToUse = selectedChat.jid || (selectedChat.phone.includes('@') ? selectedChat.phone : `${selectedChat.phone}@s.whatsapp.net`);
 
-            await api.put(`/api/contacts/${jidToUse}`, { aiEnabled: newStatus });
+            // Use the toggle-ai endpoint
+            await api.post(`/api/messages/${encodeURIComponent(jidToUse)}/toggle-ai`, { enabled: newStatus });
         } catch (error) {
             console.error('Error toggling AI:', error);
             // Revert on error
