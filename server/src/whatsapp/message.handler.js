@@ -1,7 +1,8 @@
-import { downloadMediaMessage } from '@whiskeysockets/baileys';
+import { downloadMediaMessage, jidNormalizedUser } from '@whiskeysockets/baileys';
 import { MESSAGE_TYPES, MESSAGE_STATUS } from '../config/constants.js';
 import { saveMessage } from '../services/message.service.js';
 import { uploadToCloudinary } from '../services/cloudinary.service.js';
+import { uploadToMongo } from '../services/mongo.service.js';
 import logger from '../utils/logger.util.js';
 
 /**
@@ -33,8 +34,12 @@ export const handleIncomingMessage = async (userId, msg, io, sendResponse) => {
             messageId: msg.key.id,
             from: msg.key.remoteJid,
             fromMe: msg.key.fromMe,
+            participant: msg.key.participant,
             messageKeys: Object.keys(msg.message || {})
         });
+
+        // --- TEMPORARY DEBUG LOGGING REMOVED ---
+        // --------------------------------
 
         const messageType = Object.keys(msg.message || {})[0];
 
@@ -44,12 +49,12 @@ export const handleIncomingMessage = async (userId, msg, io, sendResponse) => {
             return;
         }
 
-        // Extract message content
-        const content = await extractMessageContent(msg, messageType);
-
-        // Determine chat JID
-        const chatJid = msg.key.remoteJid;
+        // Determine chat JID - Normalize to avoid duplicates (LID vs Phone)
+        const chatJid = jidNormalizedUser(msg.key.remoteJid);
         const fromMe = msg.key.fromMe;
+
+        // Extract message content (now needs userId for media upload)
+        const content = await extractMessageContent(msg, messageType, userId);
 
         // Create message data
         const messageData = {
@@ -73,33 +78,44 @@ export const handleIncomingMessage = async (userId, msg, io, sendResponse) => {
         // --- Update Contact Info ---
         try {
             const pushName = msg.pushName;
-            const phoneNumber = chatJid.split('@')[0];
+            let phoneNumber = chatJid.split('@')[0];
 
-            // Only update name if it's not from me (or if it is from me and I'm chatting with myself/unknown)
-            // But typically pushName on a message is the SENDER's name.
-            // If !fromMe, sender is the contact. pushName is contact's name.
-            if (!fromMe && pushName) {
-                await Contact.findOneAndUpdate(
-                    { userId, jid: chatJid },
-                    {
-                        name: pushName,
-                        phoneNumber: phoneNumber
-                    },
-                    { upsert: true, new: true }
-                );
-                console.log(`👤 [handleIncomingMessage] Updated contact info for ${chatJid}: ${pushName}`);
+            // Extract real phone number from LID message if available
+            if (msg.key.senderPn) {
+                phoneNumber = msg.key.senderPn.split('@')[0];
+                console.log(`📞 [handleIncomingMessage] Found real phone number for LID: ${phoneNumber}`);
             }
-            // Ensure Contact exists even if no pushName (init with number)
-            else {
-                await Contact.findOneAndUpdate(
-                    { userId, jid: chatJid },
-                    {
-                        $setOnInsert: { name: phoneNumber }, // Default name to number if new
-                        phoneNumber: phoneNumber
-                    },
-                    { upsert: true, new: true }
-                );
+
+            const updateOps = {
+                $set: { phoneNumber },
+                $setOnInsert: {}
+            };
+
+            if (pushName && !fromMe) {
+                updateOps.$set.name = pushName;
+            } else {
+                updateOps.$setOnInsert.name = phoneNumber;
             }
+
+            // Update Contact
+            await Contact.findOneAndUpdate(
+                { userId, jid: chatJid },
+                updateOps,
+                { upsert: true, new: true }
+            );
+
+            // Also update Chat with the phone number if it's new information
+            await Chat.findOneAndUpdate(
+                { userId, chatJid },
+                {
+                    $set: {
+                        contactName: pushName, // Store pushname as contact name fallback
+                        phoneNumber: phoneNumber
+                    }
+                },
+                { upsert: true }
+            );
+
         } catch (contactError) {
             console.error('Error updating contact:', contactError);
         }
@@ -212,54 +228,82 @@ export const handleIncomingMessage = async (userId, msg, io, sendResponse) => {
  * @param {String} messageType - Message type
  * @returns {Object} Content object
  */
-async function extractMessageContent(msg, messageType) {
+async function extractMessageContent(msg, messageType, userId) {
     const content = {};
 
-    switch (messageType) {
-        case 'conversation':
-            content.text = msg.message.conversation;
-            break;
+    try {
+        switch (messageType) {
+            case 'conversation':
+                content.text = msg.message.conversation;
+                break;
 
-        case 'extendedTextMessage':
-            content.text = msg.message.extendedTextMessage.text;
-            break;
+            case 'extendedTextMessage':
+                content.text = msg.message.extendedTextMessage.text;
+                break;
 
-        case 'imageMessage':
-            content.caption = msg.message.imageMessage.caption || '';
-            content.mimeType = msg.message.imageMessage.mimetype;
-            // Media will be downloaded when requested
-            break;
+            case 'imageMessage':
+                content.caption = msg.message.imageMessage.caption || '';
+                content.mimeType = msg.message.imageMessage.mimetype;
+                try {
+                    content.url = await downloadAndUploadMedia(msg, userId);
+                } catch (e) {
+                    logger.error('Failed to process image:', e);
+                }
+                break;
 
-        case 'videoMessage':
-            content.caption = msg.message.videoMessage.caption || '';
-            content.mimeType = msg.message.videoMessage.mimetype;
-            break;
+            case 'videoMessage':
+                content.caption = msg.message.videoMessage.caption || '';
+                content.mimeType = msg.message.videoMessage.mimetype;
+                try {
+                    content.url = await downloadAndUploadMedia(msg, userId);
+                } catch (e) {
+                    logger.error('Failed to process video:', e);
+                }
+                break;
 
-        case 'audioMessage':
-            content.mimeType = msg.message.audioMessage.mimetype;
-            break;
+            case 'audioMessage':
+                content.mimeType = msg.message.audioMessage.mimetype;
+                try {
+                    content.url = await downloadAndUploadMedia(msg, userId);
+                } catch (e) {
+                    logger.error('Failed to process audio:', e);
+                }
+                break;
 
-        case 'documentMessage':
-            content.fileName = msg.message.documentMessage.fileName;
-            content.mimeType = msg.message.documentMessage.mimetype;
-            break;
+            case 'documentMessage':
+                content.fileName = msg.message.documentMessage.fileName;
+                content.mimeType = msg.message.documentMessage.mimetype;
+                try {
+                    content.url = await downloadAndUploadMedia(msg, userId);
+                } catch (e) {
+                    logger.error('Failed to process document:', e);
+                }
+                break;
 
-        case 'stickerMessage':
-            content.mimeType = msg.message.stickerMessage.mimetype;
-            break;
+            case 'stickerMessage':
+                content.mimeType = msg.message.stickerMessage.mimetype;
+                try {
+                    content.url = await downloadAndUploadMedia(msg, userId);
+                } catch (e) {
+                    logger.error('Failed to process sticker:', e);
+                }
+                break;
 
-        case 'locationMessage':
-            content.latitude = msg.message.locationMessage.degreesLatitude;
-            content.longitude = msg.message.locationMessage.degreesLongitude;
-            break;
+            case 'locationMessage':
+                content.latitude = msg.message.locationMessage.degreesLatitude;
+                content.longitude = msg.message.locationMessage.degreesLongitude;
+                break;
 
-        case 'contactMessage':
-            content.contactName = msg.message.contactMessage.displayName;
-            content.contactNumber = msg.message.contactMessage.vcard;
-            break;
+            case 'contactMessage':
+                content.contactName = msg.message.contactMessage.displayName;
+                content.contactNumber = msg.message.contactMessage.vcard;
+                break;
 
-        default:
-            content.text = JSON.stringify(msg.message[messageType]);
+            default:
+                content.text = JSON.stringify(msg.message[messageType]);
+        }
+    } catch (error) {
+        logger.error('Error extracting message content:', error);
     }
 
     return content;
@@ -302,10 +346,20 @@ export const downloadAndUploadMedia = async (msg, userId) => {
         const mimeType = msg.message[messageType].mimetype;
         const fileName = msg.message[messageType].fileName || `media_${Date.now()}`;
 
-        // Upload to Cloudinary
-        const media = await uploadToCloudinary(buffer, fileName, mimeType, userId);
+        // Check MIME type to decide storage
+        if (mimeType.startsWith('image/') || mimeType.startsWith('video/')) {
+            // Upload to Cloudinary
+            const media = await uploadToCloudinary(buffer, fileName, mimeType, userId);
+            return media.secureUrl;
+        } else {
+            // Upload to MongoDB GridFS
+            const result = await uploadToMongo(buffer, fileName, mimeType);
 
-        return media.secureUrl;
+            // If using relative URL, ensure full path for frontend if needed, 
+            // but usually /api/files/ID is fine if frontend prepends host or uses relative
+            // For now, return the relative API path
+            return result.url;
+        }
     } catch (error) {
         logger.error('Error downloading/uploading media:', error);
         throw error;

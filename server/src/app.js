@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import compression from 'compression';
 import env from './config/env.js';
 import routes from './routes/index.js';
+import fileRoutes from './routes/file.routes.js';
 import { errorHandler, notFoundHandler } from './middleware/error.middleware.js';
 import { apiLimiter } from './middleware/rateLimiter.middleware.js';
 import logger from './utils/logger.util.js';
@@ -64,6 +65,7 @@ app.use('/api', apiLimiter);
 
 // API routes
 app.use('/api', routes);
+app.use('/api/files', fileRoutes);
 
 // Health check (no prefix)
 app.get('/', (req, res) => {

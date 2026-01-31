@@ -52,6 +52,14 @@ const chatSchema = new mongoose.Schema(
             enum: ['positive', 'neutral', 'negative'],
             default: 'neutral',
         },
+        contactName: {
+            type: String,
+            trim: true,
+        },
+        phoneNumber: {
+            type: String,
+            trim: true,
+        },
     },
     {
         timestamps: true,

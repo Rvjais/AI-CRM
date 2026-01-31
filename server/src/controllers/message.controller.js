@@ -25,15 +25,55 @@ export const sendMessage = asyncHandler(async (req, res) => {
 
     let sentMessage;
 
-    // Send based on type
+    // Construct content object based on type
+    let messageContent = {};
+    let messageOptions = {};
+
     if (type === MESSAGE_TYPES.TEXT) {
-        sentMessage = await sock.sendMessage(chatJid, { text: content.text });
-    } else if ([MESSAGE_TYPES.IMAGE, MESSAGE_TYPES.VIDEO, MESSAGE_TYPES.AUDIO, MESSAGE_TYPES.DOCUMENT].includes(type)) {
-        sentMessage = await sock.sendMessage(chatJid, {
-            [type]: { url: content.mediaUrl },
+        messageContent = { text: content.text };
+        if (mentions) {
+            messageContent.mentions = mentions;
+        }
+    } else if ([MESSAGE_TYPES.IMAGE, MESSAGE_TYPES.VIDEO, MESSAGE_TYPES.AUDIO, MESSAGE_TYPES.DOCUMENT, 'gif'].includes(type) || type === 'sticker') {
+        const mediaType = type === 'gif' ? 'video' : type; // GIFs are videos
+
+        messageContent = {
+            [mediaType]: { url: content.mediaUrl || content.url },
             caption: content.caption,
-        });
+            mimetype: content.mimetype
+        };
+
+        if (type === 'gif') {
+            messageContent.gifPlayback = true;
+        }
+
+        if (content.isViewOnce) {
+            messageContent.viewOnce = true;
+        }
+
+        if (type === 'document' && content.fileName) {
+            messageContent.fileName = content.fileName;
+        }
+    } else if (type === 'location') {
+        messageContent = {
+            location: {
+                degreesLatitude: content.latitude,
+                degreesLongitude: content.longitude
+            }
+        };
     }
+
+    // Handle options
+    if (quotedMessageId) {
+        // In a real app, we'd fetch the message object from store.
+        // For now preventing error if complex object needed, or implement store fetch.
+        // Baileys requires full message object for quote usually, or contextInfo.
+        // Simplified approach: passing contextInfo directly if frontend sends it, 
+        // or just skip for now if we don't have store.
+        // messageOptions.quoted = ... 
+    }
+
+    sentMessage = await whatsappService.sendMessage(userId, chatJid, messageContent, messageOptions);
 
     // Save to database
     const messageData = {

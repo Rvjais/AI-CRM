@@ -7,7 +7,13 @@ import './ChatWindow.css';
 function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat }) {
     const [newMessage, setNewMessage] = useState('');
     const [loading, setLoading] = useState(false);
+    const [mediaFile, setMediaFile] = useState(null);
+    const [mediaPreview, setMediaPreview] = useState(null);
+    const [isViewOnce, setIsViewOnce] = useState(false);
+    const [isGif, setIsGif] = useState(false);
+    const [uploading, setUploading] = useState(false);
     const messagesEndRef = useRef(null);
+    const fileInputRef = useRef(null);
 
     const toggleChatAI = async () => {
         if (!selectedChat) return;
@@ -72,36 +78,93 @@ function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat }
         }
     };
 
+    const handleFileSelect = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        setMediaFile(file);
+        setMediaPreview(URL.createObjectURL(file));
+
+        // Reset options
+        setIsViewOnce(false);
+        setIsGif(false);
+
+        // Upload immediately to get URL (or simplified: upload on send)
+        // For smoother UX, let's just hold the file and upload on send
+        // to avoid complexity with cancelling uploads here. 
+    };
+
+    const cancelMedia = () => {
+        setMediaFile(null);
+        setMediaPreview(null);
+        setIsViewOnce(false);
+        setIsGif(false);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+
     const handleSendMessage = async (e) => {
         e.preventDefault();
-        if (!newMessage.trim() || !selectedChat || loading) return;
+        if ((!newMessage.trim() && !mediaFile) || !selectedChat || loading || uploading) return;
 
         setLoading(true);
         try {
             // Use new format with full JID for correct routing (LID support)
+            const chatJid = selectedChat.jid || selectedChat.phone;
+            let type = 'text';
+            let content = { text: newMessage };
+
+            if (mediaFile) {
+                setUploading(true);
+                // Upload file
+                const formData = new FormData();
+                formData.append('file', mediaFile);
+
+                const uploadRes = await api.post('/api/media/upload', formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' } // axios/fetch handles this usually but good to be explicit or let generic handler do it
+                });
+
+                if (!uploadRes.success) throw new Error('Upload failed');
+
+                const { url, type: mediaType, mimetype } = uploadRes.data;
+
+                type = mediaType;
+                if (isGif && mediaType === 'video') type = 'gif';
+
+                content = {
+                    mediaUrl: url,
+                    caption: newMessage, // Text becomes caption for media
+                    mimetype: mimetype,
+                    isViewOnce: isViewOnce
+                };
+            }
+
             const payload = {
-                chatJid: selectedChat.jid || selectedChat.phone,
-                type: 'text',
-                content: { text: newMessage }
+                chatJid,
+                type,
+                content
             };
 
             const data = await api.post('/api/messages/send', payload);
 
             if (data.success) {
-                setMessages([...messages, {
+                // Optimistic update (simplified)
+                const sentMsg = data.data || {
                     _id: Date.now(),
-                    content: { text: newMessage },
-                    // fallback so it works with Message component legacy check too
-                    message: newMessage,
+                    content: content,
+                    type: type,
                     fromMe: true,
                     timestamp: new Date().toISOString()
-                }]);
+                };
+
+                setMessages([...messages, sentMsg]);
                 setNewMessage('');
+                cancelMedia();
             }
         } catch (error) {
             console.error('Error sending message:', error);
         } finally {
             setLoading(false);
+            setUploading(false);
         }
     };
 
@@ -138,7 +201,21 @@ function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat }
                             </span>
                         )}
                     </div>
-                    <p>{selectedChat.phone}</p>
+                    <p>{(() => {
+                        const jid = selectedChat.jid || '';
+
+                        // Handle Special Types based on JID
+                        if (jid.includes('@broadcast')) return 'Broadcast List';
+                        if (jid === 'status@broadcast') return 'Status';
+                        if (jid.includes('@g.us')) return 'Group Chat';
+
+                        // For standard users (LID or normal), prefer the phone property
+                        // which contains the resolved real number from the backend
+                        const displayPhone = selectedChat.phone || jid.replace('@s.whatsapp.net', '').replace('@c.us', '').replace('@lid', '');
+
+                        // Basic formatting
+                        return displayPhone.startsWith('+') ? displayPhone : `+${displayPhone}`;
+                    })()}</p>
                 </div>
 
                 <button
@@ -162,22 +239,70 @@ function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat }
                 <div ref={messagesEndRef} />
             </div>
 
+            {mediaFile && (
+                <div className="media-preview-container">
+                    <div className="media-preview-content">
+                        {mediaFile.type.startsWith('image/') ? (
+                            <img src={mediaPreview} alt="Preview" />
+                        ) : (
+                            <video src={mediaPreview} controls />
+                        )}
+                        <button className="close-preview" onClick={cancelMedia}>×</button>
+                    </div>
+                    <div className="media-options">
+                        <label className={`option-pill ${isViewOnce ? 'active' : ''}`}>
+                            <input
+                                type="checkbox"
+                                checked={isViewOnce}
+                                onChange={(e) => setIsViewOnce(e.target.checked)}
+                            />
+                            ⏱️ View Once
+                        </label>
+                        {mediaFile.type.startsWith('video/') && (
+                            <label className={`option-pill ${isGif ? 'active' : ''}`}>
+                                <input
+                                    type="checkbox"
+                                    checked={isGif}
+                                    onChange={(e) => setIsGif(e.target.checked)}
+                                />
+                                🎞️ Send as GIF
+                            </label>
+                        )}
+                    </div>
+                </div>
+            )}
+
             <form className="message-input-container" onSubmit={handleSendMessage}>
+                <input
+                    type="file"
+                    ref={fileInputRef}
+                    style={{ display: 'none' }}
+                    onChange={handleFileSelect}
+                    accept="image/*,video/*,audio/*,application/pdf"
+                />
+                <button
+                    type="button"
+                    className="attach-button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                >
+                    📎
+                </button>
                 <button type="button" className="emoji-button">
                     <FaSmile />
                 </button>
                 <input
                     type="text"
-                    placeholder="Type a message..."
+                    placeholder={mediaFile ? "Add a caption..." : "Type a message..."}
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
-                    disabled={loading}
+                    disabled={loading || uploading}
                     className="message-input"
                 />
                 <button
                     type="submit"
                     className="send-button"
-                    disabled={loading || !newMessage.trim()}
+                    disabled={loading || uploading || (!newMessage.trim() && !mediaFile)}
                 >
                     <FaPaperPlane />
                 </button>

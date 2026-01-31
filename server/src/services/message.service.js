@@ -118,7 +118,9 @@ export const getUserChats = async (userId, includeArchived = false) => {
                     isMuted: chatInfo?.isMuted || false,
                     isPinned: chatInfo?.isPinned || false,
                     aiEnabled: chatInfo?.aiEnabled || false,
-                    isGroup: chatInfo?.isGroup || false
+                    isGroup: chatInfo?.isGroup || false,
+                    phoneNumber: chatInfo?.phoneNumber,
+                    contactName: chatInfo?.contactName
                 };
             })
         );

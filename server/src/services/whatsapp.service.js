@@ -228,32 +228,46 @@ export const isConnected = (userId) => {
  * @param {String} text - Message text
  * @returns {Object} Sent message
  */
-export const sendTextMessage = async (userId, jid, text) => {
+/**
+ * Send generic message (mimics Baileys sendMessage)
+ * @param {String} userId - User ID
+ * @param {String} jid - Recipient JID
+ * @param {Object} content - Baileys content object
+ * @param {Object} options - Baileys options object
+ * @returns {Object} Sent message
+ */
+export const sendMessage = async (userId, jid, content, options = {}) => {
     const sock = getConnection(userId);
     if (!sock) throw new Error('WhatsApp not connected');
 
-    return await sock.sendMessage(jid, { text });
+    return await sock.sendMessage(jid, content, options);
 };
 
 /**
- * Send media message
+ * Send text message (Wrapper for backward compatibility)
  * @param {String} userId - User ID
  * @param {String} jid - Recipient JID
- * @param {Object} mediaData - Media data (url, caption, type)
+ * @param {String} text - Message text
+ * @returns {Object} Sent message
+ */
+export const sendTextMessage = async (userId, jid, text) => {
+    return sendMessage(userId, jid, { text });
+};
+
+/**
+ * Send media message (Wrapper for backward compatibility)
+ * @param {String} userId - User ID
+ * @param {String} jid - Recipient JID
+ * @param {Object} mediaData - Media data
  * @returns {Object} Sent message
  */
 export const sendMediaMessage = async (userId, jid, mediaData) => {
-    const sock = getConnection(userId);
-    if (!sock) throw new Error('WhatsApp not connected');
-
     const { url, caption, type } = mediaData;
-
     const message = {
         [type]: { url },
         caption,
     };
-
-    return await sock.sendMessage(jid, message);
+    return sendMessage(userId, jid, message);
 };
 
 // Helper functions
@@ -309,6 +323,7 @@ export default {
     disconnectWhatsApp,
     getConnection,
     isConnected,
+    sendMessage,
     sendTextMessage,
     sendMediaMessage,
 };

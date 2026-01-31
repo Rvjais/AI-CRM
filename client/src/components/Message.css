@@ -84,3 +84,77 @@
 .message.received .message-time {
     color: #6b7280;
 }
+
+/* Media Styles */
+.message-media {
+    max-width: 100%;
+    border-radius: 8px;
+    margin-bottom: 4px;
+    display: block;
+}
+
+.message-audio {
+    max-width: 250px;
+    margin-bottom: 4px;
+}
+
+.message-document {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.05);
+    padding: 8px 12px;
+    border-radius: 8px;
+    margin-bottom: 4px;
+}
+
+.doc-icon {
+    font-size: 20px;
+}
+
+.doc-link {
+    color: inherit;
+    text-decoration: none;
+    font-weight: 500;
+    word-break: break-all;
+}
+
+.doc-link:hover {
+    text-decoration: underline;
+}
+
+.message.sent .message-document {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.message.sent .doc-link {
+    color: white;
+}
+
+.media-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 8px;
+    margin-bottom: 4px;
+    min-width: 150px;
+    min-height: 100px;
+}
+
+.media-placeholder.error {
+    background: rgba(255, 0, 0, 0.05);
+    color: #ef4444;
+}
+
+.media-placeholder .icon {
+    font-size: 24px;
+    margin-bottom: 8px;
+}
+
+.media-placeholder .text {
+    font-size: 12px;
+    font-weight: 500;
+}

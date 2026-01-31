@@ -15,8 +15,13 @@ function WhatsAppView({ token, onLogout }) {
     const [isLoading, setIsLoading] = useState(true);
 
     // Ref to track selected chat without triggering effect re-runs
+    const chatsRef = useRef(chats);
     const selectedChatRef = useRef(null);
     const socketRef = useRef(null);
+
+    useEffect(() => {
+        chatsRef.current = chats;
+    }, [chats]);
 
     useEffect(() => {
         selectedChatRef.current = selectedChat;
@@ -42,22 +47,24 @@ function WhatsAppView({ token, onLogout }) {
             const newMessage = data.message;
             console.log('📩 New message received:', newMessage);
 
-            // 1. Update Chat List
+            // 1. Check if we need to fetch new chats (using ref to avoid stale closure or impure updater)
+            const existingChat = chatsRef.current.find(c => c.jid === newMessage.chatJid);
+
+            if (!existingChat) {
+                // New chat: Re-fetch to get full details properly
+                fetchChats();
+                return;
+            }
+
+            // 2. Update existing chat
             setChats(prevChats => {
                 const existingChatIndex = prevChats.findIndex(c => c.jid === newMessage.chatJid);
-
-                if (existingChatIndex === -1) {
-                    // New chat: Re-fetch to get full details properly
-                    fetchChats();
-                    return prevChats;
-                }
+                if (existingChatIndex === -1) return prevChats; // Should be handled above, but safety check
 
                 let updatedChats = [...prevChats];
                 const activeChatId = selectedChatRef.current?.jid;
 
                 // Calculate new unread count
-                // If this is the active chat, unread count stays 0 (or marked read)
-                // If not active, increment
                 const currentUnread = updatedChats[existingChatIndex].unreadCount || 0;
                 const newUnread = (activeChatId === newMessage.chatJid) ? 0 : currentUnread + 1;
 
@@ -75,7 +82,7 @@ function WhatsAppView({ token, onLogout }) {
                 return updatedChats;
             });
 
-            // 2. Update Active Conversation Messages
+            // 3. Update Active Conversation Messages
             const activeChatId = selectedChatRef.current?.jid;
             if (activeChatId && activeChatId === newMessage.chatJid) {
                 setMessages(prev => [...prev, newMessage]);
@@ -122,9 +129,9 @@ function WhatsAppView({ token, onLogout }) {
                 // Map backend format to frontend format
                 const formattedChats = rawChats.map(chat => ({
                     _id: chat._id || chat.chatJid, // Fallback to JID if no ID
-                    phone: chat.chatJid.split('@')[0], // Extract phone from JID
+                    phone: chat.phoneNumber || chat.chatJid.split('@')[0], // Use stored phone or extract
                     jid: chat.chatJid,
-                    name: chat.contactName || chat.chatJid.split('@')[0],
+                    name: chat.contactName || chat.phoneNumber || chat.chatJid.split('@')[0],
                     lastMessage: chat.lastMessage?.content?.text || 'Media message',
                     lastMessageTime: chat.lastMessage?.timestamp || chat.updatedAt,
                     unreadCount: chat.unreadCount || 0,
@@ -136,7 +143,29 @@ function WhatsAppView({ token, onLogout }) {
                 }));
 
                 console.log('📱 [Frontend] Setting chats:', formattedChats.length, 'items');
-                setChats(formattedChats);
+
+                // Deduplicate chats based on phone number
+                // If we have an LID chat and a Phone chat for the same person, we only show the most recent one
+                const dedupedChats = [];
+                const seenPhones = new Set();
+
+                // Sort by time desc first to ensure we keep the latest
+                formattedChats.sort((a, b) => new Date(b.lastMessageTime) - new Date(a.lastMessageTime));
+
+                formattedChats.forEach(chat => {
+                    const uniqueKey = chat.phone; // This should be the real number for both LID and Phone JID chats
+
+                    if (chat.isGroup || chat.jid.includes('@broadcast')) {
+                        dedupedChats.push(chat); // Always keep groups/broadcasts
+                    } else if (uniqueKey && !seenPhones.has(uniqueKey)) {
+                        seenPhones.add(uniqueKey);
+                        dedupedChats.push(chat);
+                    } else if (!uniqueKey) {
+                        dedupedChats.push(chat);
+                    }
+                });
+
+                setChats(dedupedChats);
             }
         } catch (error) {
             console.error('Error fetching chats:', error);
@@ -144,9 +173,10 @@ function WhatsAppView({ token, onLogout }) {
     };
 
     const handleChatUpdate = (updatedChat) => {
-        setChats(prevChats =>
-            prevChats.map(c => c._id === updatedChat._id ? updatedChat : c)
-        );
+        setChats(prevChats => {
+            const newChats = prevChats.map(c => c._id === updatedChat._id ? updatedChat : c);
+            return newChats;
+        });
         if (selectedChat?._id === updatedChat._id) {
             setSelectedChat(updatedChat);
         }
