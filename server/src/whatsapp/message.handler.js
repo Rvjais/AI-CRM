@@ -139,6 +139,7 @@ export const handleIncomingMessage = async (userId, msg, io, sendResponse) => {
                     {
                         sentiment,
                         lastMessageAt: new Date(),
+                        isGroup: chatJid.endsWith('@g.us'),
                         $setOnInsert: {
                             aiEnabled: defaultAiEnabled
                         }

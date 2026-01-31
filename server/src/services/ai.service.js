@@ -25,7 +25,18 @@ export const generateAIResponse = async (userId, chatJid, userMessage) => {
             return `[AI Not Configured] Please add OPENAI_API_KEY to server/.env or configure it in AI Settings.`;
         }
 
-        const openai = new OpenAI({ apiKey });
+        // Check if using OpenRouter
+        const isOpenRouter = apiKey.startsWith('sk-or-');
+        const baseURL = isOpenRouter ? 'https://openrouter.ai/api/v1' : undefined;
+
+        const openai = new OpenAI({
+            apiKey,
+            baseURL,
+            defaultHeaders: isOpenRouter ? {
+                "HTTP-Referer": process.env.FRONTEND_URL || "https://localhost",
+                "X-Title": "WhatsApp CRM"
+            } : undefined
+        });
 
         // Fetch recent context
         // Ensure we import the Message model dynamically or at top if not circular
@@ -83,7 +94,17 @@ export const analyzeSentiment = async (text, userId) => {
             const apiKey = user?.aiSettings?.apiKey || process.env.OPENAI_API_KEY;
 
             if (apiKey) {
-                const openai = new OpenAI({ apiKey });
+                const isOpenRouter = apiKey.startsWith('sk-or-');
+                const baseURL = isOpenRouter ? 'https://openrouter.ai/api/v1' : undefined;
+
+                const openai = new OpenAI({
+                    apiKey,
+                    baseURL,
+                    defaultHeaders: isOpenRouter ? {
+                        "HTTP-Referer": process.env.FRONTEND_URL || "https://localhost",
+                        "X-Title": "WhatsApp CRM"
+                    } : undefined
+                });
                 const completion = await openai.chat.completions.create({
                     messages: [
                         { role: "system", content: "You are a sentiment analyzer. Reply with specific Valid JSON ONLY: {\"sentiment\": \"positive\" | \"neutral\" | \"negative\", \"confidence\": 0.0-1.0}." },

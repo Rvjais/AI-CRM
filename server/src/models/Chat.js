@@ -39,6 +39,10 @@ const chatSchema = new mongoose.Schema(
         lastMessageAt: {
             type: Date,
         },
+        isGroup: {
+            type: Boolean,
+            default: false,
+        },
         aiEnabled: {
             type: Boolean,
             default: false,
