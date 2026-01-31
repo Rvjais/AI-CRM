@@ -121,7 +121,7 @@ function WhatsAppView({ token, onLogout }) {
 
                 // Map backend format to frontend format
                 const formattedChats = rawChats.map(chat => ({
-                    _id: chat._id,
+                    _id: chat._id || chat.chatJid, // Fallback to JID if no ID
                     phone: chat.chatJid.split('@')[0], // Extract phone from JID
                     jid: chat.chatJid,
                     name: chat.contactName || chat.chatJid.split('@')[0],

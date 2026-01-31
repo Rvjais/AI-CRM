@@ -83,7 +83,7 @@ function ChatList({ chats, selectedChat, onSelectChat, aiEnabled, onToggleAI, on
                 ) : (
                     filteredChats.map((chat) => (
                         <ChatItem
-                            key={chat._id || chat.phone}
+                            key={chat.jid}
                             chat={chat}
                             isSelected={selectedChat?._id === chat._id}
                             onClick={() => onSelectChat(chat)}

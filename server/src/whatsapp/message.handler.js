@@ -17,6 +17,7 @@ import logger from '../utils/logger.util.js';
  */
 import Contact from '../models/Contact.js';
 import Chat from '../models/Chat.js';
+import User from '../models/User.js';
 import { generateAIResponse, analyzeSentiment } from '../services/ai.service.js';
 
 /**
@@ -128,12 +129,19 @@ export const handleIncomingMessage = async (userId, msg, io, sendResponse) => {
             try {
                 const sentiment = await analyzeSentiment(content.text);
 
+                // Fetch user settings for default AI behavior
+                const user = await User.findById(userId).select('aiSettings.autoReply');
+                const defaultAiEnabled = user?.aiSettings?.autoReply || false;
+
                 // Update Chat with last message and sentiment
                 await Chat.findOneAndUpdate(
                     { userId, chatJid },
                     {
                         sentiment,
-                        lastMessageAt: new Date()
+                        lastMessageAt: new Date(),
+                        $setOnInsert: {
+                            aiEnabled: defaultAiEnabled
+                        }
                     },
                     { upsert: true } // Should already exist from message.service but safe to keep
                 );

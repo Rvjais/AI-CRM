@@ -11,6 +11,7 @@ function AIConfig({ token }) {
     const [temperature, setTemperature] = useState(0.7);
     const [saved, setSaved] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [autoReply, setAutoReply] = useState(false);
 
     useEffect(() => {
         fetchConfig();
@@ -29,6 +30,7 @@ function AIConfig({ token }) {
                     setApiKey('********');
                 }
                 setTemperature(data.data.temperature || 0.7);
+                setAutoReply(data.data.autoReply || false);
             }
         } catch (error) {
             console.error('Error fetching AI config:', error);
@@ -42,7 +44,8 @@ function AIConfig({ token }) {
             const payload = {
                 systemPrompt,
                 temperature,
-                enabled: true
+                enabled: true,
+                autoReply
             };
 
             // Only send API key if it's not the masked placeholder

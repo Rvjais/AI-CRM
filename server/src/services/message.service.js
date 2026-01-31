@@ -110,12 +110,14 @@ export const getUserChats = async (userId, includeArchived = false) => {
                 }
 
                 return {
+                    _id: chatInfo?._id,
                     chatJid,
                     lastMessage,
                     unreadCount,
                     isArchived: chatInfo?.isArchived || false,
                     isMuted: chatInfo?.isMuted || false,
                     isPinned: chatInfo?.isPinned || false,
+                    aiEnabled: chatInfo?.aiEnabled || false // Ensure this is passed too
                 };
             })
         );
