@@ -77,6 +77,31 @@ const userSchema = new mongoose.Schema(
                 default: false,
             },
         },
+        // Google/Gmail OAuth integration
+        googleId: {
+            type: String,
+            unique: true,
+            sparse: true, // Only if Google login is used
+            index: true,
+        },
+        googleEmail: {
+            type: String,
+            lowercase: true,
+            trim: true,
+        },
+        gmailAccessToken: {
+            type: String,
+        },
+        gmailRefreshToken: {
+            type: String,
+        },
+        gmailTokenExpiry: {
+            type: Date,
+        },
+        gmailConnected: {
+            type: Boolean,
+            default: false,
+        },
     },
     {
         timestamps: true,

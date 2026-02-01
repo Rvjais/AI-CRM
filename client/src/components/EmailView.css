@@ -1,0 +1,138 @@
+/* Email View Styling */
+.email-connect-container {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f0f2f5;
+    padding: 20px;
+}
+
+.connect-card {
+    background: white;
+    padding: 48px;
+    border-radius: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+    max-width: 500px;
+    width: 100%;
+    text-align: center;
+    animation: slideUp 0.5s ease-out;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.icon-wrapper {
+    position: relative;
+    width: 100px;
+    height: 100px;
+    margin: 0 auto 32px;
+    background: #f8f9fa;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.email-icon {
+    font-size: 48px;
+    color: #4285f4;
+}
+
+.google-badge {
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    font-size: 24px;
+    background: white;
+    border-radius: 50%;
+    padding: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.connect-card h1 {
+    font-size: 28px;
+    color: #1a202c;
+    margin-bottom: 16px;
+    font-weight: 700;
+}
+
+.connect-card p {
+    color: #718096;
+    margin-bottom: 32px;
+    line-height: 1.6;
+}
+
+.connect-btn {
+    width: 100%;
+    padding: 16px;
+    background: #4285f4;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    transition: all 0.2s;
+    margin-bottom: 32px;
+}
+
+.connect-btn:hover {
+    background: #3367d6;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(66, 133, 244, 0.3);
+}
+
+.feature-list {
+    text-align: left;
+    background: #f7fafc;
+    padding: 20px;
+    border-radius: 12px;
+}
+
+.feature-item {
+    font-size: 14px;
+    color: #4a5568;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+}
+
+.email-loading {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    gap: 16px;
+}
+
+.spinner {
+    font-size: 40px;
+    color: #4285f4;
+    animation: rotate 1s linear infinite;
+}
+
+@keyframes rotate {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
