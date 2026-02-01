@@ -1,14 +1,12 @@
 import { useState, useEffect } from 'react';
-import { FaInfoCircle } from 'react-icons/fa';
+import { FaInfoCircle, FaSync } from 'react-icons/fa';
 import SentimentGauge from './SentimentGauge';
 import './AIInsights.css';
 
 function AIInsights({ selectedChat, messages, aiEnabled }) {
-    const [sentiment, setSentiment] = useState('neutral');
-    const [suggestions, setSuggestions] = useState([]);
-    const [summary, setSummary] = useState('');
-    const [improvements, setImprovements] = useState([]);
     const [note, setNote] = useState('');
+
+    const [isRegenerating, setIsRegenerating] = useState(false);
 
     useEffect(() => {
         // Load saved note for this chat
@@ -24,106 +22,47 @@ function AIInsights({ selectedChat, messages, aiEnabled }) {
         }
     };
 
-    useEffect(() => {
-        if (messages.length > 0 && aiEnabled) {
-            analyzeSentiment();
-            generateSuggestions();
-            generateSummary();
-            generateImprovements();
-        }
-    }, [messages, aiEnabled]);
+    const handleRegenerate = async () => {
+        if (!selectedChat || isRegenerating) return;
 
-    const analyzeSentiment = () => {
-        // Simple sentiment analysis based on keywords
-        const messageText = messages.map(m => m.message).join(' ').toLowerCase();
-
-        const positiveWords = ['good', 'great', 'excellent', 'thanks', 'perfect', 'love', 'happy'];
-        const negativeWords = ['bad', 'problem', 'issue', 'wrong', 'not', 'disappointed'];
-
-        let positiveCount = 0;
-        let negativeCount = 0;
-
-        positiveWords.forEach(word => {
-            if (messageText.includes(word)) positiveCount++;
-        });
-
-        negativeWords.forEach(word => {
-            if (messageText.includes(word)) negativeCount++;
-        });
-
-        if (positiveCount > negativeCount) {
-            setSentiment('positive');
-        } else if (negativeCount > positiveCount) {
-            setSentiment('negative');
-        } else {
-            setSentiment('neutral');
+        setIsRegenerating(true);
+        try {
+            const api = (await import('../utils/apiClient')).default;
+            await api.post(`/api/messages/${selectedChat.jid}/summarize`);
+            // The socket update will handle refreshing the state if connected
+            // But we can also show a small success indicator if needed
+        } catch (error) {
+            console.error('Regeneration failed:', error);
+            alert('Failed to regenerate summary. Please try again later.');
+        } finally {
+            setIsRegenerating(false);
         }
     };
 
-    const generateSuggestions = () => {
-        const messageText = messages.map(m => m.message).join(' ').toLowerCase();
-        const newSuggestions = [];
-
-        if (messageText.includes('flight') || messageText.includes('travel')) {
-            newSuggestions.push('Suggest flights');
-        }
-        if (messageText.includes('weather') || messageText.includes('temperature')) {
-            newSuggestions.push('Check weather');
-        }
-        if (messageText.includes('book') || messageText.includes('reservation')) {
-            newSuggestions.push('Help booking');
-        }
-        if (messageText.includes('price') || messageText.includes('cost')) {
-            newSuggestions.push('Show pricing');
-        }
-
-        setSuggestions(newSuggestions.slice(0, 3));
-    };
-
-    const generateSummary = () => {
-        if (messages.length === 0) {
-            setSummary('No conversation yet.');
-            return;
-        }
-
-        const lastMessages = messages.slice(-3);
-        const topics = [];
-
-        if (lastMessages.some(m => m.message.toLowerCase().includes('weekend'))) {
-            topics.push('Planning weekend trip');
-        }
-        if (lastMessages.some(m => m.message.toLowerCase().includes('mountain') || m.message.toLowerCase().includes('hotel'))) {
-            topics.push('Discussing accommodation');
-        }
-        if (lastMessages.some(m => m.message.toLowerCase().includes('flight'))) {
-            topics.push('Need to book flights');
-        }
-
-        if (topics.length > 0) {
-            setSummary(`Conversation summary: ${topics.join('. ')}.`);
-        } else {
-            setSummary(`Conversation has ${messages.length} messages. Recent topics discussed.`);
-        }
-    };
-
-    const generateImprovements = () => {
-        // Mock improvements based on message patterns
+    // Improvements logic can still be deterministic for UI guidance
+    const getImprovementTips = () => {
         const tips = [];
-        const messageText = messages.map(m => m.message).join(' ').toLowerCase();
+        const sentiment = selectedChat?.sentiment || 'neutral';
 
-        if (messages.length < 5) {
-            tips.push("Ask open-ended questions to engage the customer");
-        }
-        if (!messageText.includes("assist") && !messageText.includes("help")) {
-            tips.push("Offer specific assistance to guide the conversation");
-        }
         if (sentiment === 'negative') {
-            tips.push("Acknowledge frustration and offer a direct solution");
-            tips.push("Use empathetic language");
+            tips.push("Acknowledge concerns promptly to de-escalate.");
+            tips.push("Use softening language like 'I understand' or 'I apologize'.");
+        } else if (sentiment === 'neutral') {
+            tips.push("Try asking open-ended questions to drive engagement.");
+            tips.push("Offer a specific value proposition or next step.");
+        } else if (sentiment === 'positive') {
+            tips.push("Encourage the customer to share their positive experience.");
+            tips.push("Check if there are any other ways you can help.");
         }
 
-        setImprovements(tips.slice(0, 2));
+        if (messages.length > 0 && !messages[messages.length - 1].fromMe) {
+            tips.push("Respond quickly to maintain momentum.");
+        }
+
+        return tips;
     };
+
+    const improvements = getImprovementTips();
 
     return (
         <div className="ai-insights">
@@ -132,19 +71,22 @@ function AIInsights({ selectedChat, messages, aiEnabled }) {
             </div>
 
             <div className="insights-content">
+                {/* Sentiment Section - Always show real backend sentiment */}
                 <div className="insight-card">
                     <h3>SENTIMENT</h3>
-                    <SentimentGauge sentiment={sentiment} />
+                    <SentimentGauge sentiment={selectedChat?.sentiment || 'neutral'} />
                     <p className="sentiment-label">
-                        {sentiment === 'positive' ? 'Positive' : sentiment === 'negative' ? 'Negative' : 'Neutral'} Overall Sentiment
+                        {selectedChat?.sentiment === 'positive' ? 'Positive' :
+                            selectedChat?.sentiment === 'negative' ? 'Negative' : 'Neutral'} Overall Sentiment
                     </p>
                 </div>
 
-                {aiEnabled && suggestions.length > 0 && (
+                {/* Suggestions Section - Shown if AI is enabled or if data exists */}
+                {((selectedChat?.suggestions && selectedChat.suggestions.length > 0)) && (
                     <div className="insight-card">
                         <h3>SUGGESTED ACTIONS</h3>
                         <div className="suggestions">
-                            {suggestions.map((suggestion, index) => (
+                            {selectedChat.suggestions.map((suggestion, index) => (
                                 <button key={index} className="suggestion-btn">
                                     {suggestion}
                                 </button>
@@ -153,23 +95,33 @@ function AIInsights({ selectedChat, messages, aiEnabled }) {
                     </div>
                 )}
 
-                <div className="insight-card">
-                    <h3>CONTEXT/SUMMARY</h3>
+                {/* Summary Section - Always show real backend summary */}
+                <div className="insight-card summary-card">
+                    <div className="card-header">
+                        <h3>CONTEXT/SUMMARY</h3>
+                        <button
+                            className={`regen-btn ${isRegenerating ? 'spinning' : ''}`}
+                            onClick={handleRegenerate}
+                            disabled={isRegenerating || !selectedChat}
+                            title="Regenerate Summary"
+                        >
+                            <FaSync />
+                        </button>
+                    </div>
                     <p className="summary-text">
-                        {aiEnabled ? summary : 'Enable AI mode to see conversation summary'}
+                        {selectedChat?.summary || 'No summary available yet. Continue the conversation to generate insights.'}
                     </p>
                 </div>
 
-                {aiEnabled && improvements.length > 0 && (
-                    <div className="insight-card improvement-card">
-                        <h3>💡 CONVERSATION TIPS</h3>
-                        <ul className="improvement-list">
-                            {improvements.map((tip, idx) => (
-                                <li key={idx}>{tip}</li>
-                            ))}
-                        </ul>
-                    </div>
-                )}
+                {/* New Section: Conversation Improvement Tips */}
+                <div className="insight-card improvement-card">
+                    <h3>💡 AI IMPROVEMENT TIPS</h3>
+                    <ul className="improvement-list">
+                        {improvements.map((tip, idx) => (
+                            <li key={idx}>{tip}</li>
+                        ))}
+                    </ul>
+                </div>
 
                 <div className="insight-card notes-card">
                     <h3>📝 NOTES</h3>
@@ -182,9 +134,9 @@ function AIInsights({ selectedChat, messages, aiEnabled }) {
                     />
                 </div>
 
-                {!aiEnabled && (
+                {!aiEnabled && !selectedChat?.summary && (
                     <div className="ai-disabled-notice">
-                        <p><FaInfoCircle /> Enable AI-Enhanced Mode in the sidebar to unlock full insights</p>
+                        <p><FaInfoCircle /> Auto-Reply is disabled for this chat. Analysis continues in the background.</p>
                     </div>
                 )}
             </div>

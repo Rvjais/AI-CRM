@@ -19,7 +19,7 @@ import logger from '../utils/logger.util.js';
 import Contact from '../models/Contact.js';
 import Chat from '../models/Chat.js';
 import User from '../models/User.js';
-import { generateAIResponse, analyzeSentiment } from '../services/ai.service.js';
+import { generateAIResponse, analyzeSentiment, generateSummary, generateSuggestions } from '../services/ai.service.js';
 
 /**
  * Handle incoming message
@@ -238,17 +238,24 @@ export const handleIncomingMessage = async (userId, msg, io, sendResponse) => {
         // --- Sentiment Analysis & Chat Update ---
         if (!fromMe && content.text) {
             try {
-                const sentiment = await analyzeSentiment(content.text);
+                // Run AI tasks in parallel for performance
+                const [sentiment, summary, suggestions] = await Promise.all([
+                    analyzeSentiment(content.text, userId),
+                    generateSummary(userId, chatJid),
+                    generateSuggestions(userId, chatJid)
+                ]);
 
                 // Fetch user settings for default AI behavior
                 const user = await User.findById(userId).select('aiSettings.autoReply');
                 const defaultAiEnabled = user?.aiSettings?.autoReply || false;
 
-                // Update Chat with last message and sentiment
+                // Update Chat with last message and AI insights
                 await Chat.findOneAndUpdate(
                     { userId, chatJid },
                     {
                         sentiment,
+                        summary,
+                        suggestions,
                         lastMessageAt: new Date(),
                         isGroup: chatJid.endsWith('@g.us'),
                         $setOnInsert: {
@@ -266,7 +273,7 @@ export const handleIncomingMessage = async (userId, msg, io, sendResponse) => {
                 io.to(userId.toString()).emit('chat:update', { chat: updatedChat });
 
             } catch (sentimentError) {
-                logger.error('Error in sentiment analysis:', sentimentError);
+                logger.error('Error in AI analysis:', sentimentError);
             }
         }
 

@@ -5,6 +5,7 @@ import { configureCloudinary } from './src/config/cloudinary.js';
 import initializeSocket from './src/socket/socket.handler.js';
 import env from './src/config/env.js';
 import logger from './src/utils/logger.util.js';
+import { startAIWorker } from './src/services/ai-worker.service.js';
 
 /**
  * Server entry point
@@ -46,6 +47,9 @@ const startServer = async () => {
         } catch (error) {
             logger.error('Error restoring sessions:', error);
         }
+
+        // Start AI Background Worker
+        startAIWorker(io);
 
         // Start listening
         httpServer.listen(env.PORT, () => {

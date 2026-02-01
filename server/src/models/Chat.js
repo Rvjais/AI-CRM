@@ -60,6 +60,18 @@ const chatSchema = new mongoose.Schema(
             type: String,
             trim: true,
         },
+        summary: {
+            type: String,
+            default: '',
+        },
+        suggestions: {
+            type: [String],
+            default: [],
+        },
+        lastSummaryAt: {
+            type: Date,
+            default: null,
+        },
     },
     {
         timestamps: true,

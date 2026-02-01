@@ -143,6 +143,37 @@ function WhatsAppView({ token, onLogout }) {
             );
         });
 
+        newSocket.on('chat:update', (data) => {
+            const updatedChat = data.chat;
+            console.log('🔄 Chat update received:', updatedChat.chatJid);
+
+            setChats(prevChats => {
+                const index = prevChats.findIndex(c => c.jid === updatedChat.chatJid);
+                if (index === -1) return prevChats;
+
+                const newChats = [...prevChats];
+                newChats[index] = {
+                    ...newChats[index],
+                    sentiment: updatedChat.sentiment,
+                    summary: updatedChat.summary,
+                    suggestions: updatedChat.suggestions,
+                    aiEnabled: updatedChat.aiEnabled
+                };
+                return newChats;
+            });
+
+            // If this is the currently selected chat, update it too
+            if (selectedChatRef.current && selectedChatRef.current.jid === updatedChat.chatJid) {
+                setSelectedChat(prev => ({
+                    ...prev,
+                    sentiment: updatedChat.sentiment,
+                    summary: updatedChat.summary,
+                    suggestions: updatedChat.suggestions,
+                    aiEnabled: updatedChat.aiEnabled
+                }));
+            }
+        });
+
         return () => {
             if (newSocket) newSocket.disconnect();
         };
@@ -201,7 +232,10 @@ function WhatsAppView({ token, onLogout }) {
                         isArchived: chat.isArchived || false,
                         isMuted: chat.isMuted || false,
                         isGroup: chat.chatJid.includes('@g.us'),
-                        aiEnabled: chat.aiEnabled || false
+                        aiEnabled: chat.aiEnabled || false,
+                        sentiment: chat.sentiment || 'neutral',
+                        summary: chat.summary || '',
+                        suggestions: chat.suggestions || []
                     };
                 });
 

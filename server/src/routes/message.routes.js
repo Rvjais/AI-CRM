@@ -23,6 +23,7 @@ router.delete('/:messageId', validate(schemas.idParam), messageController.delete
 router.put('/:messageId/edit', validate(schemas.editMessage), messageController.editMessage);
 router.post('/:messageId/react', validate(schemas.reactToMessage), messageController.reactToMessage);
 router.post('/:messageId/forward', validate(schemas.forwardMessage), messageController.forwardMessage);
+router.post('/:chatJid/summarize', messageController.summarizeChat);
 router.post('/:chatJid/toggle-ai', messageController.toggleAI);
 router.post('/:chatJid/archive', messageController.toggleArchive);
 

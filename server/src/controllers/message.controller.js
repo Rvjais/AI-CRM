@@ -377,3 +377,37 @@ export const toggleArchive = asyncHandler(async (req, res) => {
 
     return successResponse(res, 200, `Chat ${archived ? 'archived' : 'unarchived'}`, chat);
 });
+
+/**
+ * Force regenerate AI summary for a chat
+ * POST /api/messages/:chatJid/summarize
+ */
+export const summarizeChat = asyncHandler(async (req, res) => {
+    const { chatJid } = req.params;
+    const userId = req.userId;
+
+    const { generateSummary } = await import('../services/ai.service.js');
+    const summary = await generateSummary(userId, chatJid);
+
+    if (!summary) {
+        return successResponse(res, 400, 'Failed to generate summary or AI not configured');
+    }
+
+    const Chat = (await import('../models/Chat.js')).default;
+    const updatedChat = await Chat.findOneAndUpdate(
+        { userId, chatJid },
+        {
+            summary,
+            lastSummaryAt: new Date()
+        },
+        { new: true, upsert: true }
+    ).lean();
+
+    // Notify frontend via socket
+    const io = req.app.get('io');
+    if (io) {
+        io.to(userId.toString()).emit('chat:update', { chat: updatedChat });
+    }
+
+    return successResponse(res, 200, 'Summary regenerated successfully', updatedChat);
+});
