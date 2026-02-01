@@ -205,8 +205,19 @@ export const handleIncomingMessage = async (userId, msg, io, sendResponse) => {
         }
 
         // Handle quoted message
-        if (msg.message[messageType]?.contextInfo?.quotedMessage) {
-            const quotedMsgId = msg.message[messageType].contextInfo.stanzaId;
+        const contextInfo = msg.message[messageType]?.contextInfo;
+        if (contextInfo?.quotedMessage) {
+            const quotedStanzaId = contextInfo.stanzaId;
+
+            if (quotedStanzaId) {
+                // Dynamically import Message model if not already available in scope
+                const Message = (await import('../models/Message.js')).default;
+                const originalMsg = await Message.findOne({ messageId: quotedStanzaId, userId });
+
+                if (originalMsg) {
+                    messageData.quotedMessage = originalMsg._id;
+                }
+            }
         }
 
         // Handle mentions
