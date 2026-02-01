@@ -36,7 +36,42 @@ export const listThreads = async (userId, options = {}) => {
         pageToken: options.pageToken
     });
 
-    return response.data;
+    const threads = response.data.threads || [];
+    const nextPageToken = response.data.nextPageToken;
+
+    // Fetch basic metadata for each thread to avoid placeholders in the list
+    const enhancedThreads = await Promise.all(threads.map(async (thread) => {
+        try {
+            const detail = await gmail.users.threads.get({
+                userId: 'me',
+                id: thread.id,
+                format: 'metadata',
+                metadataHeaders: ['Subject', 'From', 'Date']
+            });
+
+            const messages = detail.data.messages || [];
+            if (messages.length === 0) return { ...thread };
+
+            const lastMessage = messages[messages.length - 1];
+            const headers = lastMessage.payload.headers;
+
+            return {
+                ...thread,
+                subject: headers.find(h => h.name === 'Subject')?.value || '(No Subject)',
+                from: headers.find(h => h.name === 'From')?.value || '(Unknown Sender)',
+                date: headers.find(h => h.name === 'Date')?.value || '',
+                timestamp: lastMessage.internalDate
+            };
+        } catch (error) {
+            logger.error(`Error fetching metadata for thread ${thread.id}:`, error);
+            return { ...thread };
+        }
+    }));
+
+    return {
+        threads: enhancedThreads,
+        nextPageToken
+    };
 };
 
 /**

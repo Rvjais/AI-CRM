@@ -9,14 +9,21 @@ function EmailView({ token }) {
     const [loading, setLoading] = useState(true);
     const [authUrl, setAuthUrl] = useState('');
     const [userProfile, setUserProfile] = useState(null);
+    const [threads, setThreads] = useState([]);
+    const [nextPageToken, setNextPageToken] = useState(null);
+    const [threadsLoading, setThreadsLoading] = useState(false);
+    const [currentQuery, setCurrentQuery] = useState('');
+    const [activeLabel, setActiveLabel] = useState('INBOX');
 
     useEffect(() => {
         checkConnection();
-        // Check for 'code' in URL if we just redirected back
+
+        // Handle post-redirect UI feedback if needed
         const urlParams = new URLSearchParams(window.location.search);
-        const code = urlParams.get('code');
-        if (code) {
-            handleCallback(code);
+        if (urlParams.get('gmailConnected')) {
+            // Clean URL
+            window.history.replaceState({}, document.title, window.location.pathname);
+            // Optionally show a toast here
         }
     }, []);
 
@@ -26,6 +33,7 @@ function EmailView({ token }) {
             if (data.success && data.data.gmailConnected) {
                 setIsConnected(true);
                 fetchProfile();
+                fetchThreads();
             } else {
                 fetchAuthUrl();
             }
@@ -47,6 +55,52 @@ function EmailView({ token }) {
         }
     };
 
+    const fetchThreads = async (pageToken = null, query = currentQuery, isAppend = false, label = activeLabel) => {
+        setThreadsLoading(true);
+        try {
+            // Build Gmail query: label logic + search query
+            let gmailQuery = `label:${label}`;
+            if (query) {
+                gmailQuery = `${query} label:${label}`;
+            }
+
+            const endpoint = `/api/emails/threads?maxResults=20${pageToken ? `&pageToken=${pageToken}` : ''}&q=${encodeURIComponent(gmailQuery)}`;
+            const data = await api.get(endpoint);
+            if (data.success) {
+                if (isAppend) {
+                    setThreads(prev => [...prev, ...data.data.threads]);
+                } else {
+                    setThreads(data.data.threads);
+                }
+                setNextPageToken(data.data.nextPageToken);
+            }
+        } catch (error) {
+            console.error('Error fetching threads:', error);
+        } finally {
+            setThreadsLoading(false);
+        }
+    };
+
+    const handleLoadMore = () => {
+        if (nextPageToken && !threadsLoading) {
+            fetchThreads(nextPageToken, currentQuery, true);
+        }
+    };
+
+    const handleSearch = (query) => {
+        setCurrentQuery(query);
+        fetchThreads(null, query, false);
+    };
+
+    const handleRefresh = () => {
+        fetchThreads(null, currentQuery, false, activeLabel);
+    };
+
+    const handleLabelChange = (newLabel) => {
+        setActiveLabel(newLabel);
+        fetchThreads(null, currentQuery, false, newLabel);
+    };
+
     const handleCallback = async (code) => {
         setLoading(true);
         try {
@@ -56,6 +110,7 @@ function EmailView({ token }) {
                 // Clean URL
                 window.history.replaceState({}, document.title, window.location.pathname);
                 fetchProfile();
+                fetchThreads();
             }
         } catch (error) {
             console.error('Error during Google callback:', error);
@@ -114,7 +169,20 @@ function EmailView({ token }) {
         );
     }
 
-    return <EmailLayout userProfile={userProfile} token={token} />;
+    return (
+        <EmailLayout
+            userProfile={userProfile}
+            token={token}
+            threads={threads}
+            threadsLoading={threadsLoading}
+            nextPageToken={nextPageToken}
+            onLoadMore={handleLoadMore}
+            onRefresh={handleRefresh}
+            onSearch={handleSearch}
+            activeLabel={activeLabel}
+            onLabelSelect={handleLabelChange}
+        />
+    );
 }
 
 export default EmailView;

@@ -1,27 +1,31 @@
 import { FaSearch, FaSync, FaStar, FaRegStar } from 'react-icons/fa';
 
-function EmailList({ threads, loading, onThreadSelect, selectedThreadId, onRefresh, onSearch }) {
+function EmailList({ threads, loading, onThreadSelect, selectedThreadId, onRefresh, onSearch, nextPageToken, onLoadMore }) {
 
-    const formatDate = (dateString) => {
-        if (!dateString) return '';
-        const date = new Date(parseInt(dateString));
+    const formatDate = (timestamp) => {
+        if (!timestamp) return '';
+        const date = new Date(parseInt(timestamp));
         const now = new Date();
 
         if (date.toDateString() === now.toDateString()) {
             return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         }
+
+        const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+        if (diffDays < 7) {
+            return date.toLocaleDateString([], { weekday: 'short' });
+        }
+
         return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
     };
 
-    const getSender = (thread) => {
-        // Gmail threads don't have a single sender, but for the list we usually show the last message sender
-        // For simplicity, we just look at the head of the thread or snippet
-        // Actually thread object from list only has id and snippet
-        // We'd need to fetch detail to get real sender for EVERY thread, which is slow
-        // Gmail list API doesn't return sender. But snippet often contains "Sender Name - snippet"
-        // Wait, listMessages actually returns message objects with threadId.
-        // Let's assume we'll improve this with a better API call or just parse snippet/id for now
-        return "Gmail Thread"; // Placeholder until we refine the backend fetch
+    const getSenderName = (from) => {
+        if (!from) return 'Unknown Sender';
+        // Extract name from "Name <email@example.com>"
+        const match = from.match(/^(?:"?([^"]*)"?\s)?(?:<?(.+)>?)$/);
+        if (match && match[1]) return match[1];
+        if (match && match[2]) return match[2].split('@')[0];
+        return from.split('<')[0].trim() || from;
     };
 
     return (
@@ -44,25 +48,45 @@ function EmailList({ threads, loading, onThreadSelect, selectedThreadId, onRefre
             </div>
 
             <div className="list-content">
-                {loading ? (
-                    <div className="list-loading">Loading threads...</div>
-                ) : threads.length === 0 ? (
+                {threads.length === 0 && !loading ? (
                     <div className="list-empty">No emails found</div>
                 ) : (
-                    threads.map(thread => (
-                        <div
-                            key={thread.id}
-                            className={`thread-item ${selectedThreadId === thread.id ? 'active' : ''}`}
-                            onClick={() => onThreadSelect(thread.id)}
-                        >
-                            <div className="thread-meta">
-                                <span className="thread-sender">{getSender(thread)}</span>
-                                <span className="thread-date">{formatDate(thread.historyId)}</span>
+                    <>
+                        {threads.map(thread => (
+                            <div
+                                key={thread.id}
+                                className={`thread-item ${selectedThreadId === thread.id ? 'active' : ''}`}
+                                onClick={() => onThreadSelect(thread.id)}
+                            >
+                                <div className="thread-meta">
+                                    <span className="thread-sender">{getSenderName(thread.from)}</span>
+                                    <span className="thread-date">{formatDate(thread.timestamp)}</span>
+                                </div>
+                                <div className="thread-subject">{thread.subject}</div>
+                                <div className="thread-snippet">{thread.snippet}</div>
                             </div>
-                            <div className="thread-subject">Thread {thread.id.substring(0, 8)}</div>
-                            <div className="thread-snippet">{thread.snippet}</div>
-                        </div>
-                    ))
+                        ))}
+
+                        {nextPageToken && (
+                            <div className="pagination-container">
+                                <button
+                                    className="load-more-btn"
+                                    onClick={onLoadMore}
+                                    disabled={loading}
+                                >
+                                    {loading ? 'Loading...' : 'Load More Messages'}
+                                </button>
+                            </div>
+                        )}
+
+                        {loading && threads.length > 0 && (
+                            <div className="list-loading">Loading more...</div>
+                        )}
+                    </>
+                )}
+
+                {loading && threads.length === 0 && (
+                    <div className="list-loading">Loading threads...</div>
                 )}
             </div>
         </div>

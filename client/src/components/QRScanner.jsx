@@ -8,6 +8,7 @@ function QRScanner({ token, onConnected, onLogout }) {
     const [qrCode, setQrCode] = useState(null);
     const [status, setStatus] = useState('initializing'); // initializing, idle, scanning, connected, exhausted
     const [socket, setSocket] = useState(null);
+    const isCheckingRef = useRef(false);
 
     useEffect(() => {
         // Initialize socket with dynamic URL
@@ -47,6 +48,9 @@ function QRScanner({ token, onConnected, onLogout }) {
     }, [token]);
 
     const checkStatus = async () => {
+        if (isCheckingRef.current) return;
+        isCheckingRef.current = true;
+
         try {
             const data = await api.get('/api/whatsapp/status');
             if (data.data.connected) {
@@ -65,6 +69,8 @@ function QRScanner({ token, onConnected, onLogout }) {
             }
             setStatus('idle');
             setQrCode(null);
+        } finally {
+            isCheckingRef.current = false;
         }
     };
 

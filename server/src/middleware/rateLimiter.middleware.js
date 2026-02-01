@@ -28,6 +28,7 @@ export const apiLimiter = rateLimit({
     handler: rateLimitHandler,
     standardHeaders: true,
     legacyHeaders: false,
+    skip: () => env.NODE_ENV === 'development', // Skip rate limiting in development
 });
 
 /**

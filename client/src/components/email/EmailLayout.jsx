@@ -6,19 +6,24 @@ import EmailCompose from './EmailCompose';
 import './EmailLayout.css';
 import api from '../../utils/apiClient';
 
-function EmailLayout({ userProfile }) {
-    const [threads, setThreads] = useState([]);
+function EmailLayout({
+    userProfile,
+    threads,
+    threadsLoading,
+    nextPageToken,
+    onLoadMore,
+    onRefresh,
+    onSearch,
+    activeLabel,
+    onLabelSelect
+}) {
+    const [selectedThreadId, setSelectedThreadId] = useState(null);
     const [labels, setLabels] = useState([]);
-    const [activeLabel, setActiveLabel] = useState('INBOX');
-    const [selectedThread, setSelectedThread] = useState(null);
-    const [loading, setLoading] = useState(true);
     const [isComposeOpen, setIsComposeOpen] = useState(false);
-    const [searchQuery, setSearchQuery] = useState('');
 
     useEffect(() => {
         fetchLabels();
-        fetchThreads();
-    }, [activeLabel]);
+    }, []);
 
     const fetchLabels = async () => {
         try {
@@ -31,27 +36,12 @@ function EmailLayout({ userProfile }) {
         }
     };
 
-    const fetchThreads = async () => {
-        setLoading(true);
-        try {
-            const q = activeLabel === 'INBOX' ? 'label:INBOX' : `label:${activeLabel}`;
-            const data = await api.get(`/api/emails/threads?q=${q}${searchQuery ? ' ' + searchQuery : ''}`);
-            if (data.success) {
-                setThreads(data.data.threads || []);
-            }
-        } catch (error) {
-            console.error('Error fetching threads:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
     const handleThreadSelect = (threadId) => {
-        setSelectedThread(threadId);
+        setSelectedThreadId(threadId);
     };
 
     const handleRefresh = () => {
-        fetchThreads();
+        onRefresh();
         fetchLabels();
     };
 
@@ -60,24 +50,25 @@ function EmailLayout({ userProfile }) {
             <EmailSidebar
                 labels={labels}
                 activeLabel={activeLabel}
-                onLabelSelect={setActiveLabel}
+                onLabelSelect={onLabelSelect}
                 onComposeClick={() => setIsComposeOpen(true)}
             />
-
             <EmailList
                 threads={threads}
-                loading={loading}
+                loading={threadsLoading}
+                selectedThreadId={selectedThreadId}
                 onThreadSelect={handleThreadSelect}
-                selectedThreadId={selectedThread}
                 onRefresh={handleRefresh}
-                onSearch={setSearchQuery}
+                onSearch={onSearch}
+                nextPageToken={nextPageToken}
+                onLoadMore={onLoadMore}
             />
 
             <div className="email-detail-container">
-                {selectedThread ? (
+                {selectedThreadId ? (
                     <EmailThread
-                        threadId={selectedThread}
-                        onClose={() => setSelectedThread(null)}
+                        threadId={selectedThreadId}
+                        onClose={() => setSelectedThreadId(null)}
                         onRefresh={handleRefresh}
                     />
                 ) : (

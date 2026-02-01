@@ -67,6 +67,13 @@ app.use('/api', apiLimiter);
 app.use('/api', routes);
 app.use('/api/files', fileRoutes);
 
+// Root-level Google OAuth callback forwarder
+// Handles redirects to http://localhost:3000/auth/google/callback
+app.get('/auth/google/callback', (req, res) => {
+    const queryString = req.url.split('?')[1] || '';
+    res.redirect(`/api/auth/google/callback?${queryString}`);
+});
+
 // Health check (no prefix)
 app.get('/', (req, res) => {
     res.json({

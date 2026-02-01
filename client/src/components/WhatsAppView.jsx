@@ -22,6 +22,7 @@ function WhatsAppView({ token, onLogout }) {
     const chatsRef = useRef(chats);
     const selectedChatRef = useRef(null);
     const socketRef = useRef(null);
+    const isCheckingRef = useRef(false);
 
     useEffect(() => {
         chatsRef.current = chats;
@@ -185,6 +186,9 @@ function WhatsAppView({ token, onLogout }) {
     }, []);
 
     const checkConnectionStatus = async () => {
+        if (isCheckingRef.current) return;
+        isCheckingRef.current = true;
+
         try {
             const data = await api.get('/api/whatsapp/status');
             if (data.success && data.data.connected) {
@@ -201,6 +205,7 @@ function WhatsAppView({ token, onLogout }) {
             }
         } finally {
             setIsLoading(false);
+            isCheckingRef.current = false;
         }
     };
 

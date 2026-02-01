@@ -90,12 +90,14 @@ export const changePassword = asyncHandler(async (req, res) => {
  * GET /api/auth/google
  */
 export const getGoogleAuthUrl = asyncHandler(async (req, res) => {
+    const userId = req.userId;
     const { oauth2Client, GMAIL_SCOPES } = await import('../config/google.config.js');
 
     const url = oauth2Client.generateAuthUrl({
         access_type: 'offline',
         scope: GMAIL_SCOPES,
-        prompt: 'consent' // Force consent to ensure we get a refresh token
+        prompt: 'consent', // Force consent to ensure we get a refresh token
+        state: userId.toString() // Pass userId as string in state to identify the user upon redirect
     });
 
     return successResponse(res, 200, 'Auth URL generated', { url });
@@ -145,4 +147,54 @@ export const googleCallback = asyncHandler(async (req, res) => {
         gmailConnected: true,
         googleEmail: user.googleEmail
     });
+});
+
+/**
+ * Google OAuth callback (GET)
+ * Handles direct redirect from Google
+ * GET /api/auth/google/callback
+ */
+export const googleCallbackGet = asyncHandler(async (req, res) => {
+    const { code, state } = req.query;
+    const userId = state;
+
+    if (!code) {
+        throw new Error('Code is required');
+    }
+
+    if (!userId) {
+        throw new Error('State/UserId is required');
+    }
+
+    const { oauth2Client } = await import('../config/google.config.js');
+    const { tokens } = await oauth2Client.getToken(code);
+
+    // Save tokens to user
+    const User = (await import('../models/User.js')).default;
+    const user = await User.findById(userId);
+
+    if (!user) {
+        throw new Error('User not found');
+    }
+
+    user.gmailAccessToken = tokens.access_token;
+    if (tokens.refresh_token) {
+        user.gmailRefreshToken = tokens.refresh_token;
+    }
+    user.gmailTokenExpiry = tokens.expiry_date ? new Date(tokens.expiry_date) : null;
+    user.gmailConnected = true;
+
+    // Get user profile from Google to save googleEmail/googleId
+    oauth2Client.setCredentials(tokens);
+    const oauth2 = (await import('googleapis')).google.oauth2({ version: 'v2', auth: oauth2Client });
+    const userInfo = await oauth2.userinfo.get();
+
+    user.googleId = userInfo.data.id;
+    user.googleEmail = userInfo.data.email;
+
+    await user.save();
+
+    // Redirect user back to frontend
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    return res.redirect(`${frontendUrl}?gmailConnected=true`);
 });
