@@ -411,3 +411,31 @@ export const summarizeChat = asyncHandler(async (req, res) => {
 
     return successResponse(res, 200, 'Summary regenerated successfully', updatedChat);
 });
+
+/**
+ * Bulk toggle AI for all chats
+ * POST /api/messages/bulk-toggle-ai
+ */
+export const bulkToggleAI = asyncHandler(async (req, res) => {
+    const { enabled } = req.body;
+    const userId = req.userId;
+
+    const Chat = (await import('../models/Chat.js')).default;
+
+    await Chat.updateMany(
+        { userId },
+        { aiEnabled: enabled }
+    );
+
+    // Fetch all updated chats to notify frontend (optional, but good for sync)
+    // Actually, it's better to just tell frontend to refresh or return a status
+    const chats = await Chat.find({ userId }).lean();
+
+    // Notify frontend via socket
+    const io = req.app.get('io');
+    if (io) {
+        io.to(userId.toString()).emit('chats:updated', { chats });
+    }
+
+    return successResponse(res, 200, `AI ${enabled ? 'enabled' : 'disabled'} for all chats`, { enabled });
+});

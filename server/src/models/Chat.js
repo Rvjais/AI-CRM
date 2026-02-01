@@ -45,7 +45,7 @@ const chatSchema = new mongoose.Schema(
         },
         aiEnabled: {
             type: Boolean,
-            default: false,
+            default: true,
         },
         sentiment: {
             type: String,

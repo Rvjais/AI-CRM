@@ -12,6 +12,7 @@ function AIConfig({ token }) {
     const [saved, setSaved] = useState(false);
     const [loading, setLoading] = useState(true);
     const [autoReply, setAutoReply] = useState(false);
+    const [bulkLoading, setBulkLoading] = useState(false);
 
     useEffect(() => {
         fetchConfig();
@@ -72,6 +73,25 @@ function AIConfig({ token }) {
         setApiKey('');
     };
 
+    const handleBulkToggle = async (enabled) => {
+        if (!window.confirm(`Are you sure you want to ${enabled ? 'enable' : 'disable'} AI for ALL existing chats?`)) {
+            return;
+        }
+
+        setBulkLoading(true);
+        try {
+            const data = await api.post('/api/messages/bulk-toggle-ai', { enabled });
+            if (data.success) {
+                alert(`AI successfully ${enabled ? 'enabled' : 'disabled'} for all chats.`);
+            }
+        } catch (error) {
+            console.error('Error bulk toggling AI:', error);
+            alert('Failed to update all chats.');
+        } finally {
+            setBulkLoading(false);
+        }
+    };
+
     if (loading) {
         return <div className="loading">Loading configuration...</div>;
     }
@@ -129,6 +149,28 @@ function AIConfig({ token }) {
                         <button className="btn-primary" onClick={handleSave}>
                             <FaSave /> {saved ? 'Saved!' : 'Save Configuration'}
                         </button>
+                    </div>
+
+                    <div className="bulk-actions-section">
+                        <div className="divider"></div>
+                        <h3>Bulk Actions</h3>
+                        <p className="description">Apply AI settings to all current conversations.</p>
+                        <div className="bulk-buttons">
+                            <button
+                                className="btn-bulk btn-enable-all"
+                                onClick={() => handleBulkToggle(true)}
+                                disabled={bulkLoading}
+                            >
+                                {bulkLoading ? 'Processing...' : 'Enable AI for All Chats'}
+                            </button>
+                            <button
+                                className="btn-bulk btn-disable-all"
+                                onClick={() => handleBulkToggle(false)}
+                                disabled={bulkLoading}
+                            >
+                                {bulkLoading ? 'Processing...' : 'Disable AI for All Chats'}
+                            </button>
+                        </div>
                     </div>
                 </div>
 

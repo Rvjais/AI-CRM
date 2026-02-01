@@ -24,6 +24,7 @@ router.put('/:messageId/edit', validate(schemas.editMessage), messageController.
 router.post('/:messageId/react', validate(schemas.reactToMessage), messageController.reactToMessage);
 router.post('/:messageId/forward', validate(schemas.forwardMessage), messageController.forwardMessage);
 router.post('/:chatJid/summarize', messageController.summarizeChat);
+router.post('/bulk-toggle-ai', messageController.bulkToggleAI);
 router.post('/:chatJid/toggle-ai', messageController.toggleAI);
 router.post('/:chatJid/archive', messageController.toggleArchive);
 
