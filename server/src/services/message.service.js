@@ -87,11 +87,12 @@ export const getUserChats = async (userId, includeArchived = false) => {
     try {
         // Get all unique chat JIDs from messages
         const chatJids = await Message.distinct('chatJid', { userId });
+        logger.info(`getUserChats: Found ${chatJids.length} unique chatJids for user ${userId}: ${JSON.stringify(chatJids)}`);
 
         // Get chat details and last message for each
         const chats = await Promise.all(
             chatJids.map(async (chatJid) => {
-                const [lastMessage, chatInfo, unreadCount] = await Promise.all([
+                const [lastMessage, chatInfo, unreadCount, contactInfo] = await Promise.all([
                     Message.findOne({ userId, chatJid, isDeleted: false })
                         .sort({ timestamp: -1 })
                         .lean(),
@@ -103,14 +104,45 @@ export const getUserChats = async (userId, includeArchived = false) => {
                         status: { $ne: MESSAGE_STATUS.READ },
                         isDeleted: false
                     }),
+                    (await import('../models/Contact.js')).default.findOne({ userId, jid: chatJid }).lean()
                 ]);
 
                 if (!includeArchived && chatInfo?.isArchived) {
                     return null;
                 }
 
+                // NEW LOGIC: Prioritize details from Contact model, then incoming message, then Chat model
+                let contactName = contactInfo?.name || chatInfo?.contactName;
+                let phoneNumber = contactInfo?.phoneNumber || chatInfo?.phoneNumber;
+
+                // Try to find the last incoming message to grab details from
+                // We optimize by only doing this if we want to ensure accuracy or data is missing.
+                let lastIncomingMsg = null;
+
+                // If the last message in general is incoming, use it
+                if (lastMessage && !lastMessage.fromMe) {
+                    lastIncomingMsg = lastMessage;
+                } else if (!contactName) {
+                    // Only scan back if we don't have a contact name yet
+                    lastIncomingMsg = await Message.findOne({
+                        userId,
+                        chatJid,
+                        fromMe: false,
+                        isDeleted: false
+                    }).sort({ timestamp: -1 });
+                }
+
+                if (lastIncomingMsg) {
+                    if (lastIncomingMsg.senderName) {
+                        contactName = lastIncomingMsg.senderName;
+                    }
+                    if (lastIncomingMsg.senderPn) {
+                        phoneNumber = lastIncomingMsg.senderPn;
+                    }
+                }
+
                 return {
-                    _id: chatInfo?._id,
+                    _id: chatInfo?._id || chatJid, // Fallback to JID if no ID
                     chatJid,
                     lastMessage,
                     unreadCount,
@@ -119,8 +151,8 @@ export const getUserChats = async (userId, includeArchived = false) => {
                     isPinned: chatInfo?.isPinned || false,
                     aiEnabled: chatInfo?.aiEnabled || false,
                     isGroup: chatInfo?.isGroup || false,
-                    phoneNumber: chatInfo?.phoneNumber,
-                    contactName: chatInfo?.contactName
+                    phoneNumber: phoneNumber,
+                    contactName: contactName
                 };
             })
         );

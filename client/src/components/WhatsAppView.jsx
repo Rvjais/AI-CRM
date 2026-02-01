@@ -51,9 +51,16 @@ function WhatsAppView({ token, onLogout }) {
             console.log('📩 New message received:', newMessage);
 
             // 1. Check if we need to fetch new chats (using ref to avoid stale closure or impure updater)
-            const existingChat = chatsRef.current.find(c => c.jid === newMessage.chatJid);
+            let existingChatIndex = chatsRef.current.findIndex(c => c.jid === newMessage.chatJid);
 
-            if (!existingChat) {
+            // If not found by JID, try matching by Phone Number (handles LID vs Phone JID)
+            const senderPn = newMessage.senderPn ? newMessage.senderPn.split('@')[0] : null;
+
+            if (existingChatIndex === -1 && senderPn) {
+                existingChatIndex = chatsRef.current.findIndex(c => c.phone === senderPn);
+            }
+
+            if (existingChatIndex === -1) {
                 // New chat: Re-fetch to get full details properly
                 fetchChats();
                 return;
@@ -61,25 +68,46 @@ function WhatsAppView({ token, onLogout }) {
 
             // 2. Update existing chat
             setChats(prevChats => {
-                const existingChatIndex = prevChats.findIndex(c => c.jid === newMessage.chatJid);
-                if (existingChatIndex === -1) return prevChats; // Should be handled above, but safety check
+                // Find index again in the latest state (though it should be sync usually)
+                let index = prevChats.findIndex(c => c.jid === newMessage.chatJid);
+                // Use the normalized senderPn from outer scope
+                if (index === -1 && senderPn) {
+                    index = prevChats.findIndex(c => c.phone === senderPn);
+                }
+
+                if (index === -1) return prevChats;
 
                 let updatedChats = [...prevChats];
                 const activeChatId = selectedChatRef.current?.jid;
 
+                // If the active chat matches either JID or Phone, reset unread
+                // We need to be careful: selectedChat might be the Phone JID version
+                const isActive = (activeChatId === newMessage.chatJid) ||
+                    (selectedChatRef.current?.phone === senderPn);
+
+                const currentUnread = updatedChats[index].unreadCount || 0;
                 // Calculate new unread count
-                const currentUnread = updatedChats[existingChatIndex].unreadCount || 0;
-                const newUnread = (activeChatId === newMessage.chatJid) ? 0 : currentUnread + 1;
+                const newUnread = isActive ? 0 : currentUnread + 1;
 
                 const chatUpdate = {
-                    ...updatedChats[existingChatIndex],
+                    ...updatedChats[index],
                     lastMessage: newMessage.content?.text || 'Media message',
                     lastMessageTime: newMessage.timestamp,
                     unreadCount: newUnread
                 };
 
+                // Update name and phone if provided and not currently set (or if we want to trust the latest)
+                if (senderPn) {
+                    chatUpdate.phone = senderPn;
+                    // If the current name is just the JID-based number, update it to the phone number or pushname
+                    const isGenericName = chatUpdate.name === chatUpdate.jid.split('@')[0] || chatUpdate.name === updatedChats[index].phone;
+                    if (isGenericName || newMessage.senderName) {
+                        chatUpdate.name = newMessage.senderName || senderPn;
+                    }
+                }
+
                 // Update and move to top
-                updatedChats.splice(existingChatIndex, 1);
+                updatedChats.splice(index, 1);
                 updatedChats.unshift(chatUpdate);
 
                 return updatedChats;
@@ -87,7 +115,12 @@ function WhatsAppView({ token, onLogout }) {
 
             // 3. Update Active Conversation Messages
             const activeChatId = selectedChatRef.current?.jid;
-            if (activeChatId && activeChatId === newMessage.chatJid) {
+            const activeChatPhone = selectedChatRef.current?.phone;
+
+            const isMatch = (activeChatId && activeChatId === newMessage.chatJid) ||
+                (activeChatPhone && activeChatPhone === senderPn);
+
+            if (isMatch) {
                 setMessages(prev => [...prev, newMessage]);
             }
         });
@@ -130,20 +163,29 @@ function WhatsAppView({ token, onLogout }) {
                 const rawChats = Array.isArray(data.data) ? data.data : (data.data.chats || []);
 
                 // Map backend format to frontend format
-                const formattedChats = rawChats.map(chat => ({
-                    _id: chat._id || chat.chatJid, // Fallback to JID if no ID
-                    phone: chat.phoneNumber || chat.chatJid.split('@')[0], // Use stored phone or extract
-                    jid: chat.chatJid,
-                    name: chat.contactName || chat.phoneNumber || chat.chatJid.split('@')[0],
-                    lastMessage: chat.lastMessage?.content?.text || 'Media message',
-                    lastMessageTime: chat.lastMessage?.timestamp || chat.updatedAt,
-                    unreadCount: chat.unreadCount || 0,
-                    profilePicture: chat.profilePicture, // If available
-                    isArchived: chat.isArchived || false,
-                    isMuted: chat.isMuted || false,
-                    isGroup: chat.chatJid.includes('@g.us'),
-                    aiEnabled: chat.aiEnabled || false
-                }));
+                const formattedChats = rawChats.map(chat => {
+                    // Normalize phone number: use explicit phone, or extract from JID as fallback (but strip suffix)
+                    let phone = chat.phoneNumber;
+                    if (!phone && chat.chatJid) {
+                        const parts = chat.chatJid.split('@');
+                        phone = parts[0];
+                    }
+
+                    return {
+                        _id: chat._id || chat.chatJid, // Fallback to JID if no ID
+                        phone: phone,
+                        jid: chat.chatJid,
+                        name: chat.contactName || phone, // Fallback to phone/id if no name
+                        lastMessage: chat.lastMessage?.content?.text || 'Media message',
+                        lastMessageTime: chat.lastMessage?.timestamp || chat.updatedAt,
+                        unreadCount: chat.unreadCount || 0,
+                        profilePicture: chat.profilePicture, // If available
+                        isArchived: chat.isArchived || false,
+                        isMuted: chat.isMuted || false,
+                        isGroup: chat.chatJid.includes('@g.us'),
+                        aiEnabled: chat.aiEnabled || false
+                    };
+                });
 
                 console.log('📱 [Frontend] Setting chats:', formattedChats.length, 'items');
 
@@ -158,9 +200,15 @@ function WhatsAppView({ token, onLogout }) {
                 formattedChats.forEach(chat => {
                     const uniqueKey = chat.phone; // This should be the real number for both LID and Phone JID chats
 
-                    if (chat.isGroup || chat.jid.includes('@broadcast')) {
-                        dedupedChats.push(chat); // Always keep groups/broadcasts
+                    if (chat.isGroup || chat.jid.includes('@broadcast') || chat.jid === 'status@broadcast') {
+                        // Skip status broadcast for now if not needed, or treat them separately
+                        if (chat.jid !== 'status@broadcast') {
+                            dedupedChats.push(chat);
+                        }
                     } else if (uniqueKey && !seenPhones.has(uniqueKey)) {
+                        // Only dedupe if it looks like a real phone number (digits only, length > 5 roughly)
+                        // LIDs might be random IDs, so deduping them blindly might collapse distinct chats if logic is flawed
+                        // But here we assume uniqueKey is the user identity.
                         seenPhones.add(uniqueKey);
                         dedupedChats.push(chat);
                     } else if (!uniqueKey) {

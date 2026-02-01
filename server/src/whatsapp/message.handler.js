@@ -66,6 +66,8 @@ export const handleIncomingMessage = async (userId, msg, io, sendResponse) => {
             content,
             timestamp: new Date(msg.messageTimestamp * 1000),
             status: MESSAGE_STATUS.READ, // Incoming messages are auto-read
+            senderName: msg.pushName,
+            senderPn: msg.key.senderPn ? msg.key.senderPn.split('@')[0] : undefined,
         };
 
         console.log(`💾 [handleIncomingMessage] User ${userId}: Saving message`, {
@@ -105,14 +107,20 @@ export const handleIncomingMessage = async (userId, msg, io, sendResponse) => {
             );
 
             // Also update Chat with the phone number if it's new information
+            const chatUpdateOps = {
+                $set: {
+                    phoneNumber: phoneNumber
+                }
+            };
+
+            // Only update contactName if it's from the other person
+            if (!fromMe && pushName) {
+                chatUpdateOps.$set.contactName = pushName;
+            }
+
             await Chat.findOneAndUpdate(
                 { userId, chatJid },
-                {
-                    $set: {
-                        contactName: pushName, // Store pushname as contact name fallback
-                        phoneNumber: phoneNumber
-                    }
-                },
+                chatUpdateOps,
                 { upsert: true }
             );
 

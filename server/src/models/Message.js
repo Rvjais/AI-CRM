@@ -59,6 +59,14 @@ const messageSchema = new mongoose.Schema(
             enum: Object.values(MESSAGE_STATUS),
             default: MESSAGE_STATUS.PENDING,
         },
+        senderName: {
+            type: String,
+            trim: true,
+        },
+        senderPn: {
+            type: String,
+            trim: true,
+        },
         timestamp: {
             type: Date,
             default: Date.now,

@@ -44,10 +44,16 @@
 
 .message-bubble {
     max-width: 65%;
-    padding: 10px 14px;
+    padding: 6px 10px 8px 10px;
+    /* Adjusted padding */
     border-radius: 12px;
     position: relative;
     word-wrap: break-word;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 8px;
+    /* Space between text and time */
 }
 
 .message.sent .message-bubble {
@@ -66,15 +72,21 @@
 .message-text {
     font-size: 14.5px;
     line-height: 1.5;
-    margin-bottom: 4px;
+    margin-bottom: 0;
+    /* Remove bottom margin */
+    max-width: 100%;
 }
 
 .message-time {
     font-size: 11px;
     opacity: 0.7;
-    float: right;
-    margin-left: 12px;
-    margin-top: 4px;
+    float: none;
+    /* Remove float */
+    margin-left: auto;
+    /* Push to right */
+    margin-top: 0;
+    line-height: 1;
+    white-space: nowrap;
 }
 
 .message.sent .message-time {
@@ -174,8 +186,10 @@
 .reaction-actions {
     display: none;
     position: absolute;
-    top: -35px;
-    right: 0;
+    top: 100%;
+    /* Move to bottom */
+    margin-top: 4px;
+    /* Space from bubble */
     background: white;
     padding: 4px;
     border-radius: 20px;
@@ -183,6 +197,14 @@
     gap: 4px;
     z-index: 10;
     animation: fadeIn 0.2s;
+}
+
+.message.sent .reaction-actions {
+    right: 0;
+}
+
+.message.received .reaction-actions {
+    left: 0;
 }
 
 .reaction-actions button {

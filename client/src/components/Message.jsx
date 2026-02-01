@@ -1,4 +1,5 @@
 import './Message.css';
+import api from '../utils/apiClient';
 
 function Message({ message, onForward }) {
     const formatTime = (timestamp) => {
