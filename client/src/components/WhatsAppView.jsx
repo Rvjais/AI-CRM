@@ -5,6 +5,7 @@ import ChatWindow from './ChatWindow';
 import AIInsights from './AIInsights';
 import QRScanner from './QRScanner';
 import api from '../utils/apiClient';
+import ForwardModal from './ForwardModal';
 
 function WhatsAppView({ token, onLogout }) {
     const [selectedChat, setSelectedChat] = useState(null);
@@ -13,6 +14,8 @@ function WhatsAppView({ token, onLogout }) {
     const [aiEnabled, setAiEnabled] = useState(false);
     const [isConnected, setIsConnected] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+    const [isForwardModalOpen, setIsForwardModalOpen] = useState(false);
+    const [msgToForward, setMsgToForward] = useState(null);
 
     // Ref to track selected chat without triggering effect re-runs
     const chatsRef = useRef(chats);
@@ -187,6 +190,23 @@ function WhatsAppView({ token, onLogout }) {
         fetchChats();
     };
 
+    const handleForwardRequest = (message) => {
+        setMsgToForward(message);
+        setIsForwardModalOpen(true);
+    };
+
+    const handleForwardAction = async (targetJid) => {
+        if (!msgToForward) return;
+        try {
+            await api.post(`/api/messages/${msgToForward._id}/forward`, { toJid: targetJid });
+            console.log('Message forwarded');
+            setIsForwardModalOpen(false);
+        } catch (error) {
+            console.error('Forwarding failed:', error);
+            alert('Failed to forward message');
+        }
+    };
+
     if (isLoading) {
         return <div className="loading">Checking connection...</div>;
     }
@@ -210,11 +230,19 @@ function WhatsAppView({ token, onLogout }) {
                 setMessages={setMessages}
                 token={token}
                 onUpdateChat={handleChatUpdate}
+                onForward={handleForwardRequest}
             />
             <AIInsights
                 selectedChat={selectedChat}
                 messages={messages}
                 aiEnabled={aiEnabled}
+            />
+
+            <ForwardModal
+                isOpen={isForwardModalOpen}
+                onClose={() => setIsForwardModalOpen(false)}
+                chats={chats}
+                onForward={handleForwardAction}
             />
         </div>
     );

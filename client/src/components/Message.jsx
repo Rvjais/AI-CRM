@@ -1,6 +1,6 @@
 import './Message.css';
 
-function Message({ message }) {
+function Message({ message, onForward }) {
     const formatTime = (timestamp) => {
         if (!timestamp) return '';
         const date = new Date(timestamp);
@@ -74,6 +74,16 @@ function Message({ message }) {
         return <p className="message-text">{content.text || content.caption || message.text || ''}</p>;
     };
 
+    const handleReaction = async (emoji) => {
+        try {
+            await api.post(`/api/messages/${message._id}/react`, { emoji });
+            // Optimistic update could go here, or rely on socket update
+            // For now, we rely on the socket update which updates the message list
+        } catch (error) {
+            console.error('Failed to react:', error);
+        }
+    };
+
     return (
         <div className={`message ${message.fromMe ? 'sent' : 'received'}`}>
             {!message.fromMe && (
@@ -84,9 +94,32 @@ function Message({ message }) {
                 </div>
             )}
 
-            <div className="message-bubble">
-                {renderContent()}
-                <span className="message-time">{formatTime(message.timestamp)}</span>
+            <div className="message-content-wrapper">
+                <div className="message-bubble group">
+                    {renderContent()}
+                    <span className="message-time">{formatTime(message.timestamp)}</span>
+
+                    {/* Reaction Picker (Hidden by default, shown on hover via CSS group-hover) */}
+                    <div className="reaction-actions">
+                        <button onClick={() => handleReaction('👍')}>👍</button>
+                        <button onClick={() => handleReaction('❤️')}>❤️</button>
+                        <button onClick={() => handleReaction('😂')}>😂</button>
+                        <button onClick={() => handleReaction('😮')}>😮</button>
+                        <button onClick={() => handleReaction('😢')}>😢</button>
+                        <button onClick={() => handleReaction('🙏')}>🙏</button>
+                        <div style={{ width: '1px', height: '16px', background: '#e5e7eb', margin: '0 4px' }}></div>
+                        <button onClick={() => onForward && onForward(message)} title="Forward">↪️</button>
+                    </div>
+                </div>
+
+                {/* Display Reactions */}
+                {message.reactions && message.reactions.length > 0 && (
+                    <div className="message-reactions">
+                        {message.reactions.map((r, i) => (
+                            <span key={i} className="reaction-bubble">{r.emoji}</span>
+                        ))}
+                    </div>
+                )}
             </div>
         </div>
     );

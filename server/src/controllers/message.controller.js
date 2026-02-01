@@ -165,6 +165,29 @@ export const reactToMessage = asyncHandler(async (req, res) => {
         throw new Error('WhatsApp not connected');
     }
 
+    // 1. Fetch original message to get key
+    const Message = (await import('../models/Message.js')).default;
+    const originalMessage = await Message.findOne({ _id: messageId, userId: req.userId });
+
+    if (!originalMessage) {
+        throw new Error('Message not found');
+    }
+
+    // 2. Send reaction via WhatsApp
+    const reactionMessage = {
+        react: {
+            text: emoji, // use empty string to remove
+            key: {
+                remoteJid: originalMessage.chatJid,
+                fromMe: originalMessage.fromMe,
+                id: originalMessage.messageId
+            }
+        }
+    };
+
+    await whatsappService.sendMessage(req.userId, originalMessage.chatJid, reactionMessage);
+
+    // 3. Update DB
     const message = await messageService.addReaction(
         messageId,
         req.userId,
@@ -181,10 +204,81 @@ export const reactToMessage = asyncHandler(async (req, res) => {
  */
 export const forwardMessage = asyncHandler(async (req, res) => {
     const { messageId } = req.params;
-    const { toJid } = req.body;
+    const { toJid } = req.body; // Target chat to forward to
 
-    // Implementation would involve fetching the message and resending
-    return successResponse(res, 501, 'Forward not yet implemented');
+    const sock = whatsappService.getConnection(req.userId);
+    if (!sock) {
+        throw new Error('WhatsApp not connected');
+    }
+
+    // 1. Fetch original message
+    const Message = (await import('../models/Message.js')).default;
+    const originalMessage = await Message.findOne({ _id: messageId, userId: req.userId });
+
+    if (!originalMessage) {
+        throw new Error('Message not found');
+    }
+
+    // 2. Prepare content for forwarding
+    // For simplicity, we resend the content. Baileys also allows forwarding context.
+    // We will just send the same content type to the new JID.
+
+    // Check if it's text or media
+    const type = originalMessage.type;
+    const content = originalMessage.content;
+
+    let forwardContent = {};
+    if (type === 'text') {
+        forwardContent = { text: content.text };
+    } else if (['image', 'video', 'audio', 'document'].includes(type) || (type === 'gif')) {
+        // Construct media message
+        const mediaType = type === 'gif' ? 'video' : type;
+        const mediaUrl = content[mediaType]?.url || content.url || content.mediaUrl;
+
+        if (mediaUrl) {
+            forwardContent = {
+                [mediaType]: { url: mediaUrl },
+                caption: content.caption,
+                mimetype: content.mimetype
+            };
+
+            if (type === 'gif') forwardContent.gifPlayback = true;
+            if (content.isViewOnce) forwardContent.viewOnce = true;
+        } else {
+            throw new Error('Cannot forward media: URL missing');
+        }
+    } else {
+        // Fallback for others
+        throw new Error('Message type not supported for forwarding');
+    }
+
+    // Add context info to show "Forwarded" label
+    const options = {
+        contextInfo: {
+            isForwarded: true,
+            forwardingScore: 1
+        }
+    };
+
+    // 3. Send via WhatsApp
+    const sentMessage = await whatsappService.sendMessage(req.userId, toJid, forwardContent, options);
+
+    // 4. Save new message record
+    const newMessageData = {
+        userId: req.userId,
+        messageId: sentMessage.key.id,
+        chatJid: toJid,
+        fromMe: true,
+        type: type,
+        content: content, // Save same content
+        status: 'sent',
+        timestamp: new Date(),
+        isForwarded: true
+    };
+
+    const savedMessage = await messageService.saveMessage(newMessageData);
+
+    return successResponse(res, 200, 'Message forwarded successfully', savedMessage);
 });
 
 /**
@@ -227,4 +321,24 @@ export const toggleAI = asyncHandler(async (req, res) => {
     );
 
     return successResponse(res, 200, `AI ${enabled ? 'enabled' : 'disabled'} for chat`, chat);
+});
+
+/**
+ * Toggle Archive status for chat
+ * POST /api/messages/:chatJid/archive
+ */
+export const toggleArchive = asyncHandler(async (req, res) => {
+    const { chatJid } = req.params;
+    const { archived } = req.body;
+
+    // Use Chat model directly or via service
+    const Chat = (await import('../models/Chat.js')).default;
+
+    const chat = await Chat.findOneAndUpdate(
+        { userId: req.userId, chatJid },
+        { isArchived: archived },
+        { new: true, upsert: true }
+    );
+
+    return successResponse(res, 200, `Chat ${archived ? 'archived' : 'unarchived'}`, chat);
 });

@@ -158,3 +158,70 @@
     font-size: 12px;
     font-weight: 500;
 }
+
+/* Reactions */
+.message-content-wrapper {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Group hover for reaction actions */
+.message-bubble.group:hover .reaction-actions {
+    display: flex;
+}
+
+.reaction-actions {
+    display: none;
+    position: absolute;
+    top: -35px;
+    right: 0;
+    background: white;
+    padding: 4px;
+    border-radius: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    gap: 4px;
+    z-index: 10;
+    animation: fadeIn 0.2s;
+}
+
+.reaction-actions button {
+    background: none;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 50%;
+    transition: transform 0.1s;
+}
+
+.reaction-actions button:hover {
+    transform: scale(1.2);
+    background: #f3f4f6;
+}
+
+.message-reactions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 4px;
+    justify-content: flex-end;
+    /* Or flex-start based on message type, but simplified for now */
+}
+
+.message.received .message-reactions {
+    justify-content: flex-start;
+}
+
+.reaction-bubble {
+    background: white;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    padding: 2px 6px;
+    font-size: 12px;
+    border: 1px solid #e5e7eb;
+}
+
+.message.sent .reaction-bubble {
+    background: rgba(255, 255, 255, 0.9);
+}

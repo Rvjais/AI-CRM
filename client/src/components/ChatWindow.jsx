@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
-import { FaPaperPlane, FaSmile } from 'react-icons/fa';
+import { FaPaperPlane, FaSmile, FaArchive } from 'react-icons/fa';
 import Message from './Message';
 import api from '../utils/apiClient';
 import './ChatWindow.css';
 
-function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat }) {
+function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat, onForward }) {
     const [newMessage, setNewMessage] = useState('');
     const [loading, setLoading] = useState(false);
     const [mediaFile, setMediaFile] = useState(null);
@@ -42,6 +42,23 @@ function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat }
             if (onUpdateChat) {
                 onUpdateChat({ ...selectedChat, aiEnabled: !newStatus });
             }
+        }
+    };
+
+    const toggleArchive = async () => {
+        if (!selectedChat) return;
+
+        const newStatus = !selectedChat.isArchived;
+        const updatedChat = { ...selectedChat, isArchived: newStatus };
+
+        if (onUpdateChat) onUpdateChat(updatedChat);
+
+        try {
+            const jidToUse = selectedChat.jid || (selectedChat.phone.includes('@') ? selectedChat.phone : `${selectedChat.phone}@s.whatsapp.net`);
+            await api.post(`/api/messages/${encodeURIComponent(jidToUse)}/archive`, { archived: newStatus });
+        } catch (error) {
+            console.error('Error toggling archive:', error);
+            if (onUpdateChat) onUpdateChat({ ...selectedChat, isArchived: !newStatus });
         }
     };
 
@@ -218,12 +235,21 @@ function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat }
                     })()}</p>
                 </div>
 
-                <button
-                    className={`ai-enable-btn ${selectedChat.aiEnabled ? 'active' : ''}`}
-                    onClick={toggleChatAI}
-                >
-                    {selectedChat.aiEnabled ? 'Disable AI' : 'Enable AI'}
-                </button>
+                <div className="header-actions">
+                    <button
+                        className={`action-btn ${selectedChat.isArchived ? 'active' : ''}`}
+                        onClick={toggleArchive}
+                        title={selectedChat.isArchived ? "Unarchive Chat" : "Archive Chat"}
+                    >
+                        <FaArchive />
+                    </button>
+                    <button
+                        className={`ai-enable-btn ${selectedChat.aiEnabled ? 'active' : ''}`}
+                        onClick={toggleChatAI}
+                    >
+                        {selectedChat.aiEnabled ? 'Disable AI' : 'Enable AI'}
+                    </button>
+                </div>
             </div>
 
             <div className="messages-container">
@@ -233,7 +259,11 @@ function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat }
                     </div>
                 ) : (
                     messages.map((message, index) => (
-                        <Message key={message._id || index} message={message} />
+                        <Message
+                            key={message._id || index}
+                            message={message}
+                            onForward={onForward}
+                        />
                     ))
                 )}
                 <div ref={messagesEndRef} />
