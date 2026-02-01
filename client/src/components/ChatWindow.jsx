@@ -105,7 +105,7 @@ function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat, 
             const encodedId = encodeURIComponent(chatIdentifier);
             const data = await api.get(`/api/messages/${encodedId}`);
             if (data.success) {
-                setMessages(data.data.messages || []);
+                setMessages(data.data.messages || [], chatIdentifier);
             }
         } catch (error) {
             console.error('Error fetching messages:', error);
@@ -192,7 +192,7 @@ function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat, 
                     timestamp: new Date().toISOString()
                 };
 
-                setMessages([...messages, sentMsg]);
+                setMessages([...messages, sentMsg], chatJid);
                 setNewMessage('');
                 cancelMedia();
                 setReplyingTo(null); // Clear reply after sending

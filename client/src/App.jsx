@@ -8,6 +8,8 @@ import ComingSoon from './components/ComingSoon';
 import Login from './components/Login';
 import './App.css';
 
+import ErrorBoundary from './components/ErrorBoundary';
+
 function App() {
   const [token, setToken] = useState(localStorage.getItem('token'));
   const [activeView, setActiveView] = useState('whatsapp');
@@ -32,20 +34,25 @@ function App() {
   };
 
   const renderView = () => {
-    switch (activeView) {
-      case 'dashboard':
-        return <Dashboard />;
-      case 'whatsapp':
-        return <WhatsAppView token={token} onLogout={handleLogout} />;
-      case 'email':
-        return <EmailView token={token} />;
-      case 'voiceagent':
-        return <ComingSoon title="Voice Agent" icon="🎤" />;
-      case 'aiconfig':
-        return <AIConfig token={token} />;
-      default:
-        return <WhatsAppView token={token} onLogout={handleLogout} />;
-    }
+    return (
+      <ErrorBoundary>
+        <div className={activeView === 'dashboard' ? '' : 'view-hidden'}>
+          <Dashboard />
+        </div>
+        <div className={activeView === 'whatsapp' ? '' : 'view-hidden'}>
+          <WhatsAppView token={token} onLogout={handleLogout} />
+        </div>
+        <div className={activeView === 'email' ? '' : 'view-hidden'}>
+          <EmailView token={token} />
+        </div>
+        <div className={activeView === 'voiceagent' ? '' : 'view-hidden'}>
+          <ComingSoon title="Voice Agent" icon="🎤" />
+        </div>
+        <div className={activeView === 'aiconfig' ? '' : 'view-hidden'}>
+          <AIConfig token={token} />
+        </div>
+      </ErrorBoundary>
+    );
   };
 
   if (!token) {

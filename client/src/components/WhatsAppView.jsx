@@ -23,6 +23,7 @@ function WhatsAppView({ token, onLogout }) {
     const selectedChatRef = useRef(null);
     const socketRef = useRef(null);
     const isCheckingRef = useRef(false);
+    const messagesCacheRef = useRef({}); // { jid: [messages] }
 
     useEffect(() => {
         chatsRef.current = chats;
@@ -123,7 +124,22 @@ function WhatsAppView({ token, onLogout }) {
                 (activeChatPhone && activeChatPhone === senderPn);
 
             if (isMatch) {
-                setMessages(prev => [...prev, newMessage]);
+                setMessages(prev => {
+                    const updated = [...prev, newMessage];
+                    // Update cache as well
+                    const chatId = newMessage.chatJid;
+                    if (chatId) {
+                        messagesCacheRef.current[chatId] = updated;
+                    }
+                    return updated;
+                });
+            } else {
+                // Update cache even if not active
+                const chatId = newMessage.chatJid;
+                if (chatId) {
+                    const cached = messagesCacheRef.current[chatId] || [];
+                    messagesCacheRef.current[chatId] = [...cached, newMessage];
+                }
             }
         });
 
@@ -283,11 +299,33 @@ function WhatsAppView({ token, onLogout }) {
 
     const handleChatUpdate = (updatedChat) => {
         setChats(prevChats => {
-            const newChats = prevChats.map(c => c._id === updatedChat._id ? updatedChat : c);
+            const newChats = prevChats.map(c => (c.jid === updatedChat.jid || c._id === updatedChat._id) ? updatedChat : c);
             return newChats;
         });
-        if (selectedChat?._id === updatedChat._id) {
+        if (selectedChatRef.current?.jid === updatedChat.jid || selectedChatRef.current?._id === updatedChat._id) {
             setSelectedChat(updatedChat);
+        }
+    };
+
+    const handleSelectChat = (chat) => {
+        if (!chat) {
+            setSelectedChat(null);
+            setMessages([]);
+            return;
+        }
+
+        setSelectedChat(chat);
+
+        // Load from cache instantly
+        const chatId = chat.jid || chat.phone;
+        const cachedMessages = messagesCacheRef.current[chatId] || [];
+        setMessages(cachedMessages);
+    };
+
+    const handleMessagesUpdate = (newMessages, chatId) => {
+        setMessages(newMessages);
+        if (chatId) {
+            messagesCacheRef.current[chatId] = newMessages;
         }
     };
 
@@ -325,7 +363,7 @@ function WhatsAppView({ token, onLogout }) {
             <ChatList
                 chats={chats}
                 selectedChat={selectedChat}
-                onSelectChat={setSelectedChat}
+                onSelectChat={handleSelectChat}
                 aiEnabled={aiEnabled}
                 onToggleAI={setAiEnabled}
                 onLogout={onLogout}
@@ -333,7 +371,7 @@ function WhatsAppView({ token, onLogout }) {
             <ChatWindow
                 selectedChat={selectedChat}
                 messages={messages}
-                setMessages={setMessages}
+                setMessages={handleMessagesUpdate}
                 token={token}
                 onUpdateChat={handleChatUpdate}
                 onForward={handleForwardRequest}

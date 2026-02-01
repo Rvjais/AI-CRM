@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import { FaQrcode, FaRedo } from 'react-icons/fa';
 import api from '../utils/apiClient';
