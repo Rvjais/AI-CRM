@@ -1,7 +1,7 @@
 import './Message.css';
 import api from '../utils/apiClient';
 
-function Message({ message, onForward }) {
+function Message({ message, onForward, onReply }) {
     const formatTime = (timestamp) => {
         if (!timestamp) return '';
         const date = new Date(timestamp);
@@ -23,8 +23,6 @@ function Message({ message, onForward }) {
         if (type === 'sticker' || content.mimeType?.includes('webp')) {
             const url = content.sticker?.url || content.url;
             if (url) return <img src={url} alt="Sticker" className="message-sticker" />;
-
-            console.warn('⚠️ [Message.jsx] Sticker unavailable for message:', message);
             return (
                 <div className="media-placeholder sticker-error">
                     <span className="icon">🧩</span>
@@ -37,8 +35,6 @@ function Message({ message, onForward }) {
         if (type === 'image' || content.mimeType?.startsWith('image/')) {
             const url = content.image?.url || content.url || (content.text && content.text.startsWith('http') ? content.text : null);
             if (url) return <img src={url} alt={content.caption || 'Image'} className="message-media" />;
-
-            console.warn('⚠️ [Message.jsx] Image unavailable for message:', message);
             return (
                 <div className="media-placeholder error">
                     <span className="icon">🖼️</span>
@@ -113,6 +109,35 @@ function Message({ message, onForward }) {
 
             <div className="message-content-wrapper">
                 <div className="message-bubble group">
+                    {/* Quoted Message Preview */}
+                    {message.quotedMessage && (
+                        <div className="quoted-message-preview" style={{
+                            borderLeft: '4px solid #6b7280',
+                            background: 'rgba(0,0,0,0.05)',
+                            padding: '6px 8px',
+                            borderRadius: '4px',
+                            marginBottom: '4px',
+                            fontSize: '0.85em',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            flexDirection: 'column'
+                        }}>
+                            <span style={{ fontWeight: 'bold', color: '#4b5563' }}>
+                                {message.quotedMessage.fromMe ? 'You' : (message.quotedMessage.senderName || message.quotedMessage.senderPn || 'Sender')}
+                            </span>
+                            <span style={{
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                color: '#374151'
+                            }}>
+                                {message.quotedMessage.content?.text ||
+                                    message.quotedMessage.content?.caption ||
+                                    (message.quotedMessage.type === 'image' ? '📷 Photo' : 'Msg')}
+                            </span>
+                        </div>
+                    )}
+
                     {renderContent()}
                     <span className="message-time">{formatTime(message.timestamp)}</span>
 
@@ -125,6 +150,7 @@ function Message({ message, onForward }) {
                         <button onClick={() => handleReaction('😢')}>😢</button>
                         <button onClick={() => handleReaction('🙏')}>🙏</button>
                         <div style={{ width: '1px', height: '16px', background: '#e5e7eb', margin: '0 4px' }}></div>
+                        <button onClick={() => onReply && onReply(message)} title="Reply">↩️</button>
                         <button onClick={() => onForward && onForward(message)} title="Forward">↪️</button>
                     </div>
                 </div>

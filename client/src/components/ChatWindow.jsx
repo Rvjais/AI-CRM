@@ -12,6 +12,7 @@ function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat, 
     const [isViewOnce, setIsViewOnce] = useState(false);
     const [isGif, setIsGif] = useState(false);
     const [uploading, setUploading] = useState(false);
+    const [replyingTo, setReplyingTo] = useState(null);
     const messagesEndRef = useRef(null);
     const fileInputRef = useRef(null);
 
@@ -70,9 +71,25 @@ function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat, 
         scrollToBottom();
     }, [messages]);
 
+    const prevChatIdRef = useRef(null);
+
+    const handleReply = (msg) => {
+        setReplyingTo(msg);
+    };
+
     useEffect(() => {
-        if (selectedChat) {
+        // Use a stable identifier for comparison (JID or Phone)
+        const chatId = selectedChat ? (selectedChat.jid || selectedChat.phone) : null;
+
+        if (chatId) {
             fetchMessages();
+            // Only reset reply if the chat actually CHANGED
+            if (prevChatIdRef.current !== chatId) {
+                setReplyingTo(null);
+            }
+            prevChatIdRef.current = chatId;
+        } else {
+            setReplyingTo(null);
         }
     }, [selectedChat]);
 
@@ -121,6 +138,7 @@ function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat, 
 
     const handleSendMessage = async (e) => {
         e.preventDefault();
+
         if ((!newMessage.trim() && !mediaFile) || !selectedChat || loading || uploading) return;
 
         setLoading(true);
@@ -158,7 +176,8 @@ function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat, 
             const payload = {
                 chatJid,
                 type,
-                content
+                content,
+                quoted: replyingTo // Pass the quoted message object (or ID)
             };
 
             const data = await api.post('/api/messages/send', payload);
@@ -176,6 +195,7 @@ function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat, 
                 setMessages([...messages, sentMsg]);
                 setNewMessage('');
                 cancelMedia();
+                setReplyingTo(null); // Clear reply after sending
             }
         } catch (error) {
             console.error('Error sending message:', error);
@@ -263,11 +283,30 @@ function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat, 
                             key={message._id || index}
                             message={message}
                             onForward={onForward}
+                            onReply={handleReply}
                         />
                     ))
                 )}
                 <div ref={messagesEndRef} />
             </div>
+
+            {/* Reply Preview */}
+            {replyingTo && (
+                <div className="reply-preview">
+                    <div className="reply-content">
+                        <span className="reply-bar"></span>
+                        <div style={{ flex: 1 }}>
+                            <div className="reply-sender">
+                                {replyingTo.fromMe ? 'You' : (replyingTo.senderName || selectedChat.name || 'Sender')}
+                            </div>
+                            <div className="reply-text">
+                                {replyingTo.content?.text || replyingTo.content?.caption || (replyingTo.type === 'image' ? '📷 Photo' : 'Msg')}
+                            </div>
+                        </div>
+                        <button className="close-reply" onClick={() => setReplyingTo(null)}>×</button>
+                    </div>
+                </div>
+            )}
 
             {mediaFile && (
                 <div className="media-preview-container">

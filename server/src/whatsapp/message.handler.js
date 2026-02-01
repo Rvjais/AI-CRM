@@ -143,6 +143,7 @@ export const handleIncomingMessage = async (userId, msg, io, sendResponse) => {
             status: MESSAGE_STATUS.READ, // Incoming messages are auto-read
             senderName: msg.pushName,
             senderPn: msg.key.senderPn ? msg.key.senderPn.split('@')[0] : undefined,
+            participant: msg.key.participant, // Save participant JID for generic quoting support
         };
 
         console.log(`💾 [handleIncomingMessage] User ${userId}: Saving message`, {
@@ -431,35 +432,25 @@ function mapMessageType(baileysType) {
  */
 export const downloadAndUploadMedia = async (msg, userId) => {
     try {
-        console.log(`📥 [downloadAndUploadMedia] Starting download for User ${userId}`);
-
         // Download media buffer
         const buffer = await downloadMediaMessage(msg, 'buffer', {});
-        console.log(`📦 [downloadAndUploadMedia] Buffer downloaded. Size: ${buffer.length} bytes`);
 
         // Determine filename and mime type
         const messageType = Object.keys(msg.message)[0];
         const mimeType = msg.message[messageType].mimetype;
         const fileName = msg.message[messageType].fileName || `media_${Date.now()}`;
 
-        console.log(`📂 [downloadAndUploadMedia] Type: ${messageType}, Mime: ${mimeType}, File: ${fileName}`);
-
         // Check MIME type to decide storage
         if (mimeType.startsWith('image/') || mimeType.startsWith('video/')) {
             // Upload to Cloudinary
-            console.log(`☁️ [downloadAndUploadMedia] Uploading to Cloudinary...`);
             const media = await uploadToCloudinary(buffer, fileName, mimeType, userId);
-            console.log(`✅ [downloadAndUploadMedia] Uploaded to Cloudinary: ${media.secureUrl}`);
             return media.secureUrl;
         } else {
             // Upload to MongoDB GridFS
-            console.log(`🗄️ [downloadAndUploadMedia] Uploading to GridFS...`);
             const result = await uploadToMongo(buffer, fileName, mimeType);
-            console.log(`✅ [downloadAndUploadMedia] Uploaded to GridFS: ${result.url}`);
             return result.url;
         }
     } catch (error) {
-        console.error('❌ [downloadAndUploadMedia] Error:', error);
         logger.error('Error downloading/uploading media:', error);
         throw error;
     }

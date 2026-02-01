@@ -29,6 +29,10 @@ const messageSchema = new mongoose.Schema(
             required: true,
             index: true,
         },
+        participant: {
+            type: String, // Required for group messages to identify the sender
+            index: true,
+        },
         fromMe: {
             type: Boolean,
             required: true,

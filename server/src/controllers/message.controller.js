@@ -15,7 +15,7 @@ import { MESSAGE_TYPES, MESSAGE_STATUS } from '../config/constants.js';
  * POST /api/messages/send
  */
 export const sendMessage = asyncHandler(async (req, res) => {
-    const { chatJid, type, content, quotedMessageId, mentions } = req.body;
+    const { chatJid, type, content, quoted, quotedMessageId, mentions } = req.body;
     const userId = req.userId;
 
     const sock = whatsappService.getConnection(userId);
@@ -64,13 +64,47 @@ export const sendMessage = asyncHandler(async (req, res) => {
     }
 
     // Handle options
-    if (quotedMessageId) {
-        // In a real app, we'd fetch the message object from store.
-        // For now preventing error if complex object needed, or implement store fetch.
-        // Baileys requires full message object for quote usually, or contextInfo.
-        // Simplified approach: passing contextInfo directly if frontend sends it, 
-        // or just skip for now if we don't have store.
-        // messageOptions.quoted = ... 
+    let quotedMsgDoc = null;
+
+    if (quoted || quotedMessageId) {
+        const quotedData = quoted || {};
+        const Message = (await import('../models/Message.js')).default;
+
+        // Search by stanza ID (messageId) if available, or _id
+        const qId = quotedData.messageId || quotedMessageId;
+
+        if (qId) {
+            quotedMsgDoc = await Message.findOne({ messageId: qId, userId });
+        }
+
+        const qMsg = quotedMsgDoc || quotedData;
+
+        if (qMsg && (qMsg.messageId || qMsg.id)) { // Support both id formats just in case
+            const stanzaId = qMsg.messageId || qMsg.id;
+
+            let quotedContent = {};
+            if (qMsg.type === MESSAGE_TYPES.TEXT) {
+                quotedContent = { conversation: qMsg.content?.text || '' };
+            } else if (qMsg.type === MESSAGE_TYPES.IMAGE) {
+                quotedContent = { imageMessage: { caption: qMsg.content?.caption || '' } };
+            } else if (qMsg.type === MESSAGE_TYPES.VIDEO) {
+                quotedContent = { videoMessage: { caption: qMsg.content?.caption || '' } };
+            } else {
+                quotedContent = { conversation: '[Media]' };
+            }
+
+            messageOptions.quoted = {
+                key: {
+                    remoteJid: qMsg.chatJid,
+                    fromMe: qMsg.fromMe,
+                    id: stanzaId,
+                    participant: qMsg.participant
+                },
+                message: quotedContent
+            };
+        } else {
+            // Could not verify quoted message structure.
+        }
     }
 
     sentMessage = await whatsappService.sendMessage(userId, chatJid, messageContent, messageOptions);
@@ -86,6 +120,7 @@ export const sendMessage = asyncHandler(async (req, res) => {
         status: MESSAGE_STATUS.SENT,
         timestamp: new Date(),
         mentions,
+        quotedMessage: quotedMsgDoc ? quotedMsgDoc._id : undefined // Save reference
     };
 
     const savedMessage = await messageService.saveMessage(messageData);

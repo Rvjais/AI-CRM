@@ -57,7 +57,8 @@ export const getChatMessages = async (userId, chatJid, page = 1, limit = 50) => 
                 .sort({ timestamp: -1 })
                 .skip(skip)
                 .limit(limit)
-                .populate('quotedMessage', 'content type')
+                .limit(limit)
+                .populate('quotedMessage', 'content type senderName senderPn participant messageId') // Populate sender info too
                 .lean(),
             Message.countDocuments({ userId, chatJid, isDeleted: false }),
         ]);

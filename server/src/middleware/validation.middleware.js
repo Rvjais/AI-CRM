@@ -99,6 +99,7 @@ export const schemas = {
                 contactNumber: Joi.string(),
             }),
             quotedMessageId: Joi.string(),
+            quoted: Joi.object().unknown(true), // Allow full quoted message object
             mentions: Joi.array().items(Joi.string()),
             // Legacy format (backward compatibility)
             to: Joi.string(),
