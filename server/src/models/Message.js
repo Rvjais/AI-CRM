@@ -43,10 +43,15 @@ const messageSchema = new mongoose.Schema(
         content: {
             text: String,
             mediaUrl: String,
+            url: String, // Add this line
             caption: String,
             mimeType: String,
             fileName: String,
             thumbnail: String,
+            // Sticker
+            sticker: {
+                url: String,
+            },
             // Location
             latitude: Number,
             longitude: Number,

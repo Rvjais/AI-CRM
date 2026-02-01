@@ -110,6 +110,21 @@
     margin-bottom: 4px;
 }
 
+.message-sticker {
+    max-width: 128px;
+    height: auto;
+    background: transparent;
+    padding: 0;
+    margin-bottom: 4px;
+    border-radius: 0;
+    display: block;
+}
+
+.sticker-error {
+    background: rgba(255, 255, 0, 0.1);
+    color: #b45309;
+}
+
 .message-document {
     display: flex;
     align-items: center;

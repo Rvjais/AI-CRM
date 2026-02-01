@@ -125,6 +125,24 @@ function WhatsAppView({ token, onLogout }) {
             }
         });
 
+        newSocket.on('message:update', (data) => {
+            console.log('🔄 Message update received:', data);
+
+            setMessages(prevMessages =>
+                prevMessages.map(msg => {
+                    // Match by ID
+                    if (msg.messageId === data.messageId || msg._id === data.messageId) {
+                        return {
+                            ...msg,
+                            ...data,
+                            reactions: data.reactions || msg.reactions
+                        };
+                    }
+                    return msg;
+                })
+            );
+        });
+
         return () => {
             if (newSocket) newSocket.disconnect();
         };

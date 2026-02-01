@@ -41,12 +41,87 @@ export const handleIncomingMessage = async (userId, msg, io, sendResponse) => {
         // --- TEMPORARY DEBUG LOGGING REMOVED ---
         // --------------------------------
 
-        const messageType = Object.keys(msg.message || {})[0];
+        // Prioritize message types by filtering out metadata keys
+        const messageKeys = Object.keys(msg.message || {});
+        let messageType = messageKeys.find(key =>
+            key !== 'messageContextInfo' &&
+            key !== 'deviceListMetadata' &&
+            key !== 'senderKeyDistributionMessage'
+        );
 
-        // Skip if protocol message or empty
-        if (!messageType || messageType === 'protocolMessage' || messageType === 'senderKeyDistributionMessage') {
+        // Fallback to first key if everything was filtered (unlikely, but safe)
+        if (!messageType) messageType = messageKeys[0];
+
+        // Skip if protocol message or empty or still just metadata
+        if (!messageType || messageType === 'protocolMessage') {
             console.log(`⏭️  [handleIncomingMessage] User ${userId}: Skipping message type: ${messageType}`);
             return;
+        }
+
+        // Handle Reaction Message specifically
+        if (messageType === 'reactionMessage') {
+            const reaction = msg.message.reactionMessage;
+            const targetKey = reaction.key;
+            const emoji = reaction.text;
+
+            console.log(`👍 [handleIncomingMessage] Processing reaction: ${emoji} on message ${targetKey.id}`);
+
+            // Find and update the original message
+            // We use findOneAndUpdate to push the reaction
+            const Message = (await import('../models/Message.js')).default;
+
+            // Normalize sender JID
+            const reactorJid = jidNormalizedUser(msg.key.remoteJid || msg.key.participant);
+
+            // Update the message
+            // Note: This logic assumes we append reactions. 
+            // Real WhatsApp replaces the user's previous reaction. 
+            // For simplicity, we'll try to pull existing reaction from this user first, then push new one.
+
+            if (emoji) {
+                // Remove existing reaction from this user if exists
+                await Message.updateOne(
+                    { messageId: targetKey.id, userId },
+                    { $pull: { reactions: { fromJid: reactorJid } } }
+                );
+
+                // Add new reaction
+                const updatedMsg = await Message.findOneAndUpdate(
+                    { messageId: targetKey.id, userId },
+                    {
+                        $push: {
+                            reactions: {
+                                emoji,
+                                fromJid: reactorJid,
+                                timestamp: new Date()
+                            }
+                        }
+                    },
+                    { new: true }
+                );
+
+                if (updatedMsg) {
+                    io.to(userId.toString()).emit('message:update', {
+                        messageId: targetKey.id,
+                        reactions: updatedMsg.reactions
+                    });
+                }
+            } else {
+                // If emoji is empty string, it means "remove reaction"
+                const updatedMsg = await Message.findOneAndUpdate(
+                    { messageId: targetKey.id, userId },
+                    { $pull: { reactions: { fromJid: reactorJid } } },
+                    { new: true }
+                );
+                if (updatedMsg) {
+                    io.to(userId.toString()).emit('message:update', {
+                        messageId: targetKey.id,
+                        reactions: updatedMsg.reactions
+                    });
+                }
+            }
+
+            return; // STOP here, do not save as a new message
         }
 
         // Determine chat JID - Normalize to avoid duplicates (LID vs Phone)
@@ -307,6 +382,16 @@ async function extractMessageContent(msg, messageType, userId) {
                 content.contactNumber = msg.message.contactMessage.vcard;
                 break;
 
+            case 'reactionMessage':
+                const reaction = msg.message.reactionMessage;
+                // We'll handle this in the main handler logic before saving
+                content.reaction = {
+                    key: reaction.key,
+                    text: reaction.text, // emoji
+                    senderTimestampMs: reaction.senderTimestampMs
+                };
+                break;
+
             default:
                 content.text = JSON.stringify(msg.message[messageType]);
         }
@@ -346,29 +431,35 @@ function mapMessageType(baileysType) {
  */
 export const downloadAndUploadMedia = async (msg, userId) => {
     try {
+        console.log(`📥 [downloadAndUploadMedia] Starting download for User ${userId}`);
+
         // Download media buffer
         const buffer = await downloadMediaMessage(msg, 'buffer', {});
+        console.log(`📦 [downloadAndUploadMedia] Buffer downloaded. Size: ${buffer.length} bytes`);
 
         // Determine filename and mime type
         const messageType = Object.keys(msg.message)[0];
         const mimeType = msg.message[messageType].mimetype;
         const fileName = msg.message[messageType].fileName || `media_${Date.now()}`;
 
+        console.log(`📂 [downloadAndUploadMedia] Type: ${messageType}, Mime: ${mimeType}, File: ${fileName}`);
+
         // Check MIME type to decide storage
         if (mimeType.startsWith('image/') || mimeType.startsWith('video/')) {
             // Upload to Cloudinary
+            console.log(`☁️ [downloadAndUploadMedia] Uploading to Cloudinary...`);
             const media = await uploadToCloudinary(buffer, fileName, mimeType, userId);
+            console.log(`✅ [downloadAndUploadMedia] Uploaded to Cloudinary: ${media.secureUrl}`);
             return media.secureUrl;
         } else {
             // Upload to MongoDB GridFS
+            console.log(`🗄️ [downloadAndUploadMedia] Uploading to GridFS...`);
             const result = await uploadToMongo(buffer, fileName, mimeType);
-
-            // If using relative URL, ensure full path for frontend if needed, 
-            // but usually /api/files/ID is fine if frontend prepends host or uses relative
-            // For now, return the relative API path
+            console.log(`✅ [downloadAndUploadMedia] Uploaded to GridFS: ${result.url}`);
             return result.url;
         }
     } catch (error) {
+        console.error('❌ [downloadAndUploadMedia] Error:', error);
         logger.error('Error downloading/uploading media:', error);
         throw error;
     }

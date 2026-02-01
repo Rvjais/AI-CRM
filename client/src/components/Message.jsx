@@ -19,10 +19,26 @@ function Message({ message, onForward }) {
 
         const { type, content } = message;
 
-        // Check content type or message type
+        // Sticker
+        if (type === 'sticker' || content.mimeType?.includes('webp')) {
+            const url = content.sticker?.url || content.url;
+            if (url) return <img src={url} alt="Sticker" className="message-sticker" />;
+
+            console.warn('⚠️ [Message.jsx] Sticker unavailable for message:', message);
+            return (
+                <div className="media-placeholder sticker-error">
+                    <span className="icon">🧩</span>
+                    <span className="text">Sticker unavailable</span>
+                </div>
+            );
+        }
+
+        // Image
         if (type === 'image' || content.mimeType?.startsWith('image/')) {
             const url = content.image?.url || content.url || (content.text && content.text.startsWith('http') ? content.text : null);
             if (url) return <img src={url} alt={content.caption || 'Image'} className="message-media" />;
+
+            console.warn('⚠️ [Message.jsx] Image unavailable for message:', message);
             return (
                 <div className="media-placeholder error">
                     <span className="icon">🖼️</span>
