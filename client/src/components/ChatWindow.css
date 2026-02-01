@@ -3,6 +3,7 @@
     flex-direction: column;
     height: 100%;
     min-height: 0;
+    min-width: 0;
     /* Important for nested flex scrolling */
     background: #efeae2;
     position: relative;
@@ -332,4 +333,68 @@
     background: #e0e7ff;
     color: #4f46e5;
     border-color: #c7d2fe;
+}
+
+/* Reply Preview Styling */
+.reply-preview {
+    background: #f0f2f5;
+    padding: 8px 16px;
+    border-top: 1px solid #e9ecef;
+    position: relative;
+    z-index: 10;
+}
+
+.reply-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(255, 255, 255, 0.6);
+    padding: 8px 12px;
+    border-radius: 8px;
+    position: relative;
+}
+
+.reply-bar {
+    width: 4px;
+    height: 100%;
+    background: #4A9FF5;
+    border-radius: 2px;
+    position: absolute;
+    left: 0;
+    top: 0;
+}
+
+.reply-sender {
+    font-size: 13px;
+    font-weight: 600;
+    color: #4A9FF5;
+    margin-bottom: 2px;
+}
+
+.reply-text {
+    font-size: 13px;
+    color: #4b5563;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+    max-width: 500px;
+}
+
+.close-reply {
+    background: none;
+    border: none;
+    color: #9ca3af;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s;
+    margin-left: auto;
+}
+
+.close-reply:hover {
+    color: #ef4444;
 }

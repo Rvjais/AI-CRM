@@ -10,6 +10,7 @@ import './App.css';
 function App() {
   const [token, setToken] = useState(localStorage.getItem('token'));
   const [activeView, setActiveView] = useState('whatsapp');
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   const handleLogin = (newToken) => {
     localStorage.setItem('token', newToken);
@@ -44,11 +45,13 @@ function App() {
 
   return (
     <div className="app">
-      <div className="app-container with-sidebar">
+      <div className={`app-container with-sidebar ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
         <Sidebar
           activeView={activeView}
           onViewChange={setActiveView}
           onLogout={handleLogout}
+          isCollapsed={isSidebarCollapsed}
+          setIsCollapsed={setIsSidebarCollapsed}
         />
         <div className="main-content">
           {renderView()}

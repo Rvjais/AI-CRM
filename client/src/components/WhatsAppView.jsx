@@ -16,6 +16,7 @@ function WhatsAppView({ token, onLogout }) {
     const [isLoading, setIsLoading] = useState(true);
     const [isForwardModalOpen, setIsForwardModalOpen] = useState(false);
     const [msgToForward, setMsgToForward] = useState(null);
+    const [isAICollapsed, setIsAICollapsed] = useState(false);
 
     // Ref to track selected chat without triggering effect re-runs
     const chatsRef = useRef(chats);
@@ -315,7 +316,7 @@ function WhatsAppView({ token, onLogout }) {
     }
 
     return (
-        <div className="whatsapp-view">
+        <div className={`whatsapp-view ${isAICollapsed ? 'ai-collapsed' : ''}`}>
             <ChatList
                 chats={chats}
                 selectedChat={selectedChat}
@@ -336,6 +337,8 @@ function WhatsAppView({ token, onLogout }) {
                 selectedChat={selectedChat}
                 messages={messages}
                 aiEnabled={aiEnabled}
+                isCollapsed={isAICollapsed}
+                setIsCollapsed={setIsAICollapsed}
             />
 
             <ForwardModal

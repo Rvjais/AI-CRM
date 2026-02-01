@@ -6,12 +6,61 @@
     /* Important for nested flex scrolling */
     background: #f8f9fa;
     border-left: 1px solid #e9ecef;
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+}
+
+.ai-insights.collapsed {
+    width: 60px;
 }
 
 .ai-insights-header {
     padding: 20px 16px;
     background: white;
     border-bottom: 1px solid #e9ecef;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.collapsed .ai-insights-header {
+    padding: 20px 0;
+    justify-content: center;
+    flex-direction: column;
+}
+
+.ai-toggle-btn {
+    background: #f3f4f6;
+    border: 1px solid #e5e7eb;
+    color: #4b5563;
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 10px;
+}
+
+.ai-toggle-btn:hover {
+    background: #e5e7eb;
+    color: #111827;
+}
+
+.collapsed .ai-toggle-btn {
+    position: absolute;
+    left: -12px;
+    top: 24px;
+    background: white;
+    z-index: 10;
+}
+
+.ai-collapsed-icon {
+    font-size: 24px;
+    color: #764ba2;
+    margin-top: 10px;
 }
 
 .ai-insights-header h2 {
@@ -19,6 +68,8 @@
     font-weight: 700;
     color: #1f2937;
     letter-spacing: 0.5px;
+    margin: 0;
+    white-space: nowrap;
 }
 
 .insights-content {

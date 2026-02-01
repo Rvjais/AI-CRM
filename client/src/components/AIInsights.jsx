@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { FaInfoCircle, FaSync } from 'react-icons/fa';
+import { FaInfoCircle, FaSync, FaChevronLeft, FaChevronRight, FaBrain } from 'react-icons/fa';
 import SentimentGauge from './SentimentGauge';
 import './AIInsights.css';
 
-function AIInsights({ selectedChat, messages, aiEnabled }) {
+function AIInsights({ selectedChat, messages, aiEnabled, isCollapsed, setIsCollapsed }) {
     const [note, setNote] = useState('');
 
     const [isRegenerating, setIsRegenerating] = useState(false);
@@ -65,81 +65,94 @@ function AIInsights({ selectedChat, messages, aiEnabled }) {
     const improvements = getImprovementTips();
 
     return (
-        <div className="ai-insights">
+        <div className={`ai-insights ${isCollapsed ? 'collapsed' : ''}`}>
             <div className="ai-insights-header">
-                <h2>AI INSIGHTS DASHBOARD</h2>
+                <button
+                    className="ai-toggle-btn"
+                    onClick={() => setIsCollapsed(!isCollapsed)}
+                    title={isCollapsed ? "Expand AI Panel" : "Collapse AI Panel"}
+                >
+                    {isCollapsed ? <FaChevronLeft /> : <FaChevronRight />}
+                </button>
+                {!isCollapsed ? (
+                    <h2>AI INSIGHTS DASHBOARD</h2>
+                ) : (
+                    <FaBrain className="ai-collapsed-icon" />
+                )}
             </div>
 
-            <div className="insights-content">
-                {/* Sentiment Section - Always show real backend sentiment */}
-                <div className="insight-card">
-                    <h3>SENTIMENT</h3>
-                    <SentimentGauge sentiment={selectedChat?.sentiment || 'neutral'} />
-                    <p className="sentiment-label">
-                        {selectedChat?.sentiment === 'positive' ? 'Positive' :
-                            selectedChat?.sentiment === 'negative' ? 'Negative' : 'Neutral'} Overall Sentiment
-                    </p>
-                </div>
-
-                {/* Suggestions Section - Shown if AI is enabled or if data exists */}
-                {((selectedChat?.suggestions && selectedChat.suggestions.length > 0)) && (
+            {!isCollapsed && (
+                <div className="insights-content">
+                    {/* Sentiment Section - Always show real backend sentiment */}
                     <div className="insight-card">
-                        <h3>SUGGESTED ACTIONS</h3>
-                        <div className="suggestions">
-                            {selectedChat.suggestions.map((suggestion, index) => (
-                                <button key={index} className="suggestion-btn">
-                                    {suggestion}
-                                </button>
-                            ))}
+                        <h3>SENTIMENT</h3>
+                        <SentimentGauge sentiment={selectedChat?.sentiment || 'neutral'} />
+                        <p className="sentiment-label">
+                            {selectedChat?.sentiment === 'positive' ? 'Positive' :
+                                selectedChat?.sentiment === 'negative' ? 'Negative' : 'Neutral'} Overall Sentiment
+                        </p>
+                    </div>
+
+                    {/* Suggestions Section - Shown if AI is enabled or if data exists */}
+                    {((selectedChat?.suggestions && selectedChat.suggestions.length > 0)) && (
+                        <div className="insight-card">
+                            <h3>SUGGESTED ACTIONS</h3>
+                            <div className="suggestions">
+                                {selectedChat.suggestions.map((suggestion, index) => (
+                                    <button key={index} className="suggestion-btn">
+                                        {suggestion}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
+                    )}
+
+                    {/* Summary Section - Always show real backend summary */}
+                    <div className="insight-card summary-card">
+                        <div className="card-header">
+                            <h3>CONTEXT/SUMMARY</h3>
+                            <button
+                                className={`regen-btn ${isRegenerating ? 'spinning' : ''}`}
+                                onClick={handleRegenerate}
+                                disabled={isRegenerating || !selectedChat}
+                                title="Regenerate Summary"
+                            >
+                                <FaSync />
+                            </button>
+                        </div>
+                        <p className="summary-text">
+                            {selectedChat?.summary || 'No summary available yet. Continue the conversation to generate insights.'}
+                        </p>
                     </div>
-                )}
 
-                {/* Summary Section - Always show real backend summary */}
-                <div className="insight-card summary-card">
-                    <div className="card-header">
-                        <h3>CONTEXT/SUMMARY</h3>
-                        <button
-                            className={`regen-btn ${isRegenerating ? 'spinning' : ''}`}
-                            onClick={handleRegenerate}
-                            disabled={isRegenerating || !selectedChat}
-                            title="Regenerate Summary"
-                        >
-                            <FaSync />
-                        </button>
+                    {/* New Section: Conversation Improvement Tips */}
+                    <div className="insight-card improvement-card">
+                        <h3>💡 AI IMPROVEMENT TIPS</h3>
+                        <ul className="improvement-list">
+                            {improvements.map((tip, idx) => (
+                                <li key={idx}>{tip}</li>
+                            ))}
+                        </ul>
                     </div>
-                    <p className="summary-text">
-                        {selectedChat?.summary || 'No summary available yet. Continue the conversation to generate insights.'}
-                    </p>
-                </div>
 
-                {/* New Section: Conversation Improvement Tips */}
-                <div className="insight-card improvement-card">
-                    <h3>💡 AI IMPROVEMENT TIPS</h3>
-                    <ul className="improvement-list">
-                        {improvements.map((tip, idx) => (
-                            <li key={idx}>{tip}</li>
-                        ))}
-                    </ul>
-                </div>
-
-                <div className="insight-card notes-card">
-                    <h3>📝 NOTES</h3>
-                    <textarea
-                        className="notes-input"
-                        placeholder="Add notes about this customer..."
-                        value={note}
-                        onChange={(e) => setNote(e.target.value)}
-                        onBlur={handleSaveNote}
-                    />
-                </div>
-
-                {!aiEnabled && !selectedChat?.summary && (
-                    <div className="ai-disabled-notice">
-                        <p><FaInfoCircle /> Auto-Reply is disabled for this chat. Analysis continues in the background.</p>
+                    <div className="insight-card notes-card">
+                        <h3>📝 NOTES</h3>
+                        <textarea
+                            className="notes-input"
+                            placeholder="Add notes about this customer..."
+                            value={note}
+                            onChange={(e) => setNote(e.target.value)}
+                            onBlur={handleSaveNote}
+                        />
                     </div>
-                )}
-            </div>
+
+                    {!aiEnabled && !selectedChat?.summary && (
+                        <div className="ai-disabled-notice">
+                            <p><FaInfoCircle /> Auto-Reply is disabled for this chat. Analysis continues in the background.</p>
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
     );
 }

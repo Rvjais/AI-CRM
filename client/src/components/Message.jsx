@@ -97,6 +97,25 @@ function Message({ message, onForward, onReply }) {
         }
     };
 
+    const isProtocolMessage = () => {
+        const text = message.content?.text || message.content?.caption || message.text || '';
+        if (typeof text !== 'string') return false;
+
+        // Filter out technical protocol metadata strings
+        const technicalPatterns = [
+            'deviceListMetadata',
+            'recipientKeyHash',
+            'agentId',
+            '{"key":'
+        ];
+
+        return technicalPatterns.some(pattern => text.includes(pattern));
+    };
+
+    if (isProtocolMessage()) {
+        return null; // Skip rendering technical protocol junk
+    }
+
     return (
         <div className={`message ${message.fromMe ? 'sent' : 'received'}`}>
             {!message.fromMe && (
@@ -108,29 +127,14 @@ function Message({ message, onForward, onReply }) {
             )}
 
             <div className="message-content-wrapper">
-                <div className="message-bubble group">
+                <div className={`message-bubble group ${message.fromMe ? 'sent-bubble' : 'received-bubble'}`}>
                     {/* Quoted Message Preview */}
                     {message.quotedMessage && (
-                        <div className="quoted-message-preview" style={{
-                            borderLeft: '4px solid #6b7280',
-                            background: 'rgba(0,0,0,0.05)',
-                            padding: '6px 8px',
-                            borderRadius: '4px',
-                            marginBottom: '4px',
-                            fontSize: '0.85em',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            flexDirection: 'column'
-                        }}>
-                            <span style={{ fontWeight: 'bold', color: '#4b5563' }}>
+                        <div className="quoted-message-preview">
+                            <span className="quoted-sender">
                                 {message.quotedMessage.fromMe ? 'You' : (message.quotedMessage.senderName || message.quotedMessage.senderPn || 'Sender')}
                             </span>
-                            <span style={{
-                                whiteSpace: 'nowrap',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                color: '#374151'
-                            }}>
+                            <span className="quoted-text">
                                 {message.quotedMessage.content?.text ||
                                     message.quotedMessage.content?.caption ||
                                     (message.quotedMessage.type === 'image' ? '📷 Photo' : 'Msg')}
@@ -149,7 +153,7 @@ function Message({ message, onForward, onReply }) {
                         <button onClick={() => handleReaction('😮')}>😮</button>
                         <button onClick={() => handleReaction('😢')}>😢</button>
                         <button onClick={() => handleReaction('🙏')}>🙏</button>
-                        <div style={{ width: '1px', height: '16px', background: '#e5e7eb', margin: '0 4px' }}></div>
+                        <div style={{ width: '1px', height: '16px', background: 'rgba(0,0,0,0.1)', margin: '0 4px' }}></div>
                         <button onClick={() => onReply && onReply(message)} title="Reply">↩️</button>
                         <button onClick={() => onForward && onForward(message)} title="Forward">↪️</button>
                     </div>
@@ -167,5 +171,6 @@ function Message({ message, onForward, onReply }) {
         </div>
     );
 }
+
 
 export default Message;

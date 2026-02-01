@@ -6,11 +6,54 @@
     flex-direction: column;
     border-right: 1px solid #374151;
     box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    z-index: 100;
+}
+
+.sidebar.collapsed {
+    width: 80px;
 }
 
 .sidebar-header {
     padding: 24px 20px;
     border-bottom: 1px solid #374151;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.sidebar.collapsed .sidebar-header {
+    padding: 24px 0;
+    justify-content: center;
+}
+
+.sidebar-toggle {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid #374151;
+    color: #9ca3af;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 12px;
+}
+
+.sidebar-toggle:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.sidebar.collapsed .sidebar-toggle {
+    position: absolute;
+    right: -14px;
+    top: 32px;
+    background: #111827;
+    z-index: 10;
 }
 
 .logo {

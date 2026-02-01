@@ -17,23 +17,20 @@ body {
   width: 100vw;
   height: 100vh;
   display: flex;
-  align-items: center;
-  justify-content: center;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 20px;
+  padding: 0;
 }
 
 /* App Container - Flex layout for Sidebar + Main Content */
 .app-container {
   width: 100%;
-  max-width: 1800px;
-  height: 95vh;
+  height: 100vh;
   display: flex;
   gap: 0;
   background: white;
-  border-radius: 16px;
+  border-radius: 0;
   overflow: hidden;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  box-shadow: none;
 }
 
 .main-content {
@@ -51,7 +48,11 @@ body {
   height: 100%;
   width: 100%;
   overflow: hidden;
-  /* Prevent parent scrolling */
+  transition: grid-template-columns 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.whatsapp-view.ai-collapsed {
+  grid-template-columns: 320px 1fr 60px;
 }
 
 @media (max-width: 900px) {

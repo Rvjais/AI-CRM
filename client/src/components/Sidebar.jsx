@@ -1,7 +1,7 @@
-import { FaWhatsapp, FaEnvelope, FaMicrophone, FaBrain, FaTachometerAlt, FaCog, FaSignOutAlt } from 'react-icons/fa';
+import { FaWhatsapp, FaEnvelope, FaMicrophone, FaBrain, FaTachometerAlt, FaCog, FaSignOutAlt, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import './Sidebar.css';
 
-function Sidebar({ activeView, onViewChange, onLogout }) {
+function Sidebar({ activeView, onViewChange, onLogout, isCollapsed, setIsCollapsed }) {
     const navItems = [
         { id: 'dashboard', icon: FaTachometerAlt, label: 'Dashboard' },
         { id: 'whatsapp', icon: FaWhatsapp, label: 'WhatsApp' },
@@ -11,7 +11,7 @@ function Sidebar({ activeView, onViewChange, onLogout }) {
     ];
 
     return (
-        <div className="sidebar">
+        <div className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
             <div className="sidebar-header">
                 <div className="logo">
                     <div className="logo-icon">
@@ -27,11 +27,20 @@ function Sidebar({ activeView, onViewChange, onLogout }) {
                             </defs>
                         </svg>
                     </div>
-                    <div className="logo-text">
-                        <h1>RainCRM</h1>
-                        <p>AI-Powered</p>
-                    </div>
+                    {!isCollapsed && (
+                        <div className="logo-text">
+                            <h1>RainCRM</h1>
+                            <p>AI-Powered</p>
+                        </div>
+                    )}
                 </div>
+                <button
+                    className="sidebar-toggle"
+                    onClick={() => setIsCollapsed(!isCollapsed)}
+                    title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+                >
+                    {isCollapsed ? <FaChevronRight /> : <FaChevronLeft />}
+                </button>
             </div>
 
             <nav className="sidebar-nav">
@@ -44,7 +53,7 @@ function Sidebar({ activeView, onViewChange, onLogout }) {
                             onClick={() => onViewChange(item.id)}
                         >
                             <Icon className="nav-icon" />
-                            <span className="nav-label">{item.label}</span>
+                            {!isCollapsed && <span className="nav-label">{item.label}</span>}
                         </button>
                     );
                 })}
@@ -53,11 +62,11 @@ function Sidebar({ activeView, onViewChange, onLogout }) {
             <div className="sidebar-footer">
                 <button className="nav-item settings">
                     <FaCog className="nav-icon" />
-                    <span className="nav-label">Settings</span>
+                    {!isCollapsed && <span className="nav-label">Settings</span>}
                 </button>
                 <button className="nav-item logout" onClick={onLogout}>
                     <FaSignOutAlt className="nav-icon" />
-                    <span className="nav-label">Logout</span>
+                    {!isCollapsed && <span className="nav-label">Logout</span>}
                 </button>
             </div>
         </div>

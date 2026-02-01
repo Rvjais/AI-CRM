@@ -1,5 +1,6 @@
 .message {
     display: flex;
+    width: 100%;
     margin-bottom: 12px;
     animation: fadeIn 0.3s ease-out;
 }
@@ -25,6 +26,14 @@
     gap: 8px;
 }
 
+.message.sent .message-content-wrapper {
+    align-items: flex-end;
+}
+
+.message.received .message-content-wrapper {
+    align-items: flex-start;
+}
+
 .message-avatar {
     flex-shrink: 0;
 }
@@ -44,8 +53,7 @@
 
 .message-bubble {
     max-width: 65%;
-    padding: 6px 10px 8px 10px;
-    /* Adjusted padding */
+    padding: 8px 12px;
     border-radius: 12px;
     position: relative;
     word-wrap: break-word;
@@ -53,7 +61,7 @@
     flex-wrap: wrap;
     align-items: flex-end;
     gap: 8px;
-    /* Space between text and time */
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
 }
 
 .message.sent .message-bubble {
@@ -66,8 +74,52 @@
     background: white;
     color: #1f2937;
     border-bottom-left-radius: 4px;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
+
+/* Quoted Message in Bubble */
+.quoted-message-preview {
+    border-left: 4px solid #4A9FF5;
+    background: rgba(0, 0, 0, 0.05);
+    padding: 6px 10px;
+    border-radius: 6px;
+    margin-bottom: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    min-width: 150px;
+    max-width: 100%;
+    width: 100%;
+}
+
+.message.sent .quoted-message-preview {
+    background: rgba(255, 255, 255, 0.15);
+    border-left-color: white;
+}
+
+.quoted-sender {
+    font-weight: 700;
+    color: #4A9FF5;
+    font-size: 12px;
+    margin-bottom: 2px;
+}
+
+.message.sent .quoted-sender {
+    color: white;
+}
+
+.quoted-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: #4b5563;
+    font-size: 12px;
+}
+
+.message.sent .quoted-text {
+    color: rgba(255, 255, 255, 0.9);
+}
+
 
 .message-text {
     font-size: 14.5px;
