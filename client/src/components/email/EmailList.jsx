@@ -26,18 +26,21 @@ function EmailList({ threads, loading, onThreadSelect, selectedThreadId, onRefre
 
     return (
         <div className="email-list">
-            <div className="list-header">
-                <div className="search-bar">
-                    <FaSearch className="search-icon" />
-                    <input
-                        type="text"
-                        placeholder="Search mail..."
-                        onChange={(e) => onSearch(e.target.value)}
-                    />
-                </div>
+            <div className="email-list-header">
+                <h2>MAIL BOX</h2>
                 <button className="refresh-btn" onClick={onRefresh} title="Refresh">
                     <FaSync className={loading ? 'spinning' : ''} />
                 </button>
+            </div>
+
+            <div className="search-container">
+                <FaSearch className="search-icon" />
+                <input
+                    type="text"
+                    className="search-input"
+                    placeholder="Search messages..."
+                    onChange={(e) => onSearch(e.target.value)}
+                />
             </div>
 
             <div className="list-content">

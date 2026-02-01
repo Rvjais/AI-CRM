@@ -6,7 +6,8 @@ import {
     FaStar,
     FaTag,
     FaPlus,
-    FaExclamationCircle
+    FaExclamationCircle,
+    FaChevronLeft
 } from 'react-icons/fa';
 
 function EmailSidebar({ labels, activeLabel, onLabelSelect, onComposeClick }) {
@@ -25,9 +26,23 @@ function EmailSidebar({ labels, activeLabel, onLabelSelect, onComposeClick }) {
 
     return (
         <div className="email-sidebar">
-            <button className="compose-btn" onClick={onComposeClick}>
-                <FaPlus /> Compose
-            </button>
+            <div className="email-sidebar-header">
+                <h2>EMAIL BOXES</h2>
+                <div className="header-actions">
+                    <button className="icon-btn" onClick={onComposeClick} title="New Message">
+                        <FaPlus />
+                    </button>
+                    <button className="icon-btn" title="Expand">
+                        <FaChevronLeft />
+                    </button>
+                </div>
+            </div>
+
+            <div className="compose-section">
+                <button className="primary-compose-btn" onClick={onComposeClick}>
+                    <FaPlus /> Compose
+                </button>
+            </div>
 
             <nav className="sidebar-nav">
                 <div className="nav-group">
