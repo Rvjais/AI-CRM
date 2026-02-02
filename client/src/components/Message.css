@@ -52,16 +52,23 @@
 }
 
 .message-bubble {
-    max-width: 65%;
+    max-width: 75%;
+    /* Optimized width */
     padding: 8px 12px;
     border-radius: 12px;
     position: relative;
     word-wrap: break-word;
+    word-break: break-word;
+    /* Force word break */
+    overflow-wrap: break-word;
+    /* Modern standard */
     display: flex;
     flex-wrap: wrap;
     align-items: flex-end;
     gap: 8px;
     box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
+    min-width: 0;
+    /* Prevent flex box expansion */
 }
 
 .message.sent .message-bubble {

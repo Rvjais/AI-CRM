@@ -36,16 +36,16 @@ function App() {
   const renderView = () => {
     return (
       <ErrorBoundary>
-        <div className={activeView === 'dashboard' ? '' : 'view-hidden'}>
+        <div className={activeView === 'dashboard' ? 'view-active' : 'view-hidden'}>
           <Dashboard />
         </div>
-        <div className={activeView === 'whatsapp' ? '' : 'view-hidden'}>
+        <div className={activeView === 'whatsapp' ? 'view-active' : 'view-hidden'}>
           <WhatsAppView token={token} onLogout={handleLogout} />
         </div>
-        <div className={activeView === 'email' ? '' : 'view-hidden'}>
+        <div className={activeView === 'email' ? 'view-active' : 'view-hidden'}>
           <EmailView token={token} />
         </div>
-        <div className={activeView === 'voiceagent' ? '' : 'view-hidden'}>
+        <div className={activeView === 'voiceagent' ? 'view-active' : 'view-hidden'}>
           <ComingSoon title="Voice Agent" icon="🎤" />
         </div>
         <div className={activeView === 'aiconfig' ? '' : 'view-hidden'}>

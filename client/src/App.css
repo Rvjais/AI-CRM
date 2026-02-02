@@ -30,10 +30,20 @@ body {
   background-color: var(--bg-primary);
   border-radius: 0;
   box-shadow: none;
+  min-height: 0;
+  /* Safety for flex nesting */
 }
 
 .view-hidden {
   display: none;
+}
+
+.view-active {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  /* Strict containment */
+  display: block;
 }
 
 .main-content {
@@ -48,9 +58,14 @@ body {
 .whatsapp-view {
   display: grid;
   grid-template-columns: 320px 1fr 380px;
+  grid-template-rows: 100%;
+  /* CRITICAL: Must match container height exactly */
   height: 100%;
   width: 100%;
   overflow: hidden;
+  /* Force children to scroll */
+  min-height: 0;
+  /* Fix for nested grids */
   transition: grid-template-columns 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
