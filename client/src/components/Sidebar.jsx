@@ -15,10 +15,10 @@ function Sidebar({ activeView, onViewChange, onLogout, isCollapsed, setIsCollaps
             <div className="sidebar-header">
                 <div className="logo">
                     <div className="logo-icon">
-                        <svg width="40" height="40" viewBox="0 0 60 60" fill="none">
-                            <rect width="60" height="60" rx="12" fill="url(#gradient)" />
-                            <path d="M30 15L45 22.5V37.5L30 45L15 37.5V22.5L30 15Z" stroke="white" strokeWidth="2" strokeLinejoin="round" />
-                            <circle cx="30" cy="30" r="5" fill="white" />
+                        <svg width="48" height="48" viewBox="0 0 60 60" fill="none">
+                            <rect width="60" height="60" rx="14" fill="url(#gradient)" />
+                            <path d="M30 15L45 22.5V37.5L30 45L15 37.5V22.5L30 15Z" stroke="white" strokeWidth="2.5" strokeLinejoin="round" />
+                            <circle cx="30" cy="30" r="6" fill="white" />
                             <defs>
                                 <linearGradient id="gradient" x1="0" y1="0" x2="60" y2="60">
                                     <stop stopColor="#667eea" />
