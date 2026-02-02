@@ -125,6 +125,14 @@ function WhatsAppView({ token, onLogout }) {
 
             if (isMatch) {
                 setMessages(prev => {
+                    // Check if message already exists by _id or messageId
+                    const exists = prev.some(m =>
+                        (m._id === newMessage._id) ||
+                        (m.messageId && m.messageId === newMessage.messageId)
+                    );
+
+                    if (exists) return prev;
+
                     const updated = [...prev, newMessage];
                     // Update cache as well
                     const chatId = newMessage.chatJid;
@@ -138,7 +146,15 @@ function WhatsAppView({ token, onLogout }) {
                 const chatId = newMessage.chatJid;
                 if (chatId) {
                     const cached = messagesCacheRef.current[chatId] || [];
-                    messagesCacheRef.current[chatId] = [...cached, newMessage];
+                    // Dedupe for cache too
+                    const exists = cached.some(m =>
+                        (m._id === newMessage._id) ||
+                        (m.messageId && m.messageId === newMessage.messageId)
+                    );
+
+                    if (!exists) {
+                        messagesCacheRef.current[chatId] = [...cached, newMessage];
+                    }
                 }
             }
         });
@@ -272,22 +288,34 @@ function WhatsAppView({ token, onLogout }) {
                 formattedChats.sort((a, b) => new Date(b.lastMessageTime) - new Date(a.lastMessageTime));
 
                 formattedChats.forEach(chat => {
-                    const uniqueKey = chat.phone; // This should be the real number for both LID and Phone JID chats
+                    // PRIMARY KEY: chat.jid (Must be unique for React keys)
+                    // SECONDARY KEY: chat.phone (To merge LID and Phone chats if needed)
 
-                    if (chat.isGroup || chat.jid.includes('@broadcast') || chat.jid === 'status@broadcast') {
-                        // Skip status broadcast for now if not needed, or treat them separately
-                        if (chat.jid !== 'status@broadcast') {
+                    const jid = chat.jid;
+                    const phone = chat.phone;
+
+                    // 1. Check if JID is already seen (strict React Key uniqueness)
+                    if (seenPhones.has(jid)) return;
+
+                    // 2. If it's a broadcast/group, just add it (but strictly one per JID)
+                    if (chat.isGroup || jid.includes('@broadcast')) {
+                        if (jid !== 'status@broadcast') { // Skip status broadcast if desired
+                            seenPhones.add(jid);
                             dedupedChats.push(chat);
                         }
-                    } else if (uniqueKey && !seenPhones.has(uniqueKey)) {
-                        // Only dedupe if it looks like a real phone number (digits only, length > 5 roughly)
-                        // LIDs might be random IDs, so deduping them blindly might collapse distinct chats if logic is flawed
-                        // But here we assume uniqueKey is the user identity.
-                        seenPhones.add(uniqueKey);
-                        dedupedChats.push(chat);
-                    } else if (!uniqueKey) {
-                        dedupedChats.push(chat);
+                        return;
                     }
+
+                    // 3. For 1:1 chats, try to dedupe by Phone Number to avoid splitting history
+                    // If we already have a chat with this phone number, skip this one
+                    // (Assuming formattedChats is sorted by time DESC, so checking 'has' keeps the most recent)
+                    if (phone && seenPhones.has(phone)) return;
+
+                    // Add to list and mark seen
+                    seenPhones.add(jid); // Mark JID as seen
+                    if (phone) seenPhones.add(phone); // Mark Phone as seen
+
+                    dedupedChats.push(chat);
                 });
 
                 setChats(dedupedChats);
