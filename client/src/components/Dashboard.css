@@ -58,6 +58,175 @@
     background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
 }
 
+/* Sentiment Mini Bar */
+.sentiment-mini-bar {
+    display: flex;
+    height: 6px;
+    width: 100%;
+    background: #f3f4f6;
+    border-radius: 3px;
+    overflow: hidden;
+    margin: 8px 0;
+}
+
+.s-segment {
+    height: 100%;
+    transition: flex 0.3s ease;
+}
+
+.s-segment.pos {
+    background: #10b981;
+}
+
+.s-segment.neu {
+    background: #9ca3af;
+}
+
+.s-segment.neg {
+    background: #ef4444;
+}
+
+.stat-subtext {
+    font-size: 12px;
+    color: #6b7280;
+    margin-top: 4px;
+}
+
+/* Activity List */
+.activity-item {
+    display: flex;
+    align-items: flex-start;
+    padding: 12px;
+    border-bottom: 1px solid #f3f4f6;
+    gap: 12px;
+}
+
+.activity-item:last-child {
+    border-bottom: none;
+}
+
+.activity-icon {
+    font-size: 1.2rem;
+    padding: 8px;
+    background: #f3f4f6;
+    border-radius: 50%;
+}
+
+.activity-content {
+    flex: 1;
+}
+
+.activity-content p {
+    margin: 0;
+    font-size: 14px;
+    color: #1f2937;
+}
+
+.activity-sub {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.tag {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-weight: 500;
+}
+
+.tag.positive {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.tag.negative {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.tag.neutral {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+.tag.unread {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.activity-time {
+    font-size: 12px;
+    color: #9ca3af;
+    white-space: nowrap;
+}
+
+.activity-item.clickable {
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.activity-item.clickable:hover {
+    background-color: #f9fafb;
+}
+
+/* Quick Chat Modal */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+    backdrop-filter: blur(2px);
+}
+
+.quick-chat-modal {
+    width: 80vw;
+    height: 85vh;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    z-index: 2001;
+}
+
+.close-modal-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    border: none;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 10;
+    font-size: 1.2rem;
+}
+
+.close-modal-btn:hover {
+    background: black;
+}
+
+/* Adjust ChatWindow inside modal */
+.quick-chat-modal .chat-window {
+    height: 100%;
+    width: 100%;
+}
+
+
 .stat-icon.email {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }

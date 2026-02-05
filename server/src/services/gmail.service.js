@@ -205,3 +205,20 @@ export const listLabels = async (userId) => {
 
     return response.data;
 };
+
+/**
+ * Get unread email stats
+ * @param {string} userId 
+ */
+export const getUnreadStats = async (userId) => {
+    const gmail = await getClientForUser(userId);
+    const response = await gmail.users.labels.get({
+        userId: 'me',
+        id: 'UNREAD'
+    });
+
+    return {
+        messagesUnread: response.data.messagesUnread,
+        threadsUnread: response.data.threadsUnread
+    };
+};

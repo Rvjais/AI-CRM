@@ -13,12 +13,14 @@ function ChatList({ chats, selectedChat, onSelectChat, aiEnabled, onToggleAI, on
 
         const matchesAI = !aiEnabled || chat.aiEnabled;
 
+        const isBroadcast = chat.jid.includes('@broadcast');
+
         if (activeTab === 'GROUP') {
-            return matchesSearch && matchesAI && chat.isGroup;
+            return matchesSearch && matchesAI && (chat.isGroup || isBroadcast);
         } else if (activeTab === 'ARCHIVED') {
             return matchesSearch && matchesAI && chat.isArchived;
         }
-        return matchesSearch && matchesAI && !chat.isGroup && !chat.isArchived;
+        return matchesSearch && matchesAI && !chat.isGroup && !chat.isArchived && !isBroadcast;
     });
 
     return (

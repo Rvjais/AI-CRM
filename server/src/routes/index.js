@@ -7,6 +7,7 @@ import groupRoutes from './group.routes.js';
 import mediaRoutes from './media.routes.js';
 import aiRoutes from './ai.routes.js';
 import emailRoutes from './email.routes.js';
+import dashboardRoutes from './dashboard.routes.js';
 
 const router = express.Router();
 
@@ -23,6 +24,7 @@ router.use('/groups', groupRoutes);
 router.use('/media', mediaRoutes);
 router.use('/ai', aiRoutes);
 router.use('/emails', emailRoutes);
+router.use('/dashboard', dashboardRoutes);
 
 // Health check endpoint
 router.get('/health', (req, res) => {
