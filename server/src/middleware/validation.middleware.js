@@ -150,10 +150,19 @@ export const schemas = {
     updateAIConfig: {
         body: Joi.object({
             enabled: Joi.boolean(),
-            systemPrompt: Joi.string(),
+            systemPrompt: Joi.string().allow(''),
             autoReply: Joi.boolean(),
             maxTokens: Joi.number(),
             temperature: Joi.number().min(0).max(1),
+            provider: Joi.string().valid('openai', 'gemini', 'anthropic', 'openrouter'),
+            apiKeys: Joi.object({
+                openai: Joi.string().allow(''),
+                gemini: Joi.string().allow(''),
+                anthropic: Joi.string().allow(''),
+                openrouter: Joi.string().allow('')
+            }),
+            apiKey: Joi.string().allow(''),
+            model: Joi.string().allow('')
         }),
     },
 

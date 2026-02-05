@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { FaPaperPlane, FaSmile, FaArchive } from 'react-icons/fa';
+import { FaPaperPlane, FaArchive } from 'react-icons/fa';
 import Message from './Message';
 import api from '../utils/apiClient';
 import './ChatWindow.css';
@@ -357,9 +357,7 @@ function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat, 
                 >
                     📎
                 </button>
-                <button type="button" className="emoji-button">
-                    <FaSmile />
-                </button>
+
                 <input
                     type="text"
                     placeholder={mediaFile ? "Add a caption..." : "Type a message..."}

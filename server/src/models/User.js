@@ -56,6 +56,18 @@ const userSchema = new mongoose.Schema(
                 type: Boolean,
                 default: false,
             },
+            provider: {
+                type: String,
+                enum: ['openai', 'gemini', 'anthropic', 'openrouter'],
+                default: 'openai',
+            },
+            apiKeys: {
+                openai: { type: String, select: false },
+                gemini: { type: String, select: false },
+                anthropic: { type: String, select: false },
+                openrouter: { type: String, select: false },
+            },
+            // Legacy field, keep for backward compatibility or migration
             apiKey: {
                 type: String,
                 select: false,

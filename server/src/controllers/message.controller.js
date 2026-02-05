@@ -422,19 +422,27 @@ export const bulkToggleAI = asyncHandler(async (req, res) => {
 
     const Chat = (await import('../models/Chat.js')).default;
 
+    // Update all chats
     await Chat.updateMany(
         { userId },
         { aiEnabled: enabled }
     );
 
-    // Fetch all updated chats to notify frontend (optional, but good for sync)
-    // Actually, it's better to just tell frontend to refresh or return a status
-    const chats = await Chat.find({ userId }).lean();
+    // Also update the User's default autoReply setting to match
+    const User = (await import('../models/User.js')).default;
+    await User.findByIdAndUpdate(userId, {
+        'aiSettings.autoReply': enabled
+    });
 
     // Notify frontend via socket
     const io = req.app.get('io');
     if (io) {
+        // Fetch all updated chats to notify frontend
+        const chats = await Chat.find({ userId }).lean();
         io.to(userId.toString()).emit('chats:updated', { chats });
+
+        // Also emit config update so settings page refreshes if open
+        io.to(userId.toString()).emit('config:updated', { autoReply: enabled });
     }
 
     return successResponse(res, 200, `AI ${enabled ? 'enabled' : 'disabled'} for all chats`, { enabled });
