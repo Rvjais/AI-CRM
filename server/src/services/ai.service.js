@@ -311,7 +311,7 @@ export const generateSummary = async (userId, chatJid) => {
             { role: "user", content: conversation }
         ];
 
-        if (config.provider === 'gemini') return await generateGeminiResponse(config.apiKey, 'gemini-1.5-flash', messages, 200);
+        if (config.provider === 'gemini') return await generateGeminiResponse(config.apiKey, 'gemini-2.5-flash', messages, 200);
         if (config.provider === 'anthropic') return await generateClaudeResponse(config.apiKey, 'claude-3-haiku-20240307', messages, 200);
         if (config.provider === 'openrouter') return await generateOpenAIResponse(config.apiKey, config.model, messages, 200, 'https://openrouter.ai/api/v1', { "HTTP-Referer": "https://localhost" });
         return await generateOpenAIResponse(config.apiKey, 'gpt-3.5-turbo', messages, 200);
@@ -343,7 +343,7 @@ export const generateSuggestions = async (userId, chatJid) => {
 
         let content = '';
         if (config.provider === 'gemini') {
-            content = await generateGeminiResponse(config.apiKey, 'gemini-1.5-flash', messages, 150);
+            content = await generateGeminiResponse(config.apiKey, 'gemini-2.5-flash', messages, 150);
         } else if (config.provider === 'anthropic') {
             content = await generateClaudeResponse(config.apiKey, 'claude-3-haiku-20240307', messages, 150);
         } else if (config.provider === 'openrouter') {
