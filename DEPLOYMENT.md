@@ -51,8 +51,8 @@ This guide details how to deploy your WhatsApp CRM application.
         *   `OPENAI_API_KEY`: Your key.
         *   `GOOGLE_CLIENT_ID`: Your Google Client ID.
         *   `GOOGLE_CLIENT_SECRET`: Your Google Secret.
-        *   `REDIRECT_URI`: `https://<YOUR_RENDER_APP_NAME>.onrender.com/auth/google/callback` (Update this AFTER you create the service and get the URL).
-        *   `FRONTEND_URL`: `https://your-vercel-app.vercel.app` (Update after Vercel deploy).
+        *   `REDIRECT_URI`: `https://rain-crm-backend.onrender.com/auth/google/callback` (Update this AFTER you create the service and get the URL).
+        *   `FRONTEND_URL`: `https://ai-crm-vert.vercel.app/` (Update after Vercel deploy).
 5.  **Create Web Service**:
     *   Click **"Create Web Service"**.
     *   Wait for the build to finish. It might take a few minutes.

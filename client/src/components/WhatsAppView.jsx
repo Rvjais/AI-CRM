@@ -37,7 +37,7 @@ function WhatsAppView({ token, onLogout }) {
         if (!token) return;
 
         // Initialize socket
-        const socketUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+        const socketUrl = import.meta.env.VITE_API_URL || 'https://rain-crm-backend.onrender.com';
         const newSocket = io(socketUrl, {
             auth: { token },
             query: { token }
