@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
-import { FaPaperPlane, FaArchive, FaTable, FaSpinner } from 'react-icons/fa';
+import { FaPaperPlane, FaArchive, FaTable, FaSpinner, FaArrowLeft } from 'react-icons/fa';
 import Message from './Message';
 import api from '../utils/apiClient';
 import './ChatWindow.css';
 
-function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat, onForward }) {
+function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat, onForward, onBack }) {
     const [newMessage, setNewMessage] = useState('');
     const [loading, setLoading] = useState(false);
     const [syncing, setSyncing] = useState(false); // New state for sync loading
@@ -251,6 +251,11 @@ function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat, 
     return (
         <div className="chat-window">
             <div className="chat-window-header">
+                {onBack && (
+                    <button className="back-btn" onClick={onBack} title="Back to chats">
+                        <FaArrowLeft />
+                    </button>
+                )}
                 <div className="header-info">
                     <div className="avatar-large">
                         {(selectedChat.name || selectedChat.phone || 'U')[0].toUpperCase()}

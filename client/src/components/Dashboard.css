@@ -304,3 +304,84 @@
     font-size: 12px;
     color: #9ca3af;
 }
+
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+    .dashboard-view {
+        padding: 16px;
+        padding-bottom: 80px;
+        /* Extra padding for bottom nav */
+    }
+
+    .view-header {
+        margin-bottom: 20px;
+    }
+
+    .view-header h1 {
+        font-size: 24px;
+    }
+
+    .view-header p {
+        font-size: 14px;
+    }
+
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+        margin-bottom: 20px;
+    }
+
+    .stat-card {
+        padding: 16px;
+        border-radius: 12px;
+    }
+
+    .stat-icon {
+        width: 44px;
+        height: 44px;
+        font-size: 22px;
+    }
+
+    .stat-value {
+        font-size: 24px;
+    }
+
+    .stat-info h3 {
+        font-size: 12px;
+    }
+
+    .recent-activity {
+        padding: 16px;
+        border-radius: 12px;
+    }
+
+    .recent-activity h2 {
+        font-size: 16px;
+        margin-bottom: 12px;
+    }
+
+    .activity-list {
+        gap: 10px;
+    }
+
+    .activity-item {
+        padding: 10px;
+        gap: 10px;
+    }
+
+    .activity-content p {
+        font-size: 13px;
+    }
+
+    /* Quick Chat Modal - Full screen on mobile */
+    .quick-chat-modal {
+        width: 100vw;
+        height: 100vh;
+        border-radius: 0;
+    }
+
+    .close-modal-btn {
+        top: 12px;
+        right: 12px;
+    }
+}

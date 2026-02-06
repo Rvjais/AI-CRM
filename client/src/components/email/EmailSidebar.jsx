@@ -7,10 +7,10 @@ import {
     FaTag,
     FaPlus,
     FaExclamationCircle,
-    FaChevronLeft
+    FaTimes
 } from 'react-icons/fa';
 
-function EmailSidebar({ labels, activeLabel, onLabelSelect, onComposeClick }) {
+function EmailSidebar({ labels, activeLabel, onLabelSelect, onComposeClick, isOpen, onClose }) {
     // Standard Gmail system labels
     const systemLabels = [
         { id: 'INBOX', name: 'Inbox', icon: <FaInbox /> },
@@ -25,15 +25,15 @@ function EmailSidebar({ labels, activeLabel, onLabelSelect, onComposeClick }) {
     const userLabels = labels.filter(label => label.type === 'user');
 
     return (
-        <div className="email-sidebar">
+        <div className={`email-sidebar ${isOpen ? 'open' : ''}`}>
             <div className="email-sidebar-header">
                 <h2>EMAIL BOXES</h2>
                 <div className="header-actions">
                     <button className="icon-btn" onClick={onComposeClick} title="New Message">
                         <FaPlus />
                     </button>
-                    <button className="icon-btn" title="Expand">
-                        <FaChevronLeft />
+                    <button className="icon-btn close-sidebar-btn" onClick={onClose} title="Close">
+                        <FaTimes />
                     </button>
                 </div>
             </div>

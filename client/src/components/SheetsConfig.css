@@ -5,6 +5,8 @@
     background: #fff;
     border-radius: 12px;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    overflow-y: auto;
+    height: 100%;
 }
 
 .sheets-config h2 {
@@ -143,4 +145,132 @@
     border-radius: 6px;
     color: #856404;
     font-size: 13px;
+}
+
+/* ============================================
+   MOBILE RESPONSIVE STYLES
+   ============================================ */
+
+@media (max-width: 768px) {
+    .sheets-config {
+        padding: 16px;
+        margin: 0;
+        border-radius: 0;
+        box-shadow: none;
+        max-width: 100%;
+        padding-bottom: 80px;
+    }
+
+    .sheets-config h2 {
+        font-size: 20px;
+    }
+
+    .sheets-config .subtitle {
+        font-size: 14px;
+        margin-bottom: 20px;
+    }
+
+    /* Header section with button */
+    .sheets-header {
+        flex-direction: column;
+        gap: 12px;
+        align-items: flex-start;
+    }
+
+    .sheets-header button {
+        width: 100%;
+    }
+
+    /* Config section - stack vertically */
+    .config-section {
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .form-group {
+        width: 100%;
+    }
+
+    .form-group input {
+        font-size: 16px;
+        /* Prevents zoom on iOS */
+    }
+
+    /* Columns section */
+    .columns-section {
+        padding: 12px;
+    }
+
+    .columns-section h3 {
+        font-size: 16px;
+    }
+
+    .columns-section>p {
+        font-size: 13px;
+    }
+
+    /* Hide column headers on mobile - use labels instead */
+    .columns-header {
+        display: none;
+    }
+
+    /* Column row - stack vertically */
+    .column-row {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 16px;
+        padding: 12px;
+        background: white;
+        border-radius: 8px;
+        border: 1px solid #e5e7eb;
+        position: relative;
+    }
+
+    .column-row input {
+        padding: 10px;
+        font-size: 16px;
+    }
+
+    /* Add labels before inputs on mobile */
+    .column-row input::placeholder {
+        color: #9ca3af;
+    }
+
+    .remove-btn {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        width: 28px;
+        height: 28px;
+        padding: 0;
+    }
+
+    /* Add button */
+    .add-btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    /* Actions */
+    .actions {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .save-btn {
+        width: 100%;
+        justify-content: center;
+        padding: 14px;
+    }
+
+    .message {
+        text-align: center;
+    }
+
+    /* Info box */
+    .info-box {
+        font-size: 12px;
+        padding: 12px;
+    }
 }

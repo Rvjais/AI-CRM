@@ -136,3 +136,54 @@
         transform: rotate(360deg);
     }
 }
+
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+    .email-connect-container {
+        padding: 16px;
+        padding-bottom: 80px;
+    }
+
+    .connect-card {
+        padding: 24px 20px;
+        border-radius: 16px;
+    }
+
+    .icon-wrapper {
+        width: 80px;
+        height: 80px;
+        margin-bottom: 24px;
+    }
+
+    .email-icon {
+        font-size: 36px;
+    }
+
+    .google-badge {
+        font-size: 18px;
+    }
+
+    .connect-card h1 {
+        font-size: 22px;
+        margin-bottom: 12px;
+    }
+
+    .connect-card p {
+        font-size: 14px;
+        margin-bottom: 24px;
+    }
+
+    .connect-btn {
+        padding: 14px;
+        font-size: 15px;
+        margin-bottom: 24px;
+    }
+
+    .feature-list {
+        padding: 16px;
+    }
+
+    .feature-item {
+        font-size: 13px;
+    }
+}

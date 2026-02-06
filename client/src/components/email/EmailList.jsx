@@ -1,6 +1,6 @@
-import { FaSearch, FaSync, FaStar, FaRegStar } from 'react-icons/fa';
+import { FaSearch, FaSync, FaStar, FaRegStar, FaBars } from 'react-icons/fa';
 
-function EmailList({ threads, loading, onThreadSelect, selectedThreadId, onRefresh, onSearch, nextPageToken, onLoadMore }) {
+function EmailList({ threads, loading, onThreadSelect, selectedThreadId, onRefresh, onSearch, nextPageToken, onLoadMore, onMenuClick }) {
 
     const formatDate = (timestamp) => {
         if (!timestamp) return '';
@@ -31,6 +31,9 @@ function EmailList({ threads, loading, onThreadSelect, selectedThreadId, onRefre
     return (
         <div className="email-list">
             <div className="email-list-header">
+                <button className="menu-btn" onClick={onMenuClick} title="Menu">
+                    <FaBars />
+                </button>
                 <h2>MAIL BOX</h2>
                 <button className="refresh-btn" onClick={onRefresh} title="Refresh">
                     <FaSync className={loading ? 'spinning' : ''} />

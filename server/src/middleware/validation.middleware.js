@@ -31,10 +31,6 @@ export const validate = (schema) => {
                 message: detail.message,
             }));
 
-            // DEBUG: Log validation errors
-            console.error('❌ Validation Failed:', JSON.stringify(errors, null, 2));
-            console.error('Request Body:', JSON.stringify(req.body, null, 2));
-
             return badRequestResponse(res, 'Validation failed', errors);
         }
 

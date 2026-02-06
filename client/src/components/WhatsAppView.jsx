@@ -37,7 +37,7 @@ function WhatsAppView({ token, onLogout }) {
         if (!token) return;
 
         // Initialize socket
-        const socketUrl = import.meta.env.VITE_API_URL || 'https://rain-crm-backend.onrender.com';
+        const socketUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
         const newSocket = io(socketUrl, {
             auth: { token },
             query: { token }
@@ -387,7 +387,7 @@ function WhatsAppView({ token, onLogout }) {
     }
 
     return (
-        <div className={`whatsapp-view ${isAICollapsed ? 'ai-collapsed' : ''}`}>
+        <div className={`whatsapp-view ${isAICollapsed ? 'ai-collapsed' : ''} ${selectedChat ? 'chat-active' : ''}`}>
             <ChatList
                 chats={chats}
                 selectedChat={selectedChat}
@@ -403,6 +403,7 @@ function WhatsAppView({ token, onLogout }) {
                 token={token}
                 onUpdateChat={handleChatUpdate}
                 onForward={handleForwardRequest}
+                onBack={() => setSelectedChat(null)}
             />
             <AIInsights
                 selectedChat={selectedChat}

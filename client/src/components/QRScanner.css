@@ -161,3 +161,38 @@
 .generate-btn:active {
     transform: translateY(0);
 }
+
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+    .qr-scanner-container {
+        padding: 16px;
+        padding-bottom: 80px;
+    }
+
+    .qr-card {
+        padding: 20px 16px;
+        border-radius: 12px;
+    }
+
+    .qr-header h2 {
+        font-size: 20px;
+    }
+
+    .qr-header p {
+        font-size: 14px;
+    }
+
+    .qr-display {
+        width: 220px;
+        height: 220px;
+        margin-bottom: 20px;
+    }
+
+    .qr-instructions {
+        font-size: 13px;
+    }
+
+    .qr-instructions ol {
+        margin-left: 16px;
+    }
+}

@@ -20,6 +20,7 @@ function EmailLayout({
     const [selectedThreadId, setSelectedThreadId] = useState(null);
     const [labels, setLabels] = useState([]);
     const [isComposeOpen, setIsComposeOpen] = useState(false);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     useEffect(() => {
         fetchLabels();
@@ -45,13 +46,26 @@ function EmailLayout({
         fetchLabels();
     };
 
+    const handleLabelSelect = (label) => {
+        onLabelSelect(label);
+        setIsSidebarOpen(false); // Close sidebar on mobile after selection
+    };
+
     return (
-        <div className="email-layout">
+        <div className={`email-layout ${selectedThreadId ? 'thread-active' : ''}`}>
+            {/* Overlay for sidebar */}
+            <div
+                className={`sidebar-overlay ${isSidebarOpen ? 'visible' : ''}`}
+                onClick={() => setIsSidebarOpen(false)}
+            />
+
             <EmailSidebar
                 labels={labels}
                 activeLabel={activeLabel}
-                onLabelSelect={onLabelSelect}
+                onLabelSelect={handleLabelSelect}
                 onComposeClick={() => setIsComposeOpen(true)}
+                isOpen={isSidebarOpen}
+                onClose={() => setIsSidebarOpen(false)}
             />
             <EmailList
                 threads={threads}
@@ -62,6 +76,7 @@ function EmailLayout({
                 onSearch={onSearch}
                 nextPageToken={nextPageToken}
                 onLoadMore={onLoadMore}
+                onMenuClick={() => setIsSidebarOpen(true)}
             />
 
             <div className="email-detail-container">

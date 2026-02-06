@@ -65,6 +65,30 @@
     flex: 1;
     overflow-y: auto;
     padding: 12px 8px;
+    display: flex;
+    flex-direction: column;
+}
+
+.nav-group {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.nav-group.user-labels {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.group-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 8px 16px 4px;
+    margin: 0;
 }
 
 .nav-item {
@@ -520,5 +544,303 @@
 
     to {
         transform: rotate(360deg);
+    }
+}
+
+/* ============================================
+   MOBILE RESPONSIVE STYLES
+   ============================================ */
+
+@media (max-width: 768px) {
+
+    /* Main Layout - Stack panels */
+    .email-layout {
+        position: relative;
+        flex-direction: column;
+        padding-bottom: 88px;
+    }
+
+    /* Sidebar - Slide-in drawer from left */
+    .email-sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 85%;
+        max-width: 320px;
+        height: 100%;
+        z-index: 1001;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        transform: translateX(-100%);
+        box-shadow: 4px 0 25px rgba(0, 0, 0, 0.15);
+        background: #ffffff;
+        border-radius: 0 20px 20px 0;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .email-sidebar.open {
+        transform: translateX(0);
+    }
+
+    /* Sidebar Header - Enhanced for mobile */
+    .email-sidebar .email-sidebar-header {
+        padding: 20px 16px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 0 20px 0 0;
+    }
+
+    .email-sidebar .email-sidebar-header h2 {
+        color: white;
+        font-size: 16px;
+    }
+
+    .email-sidebar .header-actions .icon-btn {
+        color: white;
+        background: rgba(255, 255, 255, 0.2);
+    }
+
+    .email-sidebar .header-actions .icon-btn:hover {
+        background: rgba(255, 255, 255, 0.3);
+    }
+
+    /* Close button in sidebar */
+    .email-sidebar .close-sidebar-btn {
+        display: flex !important;
+    }
+
+    /* Compose button mobile styling */
+    .email-sidebar .compose-btn {
+        margin: 16px;
+        border-radius: 12px;
+    }
+
+    /* Nav items in sidebar - proper alignment */
+    .email-sidebar .sidebar-nav {
+        padding: 12px 16px;
+        flex: 1;
+        overflow-y: auto;
+    }
+
+    .email-sidebar .nav-item {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 14px;
+        padding: 12px 16px;
+        border-radius: 12px;
+        margin: 4px 0;
+        width: 100%;
+        text-align: left;
+    }
+
+    .email-sidebar .nav-icon {
+        width: 22px;
+        height: 22px;
+        min-width: 22px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+    }
+
+    .email-sidebar .nav-item span:not(.nav-icon) {
+        font-size: 15px;
+        font-weight: 500;
+    }
+
+    .email-sidebar .nav-item.active {
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%);
+    }
+
+    .email-sidebar .nav-item.active .nav-icon {
+        color: #667eea;
+    }
+
+    /* Labels section */
+    .email-sidebar .labels-section {
+        padding: 12px 16px;
+        border-top: 1px solid #e5e7eb;
+    }
+
+    .email-sidebar .labels-section h3 {
+        color: #6b7280;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 8px;
+    }
+
+    /* Overlay when sidebar is open */
+    .sidebar-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+    }
+
+    .sidebar-overlay.visible {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    /* Email List - Full width by default */
+    .email-list {
+        width: 100%;
+        height: 100%;
+        border-right: none;
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 10;
+    }
+
+    .email-layout.thread-active .email-list {
+        display: none;
+    }
+
+    /* Detail Container - Full width when active */
+    .email-detail-container {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 20;
+        display: none;
+    }
+
+    .email-layout.thread-active .email-detail-container {
+        display: block;
+    }
+
+    /* Empty detail - hide on mobile */
+    .empty-detail {
+        display: none;
+    }
+
+    /* Thread Header */
+    .thread-header {
+        padding: 12px 16px;
+    }
+
+    .thread-title {
+        font-size: 16px;
+    }
+
+    /* Messages Container */
+    .messages-container {
+        padding: 16px;
+    }
+
+    .message-body {
+        padding-left: 0;
+        font-size: 14px;
+    }
+
+    /* Compose - Full screen on mobile */
+    .email-compose-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 60px;
+        width: 100%;
+        border-radius: 0;
+        z-index: 1100;
+    }
+
+    /* Email List Header - Add menu button */
+    .email-list-header {
+        padding: 16px 12px;
+    }
+
+    .email-list-header h2 {
+        font-size: 16px;
+    }
+
+    /* Thread items */
+    .thread-item {
+        padding: 12px;
+    }
+
+    .thread-sender {
+        font-size: 13px;
+    }
+
+    .thread-subject {
+        font-size: 13px;
+    }
+
+    .thread-snippet {
+        font-size: 12px;
+    }
+
+    /* Search */
+    .search-container {
+        padding: 8px 12px;
+    }
+
+    .search-input {
+        font-size: 14px;
+    }
+
+    /* Sidebar Nav */
+    .nav-item {
+        padding: 12px 16px;
+    }
+
+    /* Pagination */
+    .pagination-container {
+        padding: 12px;
+    }
+
+    /* Labels section */
+    .labels-section h3 {
+        font-size: 11px;
+    }
+
+    /* Back button visible on mobile */
+    .back-btn {
+        display: block;
+    }
+
+    /* Menu button for sidebar toggle */
+    .menu-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: transparent;
+        border: none;
+        color: #6b7280;
+        font-size: 20px;
+        padding: 8px;
+        cursor: pointer;
+        border-radius: 8px;
+    }
+
+    .menu-btn:hover {
+        background: #f3f4f6;
+    }
+}
+
+/* Hide menu button on desktop */
+@media (min-width: 769px) {
+    .menu-btn {
+        display: none;
+    }
+
+    .sidebar-overlay {
+        display: none !important;
     }
 }
