@@ -51,6 +51,11 @@ const startServer = async () => {
         // Start AI Background Worker
         startAIWorker(io);
 
+        // Start AI Cron Job (30-min scheduled tasks)
+        const { startAiCron } = await import('./src/jobs/ai.cron.js');
+        startAiCron();
+
+
         // Start listening
         httpServer.listen(env.PORT, () => {
             logger.info(`

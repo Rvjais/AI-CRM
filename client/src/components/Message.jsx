@@ -84,7 +84,24 @@ function Message({ message, onForward, onReply }) {
             );
         }
 
-        return <p className="message-text">{content.text || content.caption || message.text || ''}</p>;
+        // Attempt to parse raw JSON text (fix for broken UI on interactive messages)
+        let displayText = content.text || content.caption || message.text || '';
+
+        if (typeof displayText === 'string' && displayText.trim().startsWith('{')) {
+            try {
+                const parsed = JSON.parse(displayText);
+                // Extract readable text from common Baileys interactive objects
+                displayText = parsed.contentText ||
+                    parsed.hydratedTemplate?.hydratedContentText ||
+                    parsed.hydratedTemplate?.hydratedTitleText ||
+                    parsed.title ||
+                    displayText; // Fallback to raw if logic fails
+            } catch (e) {
+                // Not JSON, ignore
+            }
+        }
+
+        return <p className="message-text">{displayText}</p>;
     };
 
     const handleReaction = async (emoji) => {

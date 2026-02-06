@@ -52,35 +52,40 @@
 }
 
 .message-bubble {
-    max-width: 75%;
-    /* Optimized width */
-    padding: 8px 12px;
-    border-radius: 12px;
+    max-width: 70%;
+    /* Slightly narrower for readability */
+    padding: 10px 14px;
+    border-radius: 18px;
+    /* Rounder bubbles */
     position: relative;
     word-wrap: break-word;
     word-break: break-word;
-    /* Force word break */
     overflow-wrap: break-word;
-    /* Modern standard */
     display: flex;
     flex-wrap: wrap;
     align-items: flex-end;
     gap: 8px;
-    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    /* Softer shadow */
     min-width: 0;
-    /* Prevent flex box expansion */
+    transition: transform 0.2s;
 }
 
 .message.sent .message-bubble {
-    background: #4A9FF5;
+    background: linear-gradient(135deg, #4A9FF5 0%, #2E75E0 100%);
+    /* Premium Blue Gradient */
     color: white;
     border-bottom-right-radius: 4px;
+    /* Subtle tail effect */
+    box-shadow: 0 4px 15px rgba(74, 159, 245, 0.2);
+    /* Colored glow */
 }
 
 .message.received .message-bubble {
     background: white;
-    color: #1f2937;
+    color: #111827;
     border-bottom-left-radius: 4px;
+    border: 1px solid rgba(0, 0, 0, 0.03);
 }
 
 /* Quoted Message in Bubble */

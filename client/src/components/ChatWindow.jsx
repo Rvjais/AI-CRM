@@ -248,18 +248,21 @@ function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat, 
     return (
         <div className="chat-window">
             <div className="chat-window-header">
-                {/* ... existing header content ... */}
+                <div className="header-info">
+                    <div className="avatar-large">
+                        {(selectedChat.name || selectedChat.phone || 'U')[0].toUpperCase()}
+                    </div>
+                    <div className="user-details">
+                        <h3 className="user-name">
+                            {selectedChat.name || selectedChat.phone || 'Unknown Contact'}
+                        </h3>
+                        <p className="user-status">
+                            {selectedChat.phone !== selectedChat.name ? selectedChat.phone : ''}
+                        </p>
+                    </div>
+                </div>
 
                 <div className="header-actions">
-                    <button
-                        className={`action-btn ${syncing ? 'loading' : ''}`}
-                        onClick={handleSyncToSheet}
-                        title="Sync to Google Sheet"
-                        disabled={syncing}
-                        style={{ marginRight: '8px', color: '#0f9d58' }} // Google Sheets Green
-                    >
-                        {syncing ? <FaSpinner className="spin" /> : <FaTable />}
-                    </button>
                     <button
                         className={`action-btn ${selectedChat.isArchived ? 'active' : ''}`}
                         onClick={toggleArchive}
@@ -267,17 +270,17 @@ function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat, 
                     >
                         <FaArchive />
                     </button>
-                    {/* ... existing AI button ... */}
+                    {/* AI Toggle Button */}
+                    <button
+                        className={`ai-toggle-btn ${selectedChat.aiEnabled ? 'active' : ''}`}
+                        onClick={toggleChatAI}
+                        title={selectedChat.aiEnabled ? "Disable AI" : "Enable AI"}
+                    >
+                        {selectedChat.aiEnabled ? '✨ AI On' : '🤖 AI Off'}
+                    </button>
                 </div>
             </div>
 
-            {/* ... rest of render ... */}
-            <button
-                className={`ai-enable-btn ${selectedChat.aiEnabled ? 'active' : ''}`}
-                onClick={toggleChatAI}
-            >
-                {selectedChat.aiEnabled ? 'Disable AI' : 'Enable AI'}
-            </button>
             <div className="messages-container">
                 {messages.length === 0 ? (
                     <div className="no-messages">

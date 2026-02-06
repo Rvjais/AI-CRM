@@ -236,73 +236,11 @@ export const handleIncomingMessage = async (userId, msg, io, sendResponse) => {
         logger.info(`Message processed for user ${userId}: ${msg.key.id}`);
 
         // --- Sentiment Analysis & Chat Update ---
-        if (!fromMe && content.text) {
-            try {
-                // Fetch user settings for default AI behavior AND Sheets config
-                const user = await User.findById(userId).select('aiSettings.autoReply sheetsConfig');
-                const defaultAiEnabled = user?.aiSettings?.autoReply || false;
-                const sheetsConfig = user?.sheetsConfig || {};
-                const schema = sheetsConfig.columns || [];
+        // DEFERRED: User requested 30-min scheduled batch processing instead of real-time.
+        // See cron job implementation.
 
-                // Optimized: Consolidated AI analysis (1 Call for everything)
-                const { sentiment, summary, suggestions, extractedData } = await analyzeMessage(userId, chatJid, content.text, schema);
+        // We still emit the message to UI above, which is enough for real-time chat.
 
-                // Update Chat with last message, specific sentiment/summary, AND extracted data
-                const updateData = {
-                    sentiment,
-                    summary,
-                    suggestions,
-                    lastMessageAt: new Date(),
-                    isGroup: chatJid.endsWith('@g.us'),
-                    $setOnInsert: {
-                        aiEnabled: defaultAiEnabled
-                    }
-                };
-
-                // Only update extractedData if we actually got some back
-                if (extractedData && Object.keys(extractedData).length > 0) {
-                    // Merge existing data? For now, we overwrite/update with latest findings
-                    // To handle merging properly, we might need to read the chat first, but findOneAndUpdate allows using dot notation if we knew keys.
-                    // Instead, we'll just set the map.
-                    updateData.extractedData = extractedData;
-                }
-
-                await Chat.findOneAndUpdate(
-                    { userId, chatJid },
-                    updateData,
-                    { upsert: true } // Should already exist from message.service but safe to keep
-                );
-
-                // --- AUTO-SYNC TO SHEETS LOGIC ---
-                // If we have extracted data and sheets is configured + auto-sync enabled (optional check, forcing for now as per request)
-                if (sheetsConfig.spreadsheetId && extractedData && Object.keys(extractedData).length > 0) {
-                    try {
-                        const sheetsService = (await import('../services/sheets.service.js'));
-                        // Check if we have enough required fields? 
-                        // For now, valid extractedData is enough to try a sync or update.
-                        // We'll trust the sheets service to handle mapping.
-                        await sheetsService.syncChatToSheet(userId, chatJid, extractedData);
-                        console.log(`🔄 [Auto-Sync] Data synced for ${chatJid}`);
-                    } catch (syncError) {
-                        console.error('Auto-sync failed:', syncError);
-                    }
-                }
-
-                // Emit update to refresh chat list sentiment
-                // We can emit a specific event or just rely on re-fetching. 
-                // Ideally, emitting a chat:update event would be best.
-
-                // Emit update to refresh chat list sentiment
-                // We can emit a specific event or just rely on re-fetching. 
-                // Ideally, emitting a chat:update event would be best.
-                const updatedChat = await Chat.findOne({ userId, chatJid }).lean();
-                // Add virtual fields if needed, but for now sending raw chat update
-                io.to(userId.toString()).emit('chat:update', { chat: updatedChat });
-
-            } catch (sentimentError) {
-                logger.error('Error in AI analysis:', sentimentError);
-            }
-        }
 
         // --- AI Auto-Response Logic ---
         if (!fromMe && content.text && sendResponse) {
@@ -438,8 +376,40 @@ async function extractMessageContent(msg, messageType, userId) {
                 };
                 break;
 
+            // Handle Interactive/Button Messages nicely
+            case 'buttonsMessage':
+                content.text = msg.message.buttonsMessage.contentText ||
+                    msg.message.buttonsMessage.caption ||
+                    '[Buttons Message]';
+                break;
+
+            case 'templateMessage':
+                content.text = msg.message.templateMessage.hydratedTemplate?.hydratedContentText ||
+                    msg.message.templateMessage.hydratedTemplate?.hydratedTitleText ||
+                    '[Template Message]';
+                break;
+
+            case 'interactiveMessage':
+                const interactive = msg.message.interactiveMessage;
+                content.text = interactive.body?.text || '[Interactive Message]';
+                // You could also extract footer/header if needed
+                break;
+
+            case 'listMessage':
+                content.text = msg.message.listMessage.description ||
+                    msg.message.listMessage.title ||
+                    '[List Message]';
+                break;
+
             default:
-                content.text = JSON.stringify(msg.message[messageType]);
+                // Better fallback: Check for common text fields before stringifying
+                if (msg.message[messageType]?.caption) {
+                    content.text = msg.message[messageType].caption;
+                } else if (msg.message[messageType]?.text) {
+                    content.text = msg.message[messageType].text;
+                } else {
+                    content.text = JSON.stringify(msg.message[messageType]);
+                }
         }
     } catch (error) {
         logger.error('Error extracting message content:', error);
