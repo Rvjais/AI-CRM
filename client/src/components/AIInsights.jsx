@@ -83,14 +83,25 @@ function AIInsights({ selectedChat, messages, aiEnabled, isCollapsed, setIsColla
 
             {!isCollapsed && (
                 <div className="insights-content">
-                    {/* Sentiment Section - Always show real backend sentiment */}
-                    <div className="insight-card">
-                        <h3>SENTIMENT</h3>
-                        <SentimentGauge sentiment={selectedChat?.sentiment || 'neutral'} />
-                        <p className="sentiment-label">
-                            {selectedChat?.sentiment === 'positive' ? 'Positive' :
-                                selectedChat?.sentiment === 'negative' ? 'Negative' : 'Neutral'} Overall Sentiment
-                        </p>
+                    <div className="insights-card">
+                        <h3>LEAD DATA</h3>
+                        {selectedChat?.extractedData && Object.keys(selectedChat.extractedData).length > 0 ? (
+                            <div className="extracted-data-grid">
+                                {Object.entries(selectedChat.extractedData).map(([key, value]) => (
+                                    <div key={key} className="data-item">
+                                        <span className="data-label">{key.replace(/_/g, ' ')}</span>
+                                        <span className="data-value">{value || '-'}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="no-data-placeholder">
+                                <p>No data extracted yet.</p>
+                                <span className="sentiment-tag" data-sentiment={selectedChat?.sentiment || 'neutral'}>
+                                    {selectedChat?.sentiment || 'Neutral'} Sentiment
+                                </span>
+                            </div>
+                        )}
                     </div>
 
                     {/* Suggestions Section - Shown if AI is enabled or if data exists */}

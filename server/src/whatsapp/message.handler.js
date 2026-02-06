@@ -19,7 +19,7 @@ import logger from '../utils/logger.util.js';
 import Contact from '../models/Contact.js';
 import Chat from '../models/Chat.js';
 import User from '../models/User.js';
-import { generateAIResponse, analyzeSentiment, generateSummary, generateSuggestions } from '../services/ai.service.js';
+import { generateAIResponse, analyzeMessage } from '../services/ai.service.js';
 
 /**
  * Handle incoming message
@@ -238,32 +238,59 @@ export const handleIncomingMessage = async (userId, msg, io, sendResponse) => {
         // --- Sentiment Analysis & Chat Update ---
         if (!fromMe && content.text) {
             try {
-                // Run AI tasks in parallel for performance
-                const [sentiment, summary, suggestions] = await Promise.all([
-                    analyzeSentiment(content.text, userId),
-                    generateSummary(userId, chatJid),
-                    generateSuggestions(userId, chatJid)
-                ]);
-
-                // Fetch user settings for default AI behavior
-                const user = await User.findById(userId).select('aiSettings.autoReply');
+                // Fetch user settings for default AI behavior AND Sheets config
+                const user = await User.findById(userId).select('aiSettings.autoReply sheetsConfig');
                 const defaultAiEnabled = user?.aiSettings?.autoReply || false;
+                const sheetsConfig = user?.sheetsConfig || {};
+                const schema = sheetsConfig.columns || [];
 
-                // Update Chat with last message and AI insights
+                // Optimized: Consolidated AI analysis (1 Call for everything)
+                const { sentiment, summary, suggestions, extractedData } = await analyzeMessage(userId, chatJid, content.text, schema);
+
+                // Update Chat with last message, specific sentiment/summary, AND extracted data
+                const updateData = {
+                    sentiment,
+                    summary,
+                    suggestions,
+                    lastMessageAt: new Date(),
+                    isGroup: chatJid.endsWith('@g.us'),
+                    $setOnInsert: {
+                        aiEnabled: defaultAiEnabled
+                    }
+                };
+
+                // Only update extractedData if we actually got some back
+                if (extractedData && Object.keys(extractedData).length > 0) {
+                    // Merge existing data? For now, we overwrite/update with latest findings
+                    // To handle merging properly, we might need to read the chat first, but findOneAndUpdate allows using dot notation if we knew keys.
+                    // Instead, we'll just set the map.
+                    updateData.extractedData = extractedData;
+                }
+
                 await Chat.findOneAndUpdate(
                     { userId, chatJid },
-                    {
-                        sentiment,
-                        summary,
-                        suggestions,
-                        lastMessageAt: new Date(),
-                        isGroup: chatJid.endsWith('@g.us'),
-                        $setOnInsert: {
-                            aiEnabled: defaultAiEnabled
-                        }
-                    },
+                    updateData,
                     { upsert: true } // Should already exist from message.service but safe to keep
                 );
+
+                // --- AUTO-SYNC TO SHEETS LOGIC ---
+                // If we have extracted data and sheets is configured + auto-sync enabled (optional check, forcing for now as per request)
+                if (sheetsConfig.spreadsheetId && extractedData && Object.keys(extractedData).length > 0) {
+                    try {
+                        const sheetsService = (await import('../services/sheets.service.js'));
+                        // Check if we have enough required fields? 
+                        // For now, valid extractedData is enough to try a sync or update.
+                        // We'll trust the sheets service to handle mapping.
+                        await sheetsService.syncChatToSheet(userId, chatJid, extractedData);
+                        console.log(`🔄 [Auto-Sync] Data synced for ${chatJid}`);
+                    } catch (syncError) {
+                        console.error('Auto-sync failed:', syncError);
+                    }
+                }
+
+                // Emit update to refresh chat list sentiment
+                // We can emit a specific event or just rely on re-fetching. 
+                // Ideally, emitting a chat:update event would be best.
 
                 // Emit update to refresh chat list sentiment
                 // We can emit a specific event or just rely on re-fetching. 

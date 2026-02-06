@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { FaPaperPlane, FaArchive } from 'react-icons/fa';
+import { FaPaperPlane, FaArchive, FaTable, FaSpinner } from 'react-icons/fa';
 import Message from './Message';
 import api from '../utils/apiClient';
 import './ChatWindow.css';
@@ -7,6 +7,7 @@ import './ChatWindow.css';
 function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat, onForward }) {
     const [newMessage, setNewMessage] = useState('');
     const [loading, setLoading] = useState(false);
+    const [syncing, setSyncing] = useState(false); // New state for sync loading
     const [mediaFile, setMediaFile] = useState(null);
     const [mediaPreview, setMediaPreview] = useState(null);
     const [isViewOnce, setIsViewOnce] = useState(false);
@@ -15,6 +16,7 @@ function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat, 
     const [replyingTo, setReplyingTo] = useState(null);
     const messagesEndRef = useRef(null);
     const fileInputRef = useRef(null);
+    const prevChatIdRef = useRef(null);
 
     const toggleChatAI = async () => {
         if (!selectedChat) return;
@@ -71,8 +73,6 @@ function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat, 
         scrollToBottom();
     }, [messages]);
 
-    const prevChatIdRef = useRef(null);
-
     const handleReply = (msg) => {
         setReplyingTo(msg);
     };
@@ -122,10 +122,6 @@ function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat, 
         // Reset options
         setIsViewOnce(false);
         setIsGif(false);
-
-        // Upload immediately to get URL (or simplified: upload on send)
-        // For smoother UX, let's just hold the file and upload on send
-        // to avoid complexity with cancelling uploads here. 
     };
 
     const cancelMedia = () => {
@@ -205,6 +201,38 @@ function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat, 
         }
     };
 
+    const handleSyncToSheet = async () => {
+        if (!selectedChat || syncing) return;
+
+        const confirmSync = window.confirm('Extract chat data and sync to Google Sheet?');
+        if (!confirmSync) return;
+
+        setSyncing(true);
+        try {
+            // Use JID if available, fallback to phone logic
+            const jidToUse = selectedChat.jid || (selectedChat.phone.includes('@') ? selectedChat.phone : `${selectedChat.phone}@s.whatsapp.net`);
+
+            const response = await api.post('/api/sheets/sync-chat', { chatJid: jidToUse });
+
+            if (response.success) {
+                alert('Success! Data synced to Google Sheet.');
+            } else {
+                alert('Sync failed. Please check your Sheets config.');
+            }
+        } catch (error) {
+            console.error('Error syncing to sheet:', error);
+            if (error.response?.status === 403) {
+                alert('Permission denied. Please Re-Authorize Google in Sheets Config.');
+            } else {
+                alert('Error syncing to sheet. See console for details.');
+            }
+        } finally {
+            setSyncing(false);
+        }
+    };
+
+    // ... existing definitions ...
+
     if (!selectedChat) {
         return (
             <div className="chat-window">
@@ -220,42 +248,18 @@ function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat, 
     return (
         <div className="chat-window">
             <div className="chat-window-header">
-                <div className="header-avatar">
-                    {selectedChat.profilePicture ? (
-                        <img src={selectedChat.profilePicture} alt={selectedChat.name} />
-                    ) : (
-                        <div className="avatar-placeholder">
-                            {(selectedChat.name || selectedChat.phone || '?')[0].toUpperCase()}
-                        </div>
-                    )}
-                </div>
-                <div className="header-info">
-                    <div className="header-name-row" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <h3>{selectedChat.name || 'Unknown'}</h3>
-                        {selectedChat.aiEnabled && (
-                            <span className="ai-status-badge">
-                                🤖 AI Active
-                            </span>
-                        )}
-                    </div>
-                    <p>{(() => {
-                        const jid = selectedChat.jid || '';
-
-                        // Handle Special Types based on JID
-                        if (jid.includes('@broadcast')) return 'Broadcast List';
-                        if (jid === 'status@broadcast') return 'Status';
-                        if (jid.includes('@g.us')) return 'Group Chat';
-
-                        // For standard users (LID or normal), prefer the phone property
-                        // which contains the resolved real number from the backend
-                        const displayPhone = selectedChat.phone || jid.replace('@s.whatsapp.net', '').replace('@c.us', '').replace('@lid', '');
-
-                        // Basic formatting
-                        return displayPhone.startsWith('+') ? displayPhone : `+${displayPhone}`;
-                    })()}</p>
-                </div>
+                {/* ... existing header content ... */}
 
                 <div className="header-actions">
+                    <button
+                        className={`action-btn ${syncing ? 'loading' : ''}`}
+                        onClick={handleSyncToSheet}
+                        title="Sync to Google Sheet"
+                        disabled={syncing}
+                        style={{ marginRight: '8px', color: '#0f9d58' }} // Google Sheets Green
+                    >
+                        {syncing ? <FaSpinner className="spin" /> : <FaTable />}
+                    </button>
                     <button
                         className={`action-btn ${selectedChat.isArchived ? 'active' : ''}`}
                         onClick={toggleArchive}
@@ -263,15 +267,17 @@ function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat, 
                     >
                         <FaArchive />
                     </button>
-                    <button
-                        className={`ai-enable-btn ${selectedChat.aiEnabled ? 'active' : ''}`}
-                        onClick={toggleChatAI}
-                    >
-                        {selectedChat.aiEnabled ? 'Disable AI' : 'Enable AI'}
-                    </button>
+                    {/* ... existing AI button ... */}
                 </div>
             </div>
 
+            {/* ... rest of render ... */}
+            <button
+                className={`ai-enable-btn ${selectedChat.aiEnabled ? 'active' : ''}`}
+                onClick={toggleChatAI}
+            >
+                {selectedChat.aiEnabled ? 'Disable AI' : 'Enable AI'}
+            </button>
             <div className="messages-container">
                 {messages.length === 0 ? (
                     <div className="no-messages">
@@ -291,55 +297,59 @@ function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat, 
             </div>
 
             {/* Reply Preview */}
-            {replyingTo && (
-                <div className="reply-preview">
-                    <div className="reply-content">
-                        <span className="reply-bar"></span>
-                        <div style={{ flex: 1 }}>
-                            <div className="reply-sender">
-                                {replyingTo.fromMe ? 'You' : (replyingTo.senderName || selectedChat.name || 'Sender')}
+            {
+                replyingTo && (
+                    <div className="reply-preview">
+                        <div className="reply-content">
+                            <span className="reply-bar"></span>
+                            <div style={{ flex: 1 }}>
+                                <div className="reply-sender">
+                                    {replyingTo.fromMe ? 'You' : (replyingTo.senderName || selectedChat.name || 'Sender')}
+                                </div>
+                                <div className="reply-text">
+                                    {replyingTo.content?.text || replyingTo.content?.caption || (replyingTo.type === 'image' ? '📷 Photo' : 'Msg')}
+                                </div>
                             </div>
-                            <div className="reply-text">
-                                {replyingTo.content?.text || replyingTo.content?.caption || (replyingTo.type === 'image' ? '📷 Photo' : 'Msg')}
-                            </div>
+                            <button className="close-reply" onClick={() => setReplyingTo(null)}>×</button>
                         </div>
-                        <button className="close-reply" onClick={() => setReplyingTo(null)}>×</button>
                     </div>
-                </div>
-            )}
+                )
+            }
 
-            {mediaFile && (
-                <div className="media-preview-container">
-                    <div className="media-preview-content">
-                        {mediaFile.type.startsWith('image/') ? (
-                            <img src={mediaPreview} alt="Preview" />
-                        ) : (
-                            <video src={mediaPreview} controls />
-                        )}
-                        <button className="close-preview" onClick={cancelMedia}>×</button>
-                    </div>
-                    <div className="media-options">
-                        <label className={`option-pill ${isViewOnce ? 'active' : ''}`}>
-                            <input
-                                type="checkbox"
-                                checked={isViewOnce}
-                                onChange={(e) => setIsViewOnce(e.target.checked)}
-                            />
-                            ⏱️ View Once
-                        </label>
-                        {mediaFile.type.startsWith('video/') && (
-                            <label className={`option-pill ${isGif ? 'active' : ''}`}>
+            {
+                mediaFile && (
+                    <div className="media-preview-container">
+                        <div className="media-preview-content">
+                            {mediaFile.type.startsWith('image/') ? (
+                                <img src={mediaPreview} alt="Preview" />
+                            ) : (
+                                <video src={mediaPreview} controls />
+                            )}
+                            <button className="close-preview" onClick={cancelMedia}>×</button>
+                        </div>
+                        <div className="media-options">
+                            <label className={`option-pill ${isViewOnce ? 'active' : ''}`}>
                                 <input
                                     type="checkbox"
-                                    checked={isGif}
-                                    onChange={(e) => setIsGif(e.target.checked)}
+                                    checked={isViewOnce}
+                                    onChange={(e) => setIsViewOnce(e.target.checked)}
                                 />
-                                🎞️ Send as GIF
+                                ⏱️ View Once
                             </label>
-                        )}
+                            {mediaFile.type.startsWith('video/') && (
+                                <label className={`option-pill ${isGif ? 'active' : ''}`}>
+                                    <input
+                                        type="checkbox"
+                                        checked={isGif}
+                                        onChange={(e) => setIsGif(e.target.checked)}
+                                    />
+                                    🎞️ Send as GIF
+                                </label>
+                            )}
+                        </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             <form className="message-input-container" onSubmit={handleSendMessage}>
                 <input
@@ -374,7 +384,7 @@ function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat, 
                     <FaPaperPlane />
                 </button>
             </form>
-        </div>
+        </div >
     );
 }
 

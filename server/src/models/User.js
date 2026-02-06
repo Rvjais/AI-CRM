@@ -114,6 +114,17 @@ const userSchema = new mongoose.Schema(
             type: Boolean,
             default: false,
         },
+        // Google Sheets Integration
+        sheetsConfig: {
+            spreadsheetId: { type: String },
+            sheetName: { type: String, default: 'Sheet1' },
+            columns: [{
+                key: { type: String }, // Variable name used by AI
+                header: { type: String }, // Column header in Sheets
+                description: { type: String } // Description for AI to understand what to extract
+            }],
+            lastSync: { type: Date }
+        },
     },
     {
         timestamps: true,

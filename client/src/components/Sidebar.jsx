@@ -1,4 +1,4 @@
-import { FaWhatsapp, FaEnvelope, FaMicrophone, FaBrain, FaTachometerAlt, FaCog, FaSignOutAlt, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import { FaWhatsapp, FaEnvelope, FaMicrophone, FaBrain, FaTachometerAlt, FaCog, FaSignOutAlt, FaChevronLeft, FaChevronRight, FaTable } from 'react-icons/fa';
 import './Sidebar.css';
 
 function Sidebar({ activeView, onViewChange, onLogout, isCollapsed, setIsCollapsed }) {
@@ -6,6 +6,7 @@ function Sidebar({ activeView, onViewChange, onLogout, isCollapsed, setIsCollaps
         { id: 'dashboard', icon: FaTachometerAlt, label: 'Dashboard' },
         { id: 'whatsapp', icon: FaWhatsapp, label: 'WhatsApp' },
         { id: 'email', icon: FaEnvelope, label: 'Email' },
+        { id: 'sheets', icon: FaTable, label: 'Sheets' },
         { id: 'voiceagent', icon: FaMicrophone, label: 'Voice Agent' },
         { id: 'aiconfig', icon: FaBrain, label: 'AI Config' },
     ];

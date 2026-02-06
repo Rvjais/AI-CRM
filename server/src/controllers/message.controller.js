@@ -380,36 +380,68 @@ export const toggleArchive = asyncHandler(async (req, res) => {
 
 /**
  * Force regenerate AI summary for a chat
- * POST /api/messages/:chatJid/summarize
  */
 export const summarizeChat = asyncHandler(async (req, res) => {
-    const { chatJid } = req.params;
-    const userId = req.userId;
+    try {
+        const { chatJid } = req.params;
+        const decodedJid = decodeURIComponent(chatJid);
+        const userId = req.userId; // properly use userId from middleware
 
-    const { generateSummary } = await import('../services/ai.service.js');
-    const summary = await generateSummary(userId, chatJid);
+        // Fetch user settings for Sheets config
+        const User = (await import('../models/User.js')).default;
+        const user = await User.findById(userId).select('sheetsConfig');
+        const sheetsConfig = user?.sheetsConfig || {};
+        const schema = sheetsConfig.columns || [];
 
-    if (!summary) {
-        return successResponse(res, 400, 'Failed to generate summary or AI not configured');
-    }
+        const aiService = (await import('../services/ai.service.js'));
+        // Optimized: Use consolidated analysis
+        const { sentiment, summary, suggestions, extractedData } = await aiService.analyzeMessage(userId, decodedJid, "Regenerate insights based on full history.", schema);
 
-    const Chat = (await import('../models/Chat.js')).default;
-    const updatedChat = await Chat.findOneAndUpdate(
-        { userId, chatJid },
-        {
+        if (!summary) {
+            return successResponse(res, 400, 'Failed to generate summary or AI not configured');
+        }
+
+        const Chat = (await import('../models/Chat.js')).default;
+
+        // Update chat with ALL new insights
+        const updateData = {
             summary,
+            sentiment,
+            suggestions,
             lastSummaryAt: new Date()
-        },
-        { new: true, upsert: true }
-    ).lean();
+        };
 
-    // Notify frontend via socket
-    const io = req.app.get('io');
-    if (io) {
-        io.to(userId.toString()).emit('chat:update', { chat: updatedChat });
+        if (extractedData && Object.keys(extractedData).length > 0) {
+            updateData.extractedData = extractedData;
+        }
+
+        const chat = await Chat.findOneAndUpdate(
+            { userId, chatJid: decodedJid },
+            updateData,
+            { new: true, upsert: true }
+        ).lean();
+
+        // Emit update to frontend
+        const io = req.app.get('io');
+        if (io) {
+            io.to(userId.toString()).emit('chat:update', { chat });
+        }
+
+        // Auto-sync if data found during regeneration
+        if (sheetsConfig.spreadsheetId && extractedData && Object.keys(extractedData).length > 0) {
+            try {
+                const sheetsService = (await import('../services/sheets.service.js'));
+                await sheetsService.syncChatToSheet(userId, decodedJid, extractedData);
+            } catch (syncError) {
+                console.error('Auto-sync failed during regeneration:', syncError);
+            }
+        }
+
+        return successResponse(res, 200, 'Summary regenerated successfully', chat);
+    } catch (error) {
+        console.error('Error generating summary:', error);
+        return successResponse(res, 500, 'Failed to generate summary');
     }
-
-    return successResponse(res, 200, 'Summary regenerated successfully', updatedChat);
 });
 
 /**

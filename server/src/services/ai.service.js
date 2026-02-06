@@ -248,13 +248,26 @@ export const analyzeSentiment = async (text, userId) => {
         // Very basic switch for sentiment
         // Valid model selection for sentiment
         if (config.provider === 'gemini') {
-            content = await generateGeminiResponse(config.apiKey, 'gemini-1.5-flash', messages, 100);
+            let modelToUse = config.model;
+            // Fallback if model is invalid for Gemini
+            if (!modelToUse || modelToUse.includes('gpt') || modelToUse.includes('claude')) {
+                modelToUse = 'gemini-2.5-flash';
+            }
+            content = await generateGeminiResponse(config.apiKey, modelToUse, messages, 100);
         } else if (config.provider === 'anthropic') {
-            content = await generateClaudeResponse(config.apiKey, 'claude-3-haiku-20240307', messages, 100);
+            let modelToUse = config.model;
+            if (!modelToUse || modelToUse.includes('gpt') || modelToUse.includes('gemini')) {
+                modelToUse = 'claude-3-haiku-20240307';
+            }
+            content = await generateClaudeResponse(config.apiKey, modelToUse, messages, 100);
         } else if (config.provider === 'openrouter') {
-            content = await generateOpenAIResponse(config.apiKey, 'openai/gpt-3.5-turbo', messages, 100, 'https://openrouter.ai/api/v1', { "HTTP-Referer": "https://localhost" });
+            content = await generateOpenAIResponse(config.apiKey, config.model || 'openai/gpt-3.5-turbo', messages, 100, 'https://openrouter.ai/api/v1', { "HTTP-Referer": "https://localhost" });
         } else {
-            content = await generateOpenAIResponse(config.apiKey, 'gpt-3.5-turbo', messages, 100);
+            let modelToUse = config.model;
+            if (!modelToUse || modelToUse.includes('gemini') || modelToUse.includes('claude')) {
+                modelToUse = 'gpt-3.5-turbo';
+            }
+            content = await generateOpenAIResponse(config.apiKey, modelToUse, messages, 100);
         }
 
         if (content) {
@@ -343,13 +356,25 @@ export const generateSuggestions = async (userId, chatJid) => {
 
         let content = '';
         if (config.provider === 'gemini') {
-            content = await generateGeminiResponse(config.apiKey, 'gemini-2.5-flash', messages, 150);
+            let modelToUse = config.model;
+            if (!modelToUse || modelToUse.includes('gpt') || modelToUse.includes('claude')) {
+                modelToUse = 'gemini-2.5-flash';
+            }
+            content = await generateGeminiResponse(config.apiKey, modelToUse, messages, 150);
         } else if (config.provider === 'anthropic') {
-            content = await generateClaudeResponse(config.apiKey, 'claude-3-haiku-20240307', messages, 150);
+            let modelToUse = config.model;
+            if (!modelToUse || modelToUse.includes('gpt') || modelToUse.includes('gemini')) {
+                modelToUse = 'claude-3-haiku-20240307';
+            }
+            content = await generateClaudeResponse(config.apiKey, modelToUse, messages, 150);
         } else if (config.provider === 'openrouter') {
-            content = await generateOpenAIResponse(config.apiKey, config.model, messages, 150, 'https://openrouter.ai/api/v1', { "HTTP-Referer": "https://localhost" });
+            content = await generateOpenAIResponse(config.apiKey, config.model || 'openai/gpt-3.5-turbo', messages, 150, 'https://openrouter.ai/api/v1', { "HTTP-Referer": "https://localhost" });
         } else {
-            content = await generateOpenAIResponse(config.apiKey, 'gpt-3.5-turbo', messages, 150);
+            let modelToUse = config.model;
+            if (!modelToUse || modelToUse.includes('gemini') || modelToUse.includes('claude')) {
+                modelToUse = 'gpt-3.5-turbo';
+            }
+            content = await generateOpenAIResponse(config.apiKey, modelToUse, messages, 150);
         }
 
         if (content) {
@@ -365,5 +390,242 @@ export const generateSuggestions = async (userId, chatJid) => {
     } catch (error) {
         console.error('Error generating suggestions:', error);
         return [];
+    }
+};
+
+export const extractData = async (userId, chatJid, schema) => {
+    try {
+        const config = await getUserAIConfig(userId);
+        if (!config.apiKey) return {};
+
+        const Message = (await import('../models/Message.js')).default;
+        const recentMessages = await Message.find({ userId, chatJid })
+            .sort({ timestamp: -1 })
+            .limit(25) // Reduced from 50 to save tokens
+            .lean();
+        recentMessages.reverse();
+
+        // Optimized: Filter out noise (short messages < 3 chars, captionless media)
+        const relevantMessages = recentMessages.filter(m => {
+            const text = m.content.text || '';
+            const isMedia = !text && (m.type === 'image' || m.type === 'video' || m.type === 'document');
+            // Keep if text length > 3 OR it's media with caption OR system message
+            return (text.length > 3) || (isMedia && m.content.caption);
+        });
+
+        const conversation = relevantMessages.map(m => `${m.fromMe ? 'Agent' : 'User'}: ${m.content.text || m.content.caption || '[Media]'}`).join('\n');
+
+        const schemaDescription = schema.map(s => `${s.key}: ${s.description}`).join('\n');
+
+        // Condensed Prompt
+        const systemPrompt = `
+        Extract data from the chat history based on these fields:
+        ${schemaDescription}
+
+        Rules:
+        - Return strictly JSON.
+        - Use stated values or infer with high confidence.
+        - Use null if missing.
+        - No markdown.
+
+        Format: {"key": "value"}
+        `;
+
+        const messages = [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: conversation }
+        ];
+
+        let content = '';
+        if (config.provider === 'gemini') {
+            let modelToUse = config.model;
+            // Cross-provider safety check
+            if (!modelToUse || modelToUse.includes('gpt') || modelToUse.includes('claude')) {
+                modelToUse = 'gemini-2.5-flash';
+            }
+            content = await generateGeminiResponse(config.apiKey, modelToUse, messages, 500);
+        } else if (config.provider === 'anthropic') {
+            let modelToUse = config.model;
+            if (!modelToUse || modelToUse.includes('gpt') || modelToUse.includes('gemini')) {
+                modelToUse = 'claude-3-haiku-20240307';
+            }
+            content = await generateClaudeResponse(config.apiKey, modelToUse, messages, 500);
+        } else if (config.provider === 'openrouter') {
+            content = await generateOpenAIResponse(config.apiKey, config.model || 'openai/gpt-3.5-turbo', messages, 500, 'https://openrouter.ai/api/v1', { "HTTP-Referer": "https://localhost" });
+        } else {
+            // OpenAI
+            let modelToUse = config.model;
+            if (!modelToUse || modelToUse.includes('gemini') || modelToUse.includes('claude')) {
+                modelToUse = 'gpt-3.5-turbo';
+            }
+            content = await generateOpenAIResponse(config.apiKey, modelToUse, messages, 500);
+        }
+
+        if (content) {
+            content = content.replace(/```json\n?|\n?```/g, '').trim();
+            try {
+                return JSON.parse(content);
+            } catch (e) {
+                console.error('Failed to parse extraction JSON:', content);
+                return {};
+            }
+        }
+        return {};
+
+    } catch (error) {
+        console.error('Error in extractData:', error);
+        throw error;
+    }
+};
+
+export const analyzeMessage = async (userId, chatJid, messageText, schema = []) => {
+    try {
+        const config = await getUserAIConfig(userId);
+        if (!config.apiKey) return { sentiment: 'neutral', summary: null, suggestions: [], extractedData: {} };
+
+        const Message = (await import('../models/Message.js')).default;
+        const recentMessages = await Message.find({ userId, chatJid })
+            .sort({ timestamp: -1 })
+            .limit(20)
+            .lean();
+        recentMessages.reverse();
+
+        const conversation = recentMessages.map(m => `${m.fromMe ? 'Agent' : 'User'}: ${m.content.text || '[Media]'}`).join('\n');
+
+        // Dynamic Schema for Extraction
+        let schemaDescription = "";
+
+        // Sanitize schema keys (trim spaces)
+        const sanitizedSchema = schema.map(s => ({
+            ...s,
+            key: s.key.trim()
+        }));
+
+        if (sanitizedSchema && sanitizedSchema.length > 0) {
+            schemaDescription = sanitizedSchema.map(s => `"${s.key}": ${s.description}`).join('\n');
+        } else {
+            // Default Fallback Schema
+            const defaultSchema = [
+                { key: 'name', description: "The user's self-declared name" },
+                { key: 'email', description: "User's email address" },
+                { key: 'phone', description: "User's phone number" },
+                { key: 'requirement', description: "Service or product requested" },
+                { key: 'budget', description: "Budget/Pricing constraints" }
+            ];
+            schemaDescription = defaultSchema.map(s => `"${s.key}": ${s.description}`).join('\n');
+        }
+
+        // Debug: Log schema to ensure it's being passed correctly
+        console.log('[AI Service] Using Schema:', JSON.stringify(sanitizedSchema, null, 2));
+
+        const systemPrompt = `
+        You are an intelligent CRM assistant. Analyze the conversation and extract lead data.
+        
+        ROLES:
+        - 'User': The potential customer/lead. extract data about THIS person.
+        - 'Agent': The AI bot or business representative.
+
+        Task:
+        1. Analyze Sentiment, Summary, and Suggestions.
+        2. EXTRACT data for the following fields based on the conversation context:
+        ${schemaDescription}
+
+        CRITICAL INSTRUCTIONS: 
+        - Look for these details in the ENTIRE conversation history.
+        - "customer name" / "name": Look for self-introductions (e.g., "I am [Name]", "My name is [Name]") or signatures.
+        - "service": Look for what the user is asking for or inquiring about.
+        - If a value is found, extract it EXACTLY.
+        - If not found, use null or empty string.
+        - Output strictly valid JSON.
+
+        Output Format:
+        {
+            "sentiment": "positive|neutral|negative",
+            "summary": "Short summary",
+            "suggestions": ["msg1", "msg2"],
+            "extractedData": {
+                "key": "value"
+            }
+        }
+        
+        Conversation:
+        ${conversation}
+
+        Latest: "${messageText}"
+        `;
+
+        console.log('[AI Service] Prompt constructed. Sending to AI...');
+
+
+        const messages = [
+            { role: "system", content: config.systemPrompt },
+            { role: "user", content: systemPrompt }
+        ];
+
+        let content = '';
+        if (config.provider === 'gemini') {
+            let modelToUse = config.model;
+            // Cross-provider safety check
+            if (!modelToUse || modelToUse.includes('gpt') || modelToUse.includes('claude')) {
+                modelToUse = 'gemini-1.5-flash';
+            }
+            content = await generateGeminiResponse(config.apiKey, modelToUse, messages, 500);
+        } else if (config.provider === 'anthropic') {
+            let modelToUse = config.model;
+            if (!modelToUse || modelToUse.includes('gpt') || modelToUse.includes('gemini')) {
+                modelToUse = 'claude-3-haiku-20240307';
+            }
+            content = await generateClaudeResponse(config.apiKey, modelToUse, messages, 400);
+        } else if (config.provider === 'openrouter') {
+            content = await generateOpenAIResponse(config.apiKey, config.model || 'openai/gpt-3.5-turbo', messages, 500, 'https://openrouter.ai/api/v1', { "HTTP-Referer": "https://localhost" });
+        } else {
+            // OpenAI
+            let modelToUse = config.model;
+            if (!modelToUse || modelToUse.includes('gemini') || modelToUse.includes('claude')) {
+                modelToUse = 'gpt-3.5-turbo';
+            }
+            content = await generateOpenAIResponse(config.apiKey, modelToUse, messages, 400);
+        }
+
+        if (content) {
+            console.log('[AI Service] Raw Content:', content); // LOG RAW CONTENT
+
+            // Robust JSON extraction
+            const jsonMatch = content.match(/\{[\s\S]*\}/);
+            const jsonStr = jsonMatch ? jsonMatch[0] : content.replace(/```json\n?|\n?```/g, '').trim();
+
+            try {
+                const result = JSON.parse(jsonStr);
+
+                // Sanitize extractedData
+                let sanitizedData = {};
+                if (result.extractedData) {
+                    Object.entries(result.extractedData).forEach(([key, value]) => {
+                        // Only keep non-null, non-empty values
+                        if (value !== null && value !== '' && value !== 'null') {
+                            sanitizedData[key.trim()] = String(value); // Trim key and force value to string
+                        }
+                    });
+                }
+
+                console.log('[AI Service] Extracted Data:', JSON.stringify(sanitizedData, null, 2));
+
+                return {
+                    sentiment: result.sentiment || 'neutral',
+                    summary: result.summary || null,
+                    suggestions: Array.isArray(result.suggestions) ? result.suggestions : [],
+                    extractedData: sanitizedData
+                };
+            } catch (e) {
+                console.warn('Failed to parse analyzeMessage JSON:', content);
+                return { sentiment: 'neutral', summary: null, suggestions: [], extractedData: {} };
+            }
+        }
+        return { sentiment: 'neutral', summary: null, suggestions: [], extractedData: {} };
+
+
+    } catch (error) {
+        console.error('Error in analyzeMessage:', error);
+        return { sentiment: 'neutral', summary: null, suggestions: [], extractedData: {} };
     }
 };

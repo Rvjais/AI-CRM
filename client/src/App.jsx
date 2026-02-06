@@ -4,6 +4,7 @@ import Dashboard from './components/Dashboard';
 import WhatsAppView from './components/WhatsAppView';
 import AIConfig from './components/AIConfig';
 import EmailView from './components/EmailView';
+import SheetsConfig from './components/SheetsConfig';
 import ComingSoon from './components/ComingSoon';
 import Login from './components/Login';
 import './App.css';
@@ -50,6 +51,9 @@ function App() {
         </div>
         <div className={activeView === 'aiconfig' ? '' : 'view-hidden'}>
           <AIConfig token={token} />
+        </div>
+        <div className={activeView === 'sheets' ? '' : 'view-hidden'}>
+          <SheetsConfig />
         </div>
       </ErrorBoundary>
     );

@@ -36,6 +36,11 @@ const chatSchema = new mongoose.Schema(
             type: Number,
             default: 0,
         },
+        extractedData: {
+            type: Map,
+            of: String,
+            default: {}
+        },
         lastMessageAt: {
             type: Date,
         },
