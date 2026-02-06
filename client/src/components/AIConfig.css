@@ -6,6 +6,7 @@
     flex-direction: column;
     overflow-y: auto;
     overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
     background: #f9fafb;
 }
 
@@ -29,8 +30,10 @@
 @media (max-width: 1024px) {
     .config-container {
         grid-template-columns: 1fr;
-        overflow-y: auto;
-        /* Allow scroll on tablet/mobile */
+        height: auto;
+        /* Allow expansion */
+        overflow: visible;
+        /* Let parent scroll */
         display: block;
     }
 
@@ -476,6 +479,9 @@
     .ai-config-view {
         padding: 16px;
         padding-bottom: 80px;
+        display: block;
+        /* Robust scroll compatibility */
+        overscroll-behavior-y: contain;
     }
 
     .view-header h1 {

@@ -6,6 +6,7 @@
     border-radius: 12px;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
     height: 100%;
 }
 
@@ -159,6 +160,7 @@
         box-shadow: none;
         max-width: 100%;
         padding-bottom: 80px;
+        overscroll-behavior-y: contain;
     }
 
     .sheets-config h2 {

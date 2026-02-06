@@ -49,10 +49,10 @@ function App() {
         <div className={activeView === 'voiceagent' ? 'view-active' : 'view-hidden'}>
           <ComingSoon title="Voice Agent" icon="🎤" />
         </div>
-        <div className={activeView === 'aiconfig' ? '' : 'view-hidden'}>
+        <div className={activeView === 'aiconfig' ? 'view-active' : 'view-hidden'}>
           <AIConfig token={token} />
         </div>
-        <div className={activeView === 'sheets' ? '' : 'view-hidden'}>
+        <div className={activeView === 'sheets' ? 'view-active' : 'view-hidden'}>
           <SheetsConfig />
         </div>
       </ErrorBoundary>

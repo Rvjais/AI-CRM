@@ -100,6 +100,7 @@ body {
 
   .main-content {
     flex: none;
+    height: calc(100vh - 88px);
     height: calc(100dvh - 88px);
     overflow: hidden;
     padding-bottom: 0;
@@ -110,13 +111,16 @@ body {
   .view-active {
     height: 100%;
     width: 100%;
-    overflow-y: auto;
+    /* overflow-y: auto; Removed to prevent double scroll or lock */
     overflow-x: hidden;
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
+    z-index: 1;
+    /* Ensure above any potential obscuring layers */
+    -webkit-overflow-scrolling: touch;
   }
 
   .whatsapp-view {
