@@ -3,6 +3,7 @@ import { FaPaperPlane, FaArchive, FaTable, FaSpinner, FaArrowLeft } from 'react-
 import Message from './Message';
 import api from '../utils/apiClient';
 import './ChatWindow.css';
+import Loader from './Loader';
 
 function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat, onForward, onBack }) {
     const [newMessage, setNewMessage] = useState('');
@@ -290,7 +291,9 @@ function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat, 
             </div>
 
             <div className="messages-container">
-                {messages.length === 0 ? (
+                {loading ? (
+                    <Loader />
+                ) : messages.length === 0 ? (
                     <div className="no-messages">
                         <p>No messages yet. Start the conversation!</p>
                     </div>

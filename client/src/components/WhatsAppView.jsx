@@ -6,6 +6,7 @@ import AIInsights from './AIInsights';
 import QRScanner from './QRScanner';
 import api from '../utils/apiClient';
 import ForwardModal from './ForwardModal';
+import Loader from './Loader';
 
 function WhatsAppView({ token, onLogout }) {
     const [selectedChat, setSelectedChat] = useState(null);
@@ -225,7 +226,7 @@ function WhatsAppView({ token, onLogout }) {
             const data = await api.get('/api/whatsapp/status');
             if (data.success && data.data.connected) {
                 setIsConnected(true);
-                fetchChats();
+                await fetchChats(); // Verify we await this
             } else {
                 setIsConnected(false);
             }
@@ -380,7 +381,12 @@ function WhatsAppView({ token, onLogout }) {
     };
 
     if (isLoading) {
-        return <div className="loading">Checking connection...</div>;
+        return (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', width: '100%' }}>
+                <Loader size="large" />
+                <p style={{ marginTop: '16px', color: '#6b7280', fontSize: '14px' }}>Connecting to WhatsApp...</p>
+            </div>
+        );
     }
     if (!isConnected) {
         return <QRScanner token={token} onConnected={handleConnected} onLogout={onLogout} />;

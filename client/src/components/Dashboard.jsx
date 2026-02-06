@@ -3,6 +3,7 @@ import api from '../utils/apiClient';
 import ChatWindow from './ChatWindow';
 import { IoClose } from 'react-icons/io5';
 import './Dashboard.css';
+import Loader from './Loader';
 
 function Dashboard() {
     const [stats, setStats] = useState({

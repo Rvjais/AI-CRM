@@ -99,11 +99,12 @@ body {
   }
 
   .main-content {
-    flex: 1;
-    height: calc(100% - 88px);
+    flex: none;
+    height: calc(100dvh - 88px);
     overflow: hidden;
     padding-bottom: 0;
     position: relative;
+    width: 100%;
   }
 
   .view-active {

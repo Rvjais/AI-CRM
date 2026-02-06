@@ -3,6 +3,7 @@ import { FaGoogle, FaEnvelope, FaSpinner } from 'react-icons/fa';
 import api from '../utils/apiClient';
 import EmailLayout from './email/EmailLayout';
 import './EmailView.css';
+import Loader from './Loader';
 
 function EmailView({ token }) {
     const [isConnected, setIsConnected] = useState(false);
@@ -137,11 +138,13 @@ function EmailView({ token }) {
         }
     };
 
+
+
     if (loading) {
         return (
-            <div className="email-loading">
-                <FaSpinner className="spinner" />
-                <p>Syncing with Gmail...</p>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', width: '100%' }}>
+                <Loader size="large" />
+                <p style={{ marginTop: '16px', color: '#6b7280', fontSize: '14px' }}>Syncing with Gmail...</p>
             </div>
         );
     }
