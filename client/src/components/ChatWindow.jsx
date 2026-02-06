@@ -172,9 +172,12 @@ function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat, 
             const payload = {
                 chatJid,
                 type,
-                content,
-                quoted: replyingTo // Pass the quoted message object (or ID)
+                content
             };
+
+            if (replyingTo) {
+                payload.quoted = replyingTo;
+            }
 
             const data = await api.post('/api/messages/send', payload);
 
