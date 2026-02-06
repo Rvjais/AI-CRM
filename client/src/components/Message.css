@@ -337,3 +337,91 @@
 .message.sent .reaction-bubble {
     background: rgba(255, 255, 255, 0.9);
 }
+
+/* ============================================
+   MOBILE RESPONSIVE STYLES
+   ============================================ */
+@media (max-width: 768px) {
+    .message {
+        margin-bottom: 6px;
+    }
+
+    .message-bubble {
+        max-width: 80%;
+        padding: 8px 12px;
+        border-radius: 16px;
+        gap: 6px;
+    }
+
+    .message-text {
+        font-size: 14px;
+        line-height: 1.4;
+    }
+
+    .message-time {
+        font-size: 10px;
+    }
+
+    .avatar-small {
+        width: 28px;
+        height: 28px;
+        font-size: 12px;
+    }
+
+    /* Quoted message - truncate text */
+    .quoted-message-preview {
+        padding: 4px 8px;
+        border-radius: 4px;
+        margin-bottom: 4px;
+        font-size: 12px;
+        min-width: 100px;
+        max-width: 200px;
+    }
+
+    .quoted-text {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 180px;
+        display: block;
+        font-size: 11px;
+    }
+
+    .quoted-sender {
+        font-size: 11px;
+    }
+
+    /* Media sizing */
+    .message-media {
+        max-width: 220px;
+        border-radius: 8px;
+    }
+
+    .message-audio {
+        max-width: 200px;
+    }
+
+    .message-sticker {
+        max-width: 100px;
+    }
+
+    .message-document {
+        padding: 6px 10px;
+        font-size: 12px;
+    }
+
+    .doc-icon {
+        font-size: 16px;
+    }
+
+    /* Reactions */
+    .reaction-actions button {
+        font-size: 14px;
+        padding: 3px;
+    }
+
+    .reaction-bubble {
+        font-size: 11px;
+        padding: 1px 5px;
+    }
+}

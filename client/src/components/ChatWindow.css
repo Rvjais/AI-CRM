@@ -399,6 +399,18 @@
 
 /* Mobile Responsive Styles */
 @media (max-width: 768px) {
+    .chat-window {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
     .back-btn {
         display: flex;
     }
@@ -415,21 +427,23 @@
     }
 
     .avatar-large {
-        width: 36px;
-        height: 36px;
-        font-size: 14px;
+        display: none;
     }
 
     .user-name {
         font-size: 15px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 180px;
     }
 
     .user-status {
-        font-size: 12px;
+        font-size: 11px;
     }
 
     .header-actions {
-        gap: 4px;
+        gap: 6px;
     }
 
     .action-btn {
@@ -438,8 +452,14 @@
     }
 
     .ai-toggle-btn {
-        padding: 4px 8px;
-        font-size: 11px;
+        padding: 4px;
+        font-size: 9px;
+        min-width: 40px;
+        height: 40px;
+        flex-direction: column;
+        justify-content: center;
+        gap: 2px;
+        border-radius: 8px;
     }
 
     .message-input-container {
