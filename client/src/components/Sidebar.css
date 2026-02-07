@@ -148,6 +148,29 @@
     gap: 8px;
 }
 
+.credits-display {
+    background: linear-gradient(135deg, #fceabb 0%, #f8b500 100%);
+    padding: 10px 14px;
+    border-radius: 8px;
+    margin-bottom: 5px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #7b4e00;
+    font-weight: 700;
+    font-size: 14px;
+    box-shadow: 0 4px 6px rgba(248, 181, 0, 0.2);
+    transition: transform 0.2s;
+}
+
+.credits-display:hover {
+    transform: translateY(-2px);
+}
+
+.credits-icon {
+    font-size: 18px;
+}
+
 .nav-item.settings:hover {
     background: #eff6ff;
     color: #3b82f6;

@@ -3,12 +3,16 @@ import authRoutes from './auth.routes.js';
 import whatsappRoutes from './whatsapp.routes.js';
 import messageRoutes from './message.routes.js';
 import contactRoutes from './contact.routes.js';
+import aiRoutes from './ai.routes.js';
 import groupRoutes from './group.routes.js';
 import mediaRoutes from './media.routes.js';
-import aiRoutes from './ai.routes.js';
+import fileRoutes from './file.routes.js';
 import emailRoutes from './email.routes.js';
 import dashboardRoutes from './dashboard.routes.js';
 import sheetsRoutes from './sheets.routes.js';
+import adminRoutes from './admin.routes.js';
+import userRoutes from './user.routes.js';
+import webhookRoutes from './webhook.routes.js';
 
 const router = express.Router();
 
@@ -21,12 +25,16 @@ router.use('/auth', authRoutes);
 router.use('/whatsapp', whatsappRoutes);
 router.use('/messages', messageRoutes);
 router.use('/contacts', contactRoutes);
+router.use('/ai', aiRoutes);
 router.use('/groups', groupRoutes);
 router.use('/media', mediaRoutes);
-router.use('/ai', aiRoutes);
+router.use('/files', fileRoutes);
 router.use('/emails', emailRoutes);
 router.use('/dashboard', dashboardRoutes);
 router.use('/sheets', sheetsRoutes);
+router.use('/admin', adminRoutes);
+router.use('/user', userRoutes);
+router.use('/webhooks', webhookRoutes);
 
 // Health check endpoint
 router.get('/health', (req, res) => {

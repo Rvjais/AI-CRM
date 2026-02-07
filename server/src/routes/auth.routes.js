@@ -24,6 +24,7 @@ router.post('/logout', authController.logout);
 router.get('/me', authController.getCurrentUser);
 router.get('/google', authController.getGoogleAuthUrl);
 router.post('/google/callback', authController.googleCallback);
+router.post('/google/disconnect', authController.disconnectGoogle);
 router.put('/profile', validate(schemas.updateProfile), authController.updateProfile);
 router.put('/password', validate(schemas.changePassword), authController.changePassword);
 

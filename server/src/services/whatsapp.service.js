@@ -5,13 +5,13 @@ import makeWASocket, {
 } from '@whiskeysockets/baileys';
 import { Boom } from '@hapi/boom';
 import pino from 'pino';
-import WhatsAppSession from '../models/WhatsAppSession.js';
 import User from '../models/User.js';
 import { CONNECTION_STATUS } from '../config/constants.js';
 import { encryptObject, decryptObject } from '../utils/encryption.util.js';
 import logger from '../utils/logger.util.js';
 import { loadAuthState } from '../whatsapp/auth.handler.js';
 import { handleIncomingMessage } from '../whatsapp/message.handler.js';
+import { getClientModels } from '../utils/database.factory.js';
 
 /**
  * WhatsApp service - Baileys integration
@@ -38,7 +38,7 @@ export const connectWhatsApp = async (userId, io) => {
         // Get latest Baileys version
         const { version } = await fetchLatestBaileysVersion();
 
-        // Load auth state from database
+        // Load auth state from database (now handles dynamic DB)
         const { state, saveCreds } = await loadAuthState(userId);
 
         // Create logger
@@ -273,46 +273,60 @@ export const sendMediaMessage = async (userId, jid, mediaData) => {
 // Helper functions
 
 async function updateSessionStatus(userId, status, phoneNumber = null) {
-    // If we are setting status to CONNECTING, check if it's already QR_READY
-    // We don't want to overwrite QR_READY with CONNECTING as it hides the QR code from frontend
-    if (status === CONNECTION_STATUS.CONNECTING) {
-        const currentSession = await WhatsAppSession.findOne({ userId });
-        if (currentSession?.status === CONNECTION_STATUS.QR_READY) {
-            return; // Skip update to preserve QR_READY state
+    try {
+        const { WhatsAppSession } = await getClientModels(userId);
+
+        // If we are setting status to CONNECTING, check if it's already QR_READY
+        // We don't want to overwrite QR_READY with CONNECTING as it hides the QR code from frontend
+        if (status === CONNECTION_STATUS.CONNECTING) {
+            const currentSession = await WhatsAppSession.findOne({ userId });
+            if (currentSession?.status === CONNECTION_STATUS.QR_READY) {
+                return; // Skip update to preserve QR_READY state
+            }
         }
+
+        const update = { status };
+        if (status === CONNECTION_STATUS.CONNECTED) {
+            update.lastConnected = new Date();
+            if (phoneNumber) update.phoneNumber = phoneNumber;
+
+            // Clear QR code when connected
+            update.qrCode = null;
+        }
+
+        await WhatsAppSession.findOneAndUpdate(
+            { userId },
+            update,
+            { upsert: true }
+        );
+    } catch (error) {
+        logger.error(`Error updating session status for user ${userId}:`, error);
     }
-
-    const update = { status };
-    if (status === CONNECTION_STATUS.CONNECTED) {
-        update.lastConnected = new Date();
-        if (phoneNumber) update.phoneNumber = phoneNumber;
-
-        // Clear QR code when connected
-        update.qrCode = null;
-    }
-
-    await WhatsAppSession.findOneAndUpdate(
-        { userId },
-        update,
-        { upsert: true }
-    );
 }
 
 async function updateSessionQR(userId, qrText) {
-    // Import QR handler dynamically to avoid circular dependency
-    const { generateQRCode } = await import('../whatsapp/qr.handler.js');
+    try {
+        const { WhatsAppSession } = await getClientModels(userId);
 
-    // Convert QR text to data URL
-    const qrCodeDataURL = await generateQRCode(qrText);
+        // Import QR handler dynamically to avoid circular dependency
+        const { generateQRCode } = await import('../whatsapp/qr.handler.js');
 
-    await WhatsAppSession.findOneAndUpdate(
-        { userId },
-        { qrCode: qrCodeDataURL, status: CONNECTION_STATUS.QR_READY },
-        { upsert: true }
-    );
+        // Convert QR text to data URL
+        const qrCodeDataURL = await generateQRCode(qrText);
 
-    return qrCodeDataURL;
+        await WhatsAppSession.findOneAndUpdate(
+            { userId },
+            { qrCode: qrCodeDataURL, status: CONNECTION_STATUS.QR_READY },
+            { upsert: true }
+        );
+
+        return qrCodeDataURL;
+    } catch (error) {
+        logger.error(`Error updating session QR for user ${userId}:`, error);
+        return null;
+    }
 }
+
 
 async function updateUserWhatsAppStatus(userId, connected) {
     await User.findByIdAndUpdate(userId, { whatsappConnected: connected });

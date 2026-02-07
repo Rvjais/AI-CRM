@@ -30,7 +30,7 @@ function Dashboard() {
                     sentiment: data.data.whatsapp.sentiment,
                     recentActivity: data.data.recentActivity || [],
                     email: data.data.email, // Store email stats
-                    isConnected: true
+                    isConnected: data.data.whatsapp?.connected || false
                 });
             }
         } catch (error) {
@@ -86,15 +86,24 @@ function Dashboard() {
                     <div className="stat-icon whatsapp">📱</div>
                     <div className="stat-info">
                         <h3>WhatsApp Chats</h3>
-                        <p className="stat-value">{stats.chatCount}</p>
-                        <div className="sentiment-mini-bar">
-                            <div className="s-segment pos" style={{ flex: stats.sentiment?.positive || 1 }} title={`Positive: ${stats.sentiment?.positive}`}></div>
-                            <div className="s-segment neu" style={{ flex: stats.sentiment?.neutral || 1 }} title={`Neutral: ${stats.sentiment?.neutral}`}></div>
-                            <div className="s-segment neg" style={{ flex: stats.sentiment?.negative || 1 }} title={`Negative: ${stats.sentiment?.negative}`}></div>
-                        </div>
-                        <small className="stat-subtext">
-                            {stats.sentiment?.positive || 0} Positive • {stats.sentiment?.negative || 0} Negative
-                        </small>
+                        {stats.isConnected ? (
+                            <>
+                                <p className="stat-value">{stats.chatCount}</p>
+                                <div className="sentiment-mini-bar">
+                                    <div className="s-segment pos" style={{ flex: stats.sentiment?.positive || 1 }} title={`Positive: ${stats.sentiment?.positive}`}></div>
+                                    <div className="s-segment neu" style={{ flex: stats.sentiment?.neutral || 1 }} title={`Neutral: ${stats.sentiment?.neutral}`}></div>
+                                    <div className="s-segment neg" style={{ flex: stats.sentiment?.negative || 1 }} title={`Negative: ${stats.sentiment?.negative}`}></div>
+                                </div>
+                                <small className="stat-subtext">
+                                    {stats.sentiment?.positive || 0} Positive • {stats.sentiment?.negative || 0} Negative
+                                </small>
+                            </>
+                        ) : (
+                            <>
+                                <p className="stat-value">Not Connected</p>
+                                <p className="stat-subtext">Scan QR code in WhatsApp tab</p>
+                            </>
+                        )}
                     </div>
                 </div>
 

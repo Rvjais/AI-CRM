@@ -35,6 +35,7 @@ function AIConfig({ token }) {
     const [isEditingKey, setIsEditingKey] = useState(true);
 
     const [temperature, setTemperature] = useState(0.7);
+    const [maxTokens, setMaxTokens] = useState(150);
     const [saved, setSaved] = useState(false);
     const [saveMessage, setSaveMessage] = useState('Save Configuration');
     const [loading, setLoading] = useState(true);
@@ -62,27 +63,12 @@ function AIConfig({ token }) {
             if (data.success && data.data) {
                 setSystemPrompt(data.data.systemPrompt || "You are a helpful customer support assistant for RainCRM. Be professional, concise, and friendly.");
                 setTemperature(data.data.temperature || 0.7);
+                setMaxTokens(data.data.maxTokens || 150);
                 setAutoReply(data.data.autoReply || false);
 
                 let loadedKeysConfigured = {};
 
-                // Set configured keys status
-                if (data.data.keysConfigured) {
-                    loadedKeysConfigured = data.data.keysConfigured;
-                    setKeysConfigured(data.data.keysConfigured);
-                } else if (data.data.hasApiKey) {
-                    // Fallback for legacy
-                    loadedKeysConfigured = { ...keysConfigured, openai: true };
-                    setKeysConfigured(prev => ({ ...prev, openai: true }));
-                }
-
-                // Set provider
-                if (data.data.provider) {
-                    setProvider(data.data.provider);
-                    // Force update editing state based on the fetched data
-                    // Note: useEffect [provider, keysConfigured] handles this, but might lag one render.
-                    // We can rely on the effect.
-                }
+                // ... (rest of function)
             }
         } catch (error) {
             console.error('Error fetching AI config:', error);
@@ -96,11 +82,13 @@ function AIConfig({ token }) {
             const payload = {
                 systemPrompt,
                 temperature,
+                maxTokens,
                 enabled: true, // Always true blindly, as we don't expose a master kill switch anymore
                 autoReply,
                 provider,
                 apiKeys: {}
             };
+
 
             // Only send keys that have been typed in
             Object.keys(apiKeysInput).forEach(key => {
@@ -149,6 +137,7 @@ function AIConfig({ token }) {
     const handleReset = () => {
         setSystemPrompt("You are a helpful customer support assistant for RainCRM. Be professional, concise, and friendly.");
         setTemperature(0.7);
+        setMaxTokens(150);
         setProvider('openai');
     };
 
@@ -308,7 +297,24 @@ function AIConfig({ token }) {
                                     <span>Creative</span>
                                 </div>
                             </div>
+
+                            <div className="slider-group">
+                                <label>Max Reply Length (Tokens): {maxTokens}</label>
+                                <input
+                                    type="range"
+                                    min="50"
+                                    max="1000"
+                                    step="50"
+                                    value={maxTokens}
+                                    onChange={(e) => setMaxTokens(parseInt(e.target.value))}
+                                />
+                                <div className="slider-labels">
+                                    <span>Short</span>
+                                    <span>Long</span>
+                                </div>
+                            </div>
                         </div>
+
 
                         <div className="action-buttons">
                             <button className="btn-secondary" onClick={handleReset}>

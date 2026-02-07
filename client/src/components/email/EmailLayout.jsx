@@ -15,7 +15,8 @@ function EmailLayout({
     onRefresh,
     onSearch,
     activeLabel,
-    onLabelSelect
+    onLabelSelect,
+    onDisconnect
 }) {
     const [selectedThreadId, setSelectedThreadId] = useState(null);
     const [labels, setLabels] = useState([]);
@@ -66,6 +67,7 @@ function EmailLayout({
                 onComposeClick={() => setIsComposeOpen(true)}
                 isOpen={isSidebarOpen}
                 onClose={() => setIsSidebarOpen(false)}
+                onDisconnect={onDisconnect}
             />
             <EmailList
                 threads={threads}

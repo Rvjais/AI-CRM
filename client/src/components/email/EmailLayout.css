@@ -129,6 +129,34 @@
     color: #9ca3af;
 }
 
+.sidebar-footer {
+    padding: 16px;
+    border-top: 1px solid #e9ecef;
+    margin-top: auto;
+}
+
+.disconnect-btn-sidebar {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px;
+    background: white;
+    border: 1px solid #fee2e2;
+    color: #ef4444;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.disconnect-btn-sidebar:hover {
+    background: #fef2f2;
+    border-color: #fecaca;
+}
+
 /* List */
 .email-list {
     width: 350px;
@@ -436,6 +464,15 @@
     opacity: 1;
 }
 
+.mobile-send-btn {
+    display: none;
+}
+
+.desktop-actions {
+    display: flex;
+    gap: 8px;
+}
+
 .compose-form {
     padding: 0;
 }
@@ -568,7 +605,8 @@
         width: 85%;
         max-width: 320px;
         height: 100%;
-        z-index: 1001;
+        z-index: 9999 !important;
+        /* Force override of everything */
         transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         transform: translateX(-100%);
         box-shadow: 4px 0 25px rgba(0, 0, 0, 0.15);
@@ -577,6 +615,11 @@
         overflow: hidden;
         display: flex;
         flex-direction: column;
+        /* Ensure footer stays at bottom */
+        padding-bottom: 0;
+        /* Adjust height to account for bottom nav if necessary, or just rely on z-index */
+        height: 100vh;
+        height: 100dvh;
     }
 
     .email-sidebar.open {
@@ -585,24 +628,44 @@
 
     /* Sidebar Header - Enhanced for mobile */
     .email-sidebar .email-sidebar-header {
-        padding: 20px 16px;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border-radius: 0 20px 0 0;
+        padding: 16px;
+        background: white;
+        border-bottom: 1px solid #f1f3f4;
+        border-radius: 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
     }
 
     .email-sidebar .email-sidebar-header h2 {
-        color: white;
+        color: #202124;
         font-size: 16px;
+        font-weight: 600;
+        margin: 0;
+    }
+
+    .email-sidebar .header-actions {
+        display: flex;
+        gap: 8px;
     }
 
     .email-sidebar .header-actions .icon-btn {
-        color: white;
-        background: rgba(255, 255, 255, 0.2);
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: #f1f3f4;
+        color: #5f6368;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        cursor: pointer;
+        font-size: 14px;
     }
 
     .email-sidebar .header-actions .icon-btn:hover {
-        background: rgba(255, 255, 255, 0.3);
+        background: #e0e0e0;
+        color: #202124;
     }
 
     /* Close button in sidebar */
@@ -621,6 +684,8 @@
         padding: 12px 16px;
         flex: 1;
         overflow-y: auto;
+        padding-bottom: 100px;
+        /* Ensure space for scrolling past bottom nav */
     }
 
     .email-sidebar .nav-item {
@@ -749,15 +814,115 @@
     }
 
     /* Compose - Full screen on mobile */
+    /* Compose - Full screen on mobile */
     .email-compose-overlay {
         position: fixed;
         top: 0;
         left: 0;
         right: 0;
-        bottom: 60px;
+        bottom: 0;
         width: 100%;
+        height: 100dvh;
         border-radius: 0;
-        z-index: 1100;
+        z-index: 10001 !important;
+        /* Above sidebar (9999) */
+        background: white;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .compose-modal {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+
+    .compose-header {
+        border-radius: 0;
+        padding: 16px;
+        background: white;
+        border-bottom: 1px solid #f1f3f4;
+        color: #202124;
+    }
+
+    .compose-header h3 {
+        font-size: 18px;
+        font-weight: 500;
+        color: #202124;
+    }
+
+    /* Handle Header Actions */
+    .desktop-actions {
+        display: none;
+        /* Hide Minimize/Expand on mobile */
+    }
+
+    .mobile-send-btn {
+        display: flex !important;
+        background: #1a73e8 !important;
+        color: white !important;
+        width: 36px !important;
+        height: 36px !important;
+        border-radius: 50%;
+        align-items: center;
+        justify-content: center;
+        margin-right: 8px;
+    }
+
+    .mobile-send-btn svg {
+        font-size: 14px;
+        margin-left: -2px;
+        /* Visual center adjustment */
+    }
+
+    /* Hide footer send button on mobile since it's in header */
+    .compose-footer .footer-left {
+        display: none;
+    }
+
+    .compose-footer {
+        justify-content: flex-end;
+        /* Align trash icon to right */
+    }
+
+    .compose-form {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        padding: 0;
+    }
+
+    .form-field {
+        padding: 12px 16px;
+    }
+
+    .form-field input {
+        font-size: 16px;
+        /* Prevent zooming */
+        padding: 8px 0;
+    }
+
+    .form-body {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        padding: 16px;
+    }
+
+    .form-body textarea {
+        flex: 1;
+        font-size: 16px;
+        line-height: 1.5;
+        padding: 0;
+    }
+
+    .compose-footer {
+        padding: 12px 16px;
+        background: white;
+        border-top: 1px solid #f1f3f4;
+        /* Ensure it's above keyboard on some devices, or just stays at bottom */
+        padding-bottom: calc(12px + env(safe-area-inset-bottom));
     }
 
     /* Email List Header - Add menu button */
@@ -800,38 +965,55 @@
         padding: 12px 16px;
     }
 
-    /* Pagination */
-    .pagination-container {
+    .email-sidebar .sidebar-footer {
+        padding: 16px;
+        /* Add huge padding to clear the floating bottom nav (approx 80px) in case z-index fails or for aesthetics */
+        padding-bottom: calc(90px + env(safe-area-inset-bottom));
+        border-top: 1px solid rgba(0, 0, 0, 0.05);
+        background: #f9fafb;
+        margin-top: auto;
+    }
+
+    .disconnect-btn-sidebar {
         padding: 12px;
-    }
-
-    /* Labels section */
-    .labels-section h3 {
-        font-size: 11px;
-    }
-
-    /* Back button visible on mobile */
-    .back-btn {
-        display: block;
-    }
-
-    /* Menu button for sidebar toggle */
-    .menu-btn {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: transparent;
+        background: #fee2e2;
+        color: #ef4444;
         border: none;
-        color: #6b7280;
-        font-size: 20px;
-        padding: 8px;
-        cursor: pointer;
-        border-radius: 8px;
+        font-weight: 600;
     }
+}
 
-    .menu-btn:hover {
-        background: #f3f4f6;
-    }
+/* Pagination */
+.pagination-container {
+    padding: 12px;
+}
+
+/* Labels section */
+.labels-section h3 {
+    font-size: 11px;
+}
+
+/* Back button visible on mobile */
+.back-btn {
+    display: block;
+}
+
+/* Menu button for sidebar toggle */
+.menu-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    color: #6b7280;
+    font-size: 20px;
+    padding: 8px;
+    cursor: pointer;
+    border-radius: 8px;
+}
+
+.menu-btn:hover {
+    background: #f3f4f6;
 }
 
 /* Hide menu button on desktop */

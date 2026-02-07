@@ -1,7 +1,29 @@
-import { FaWhatsapp, FaEnvelope, FaMicrophone, FaBrain, FaTachometerAlt, FaCog, FaSignOutAlt, FaChevronLeft, FaChevronRight, FaTable } from 'react-icons/fa';
+import { useState, useEffect } from 'react';
+import { FaWhatsapp, FaEnvelope, FaMicrophone, FaBrain, FaTachometerAlt, FaCog, FaSignOutAlt, FaChevronLeft, FaChevronRight, FaTable, FaDatabase, FaCoins } from 'react-icons/fa';
+import api from '../utils/apiClient';
 import './Sidebar.css';
 
 function Sidebar({ activeView, onViewChange, onLogout, isCollapsed, setIsCollapsed }) {
+    const [credits, setCredits] = useState(null);
+
+    useEffect(() => {
+        // Fetch credits on mount and periodically
+        fetchCredits();
+        const interval = setInterval(fetchCredits, 30000); // 30s poll
+        return () => clearInterval(interval);
+    }, []);
+
+    const fetchCredits = async () => {
+        try {
+            const res = await api.get('/api/auth/me');
+            if (res.success && res.data) {
+                setCredits(res.data.credits || 0);
+            }
+        } catch (e) {
+            console.error("Failed to fetch credits", e);
+        }
+    };
+
     const navItems = [
         { id: 'dashboard', icon: FaTachometerAlt, label: 'Dashboard' },
         { id: 'whatsapp', icon: FaWhatsapp, label: 'WhatsApp' },
@@ -9,12 +31,14 @@ function Sidebar({ activeView, onViewChange, onLogout, isCollapsed, setIsCollaps
         { id: 'sheets', icon: FaTable, label: 'Sheets' },
         { id: 'voiceagent', icon: FaMicrophone, label: 'Voice Agent' },
         { id: 'aiconfig', icon: FaBrain, label: 'AI Config' },
+        { id: 'infrastructure', icon: FaDatabase, label: 'Infrastructure' },
     ];
 
     return (
         <div className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
             <div className="sidebar-header">
                 <div className="logo">
+                    {/* Keep existing logo SVG */}
                     <div className="logo-icon">
                         <svg width="48" height="48" viewBox="0 0 60 60" fill="none">
                             <rect width="60" height="60" rx="14" fill="url(#gradient)" />
@@ -61,6 +85,13 @@ function Sidebar({ activeView, onViewChange, onLogout, isCollapsed, setIsCollaps
             </nav>
 
             <div className="sidebar-footer">
+                {!isCollapsed && credits !== null && (
+                    <div className="credits-display" title="AI Credits Remaining">
+                        <FaCoins className="credits-icon" />
+                        <span>{credits} Credits</span>
+                    </div>
+                )}
+
                 <button className="nav-item settings">
                     <FaCog className="nav-icon" />
                     {!isCollapsed && <span className="nav-label">Settings</span>}
@@ -74,4 +105,6 @@ function Sidebar({ activeView, onViewChange, onLogout, isCollapsed, setIsCollaps
     );
 }
 
+
 export default Sidebar;
+

@@ -167,6 +167,15 @@ const generateClaudeResponse = async (apiKey, model, messages, maxTokens) => {
 
 export const generateAIResponse = async (userId, chatJid, userMessage) => {
     try {
+        // 1. Check Credits
+        const user = await User.findById(userId).select('credits');
+        if (!user || user.credits <= 0) {
+            console.warn(`[AI Service] User ${userId} has insufficient credits: ${user?.credits}`);
+            // Optional: Send a specific message like "Credit limit reached. Please upgrade."
+            // But we shouldn't reply to the customer with that.
+            return null;
+        }
+
         const config = await getUserAIConfig(userId);
         if (!config.apiKey) {
             console.warn('[AI Service] No API Key found for provider:', config.provider);
@@ -193,6 +202,7 @@ export const generateAIResponse = async (userId, chatJid, userMessage) => {
 
         // Logic to prevent using OpenAI model names for other providers
         let model = config.model;
+        let responseText = null;
 
         switch (config.provider) {
             case 'gemini':
@@ -200,15 +210,17 @@ export const generateAIResponse = async (userId, chatJid, userMessage) => {
                 if (!model || model.includes('gpt')) {
                     model = 'gemini-2.5-flash';
                 }
-                return await generateGeminiResponse(config.apiKey, model, messages, config.maxTokens);
+                responseText = await generateGeminiResponse(config.apiKey, model, messages, config.maxTokens);
+                break;
             case 'anthropic':
                 if (!model || model.includes('gpt')) {
                     model = 'claude-3-haiku-20240307';
                 }
-                return await generateClaudeResponse(config.apiKey, model, messages, config.maxTokens);
+                responseText = await generateClaudeResponse(config.apiKey, model, messages, config.maxTokens);
+                break;
             case 'openrouter':
                 // OpenRouter might use gpt, so we trust config or default
-                return await generateOpenAIResponse(
+                responseText = await generateOpenAIResponse(
                     config.apiKey,
                     model || 'openai/gpt-3.5-turbo',
                     messages,
@@ -219,16 +231,27 @@ export const generateAIResponse = async (userId, chatJid, userMessage) => {
                         "X-Title": "WhatsApp CRM"
                     }
                 );
+                break;
             case 'openai':
             default:
-                return await generateOpenAIResponse(config.apiKey, model || 'gpt-3.5-turbo', messages, config.maxTokens);
+                responseText = await generateOpenAIResponse(config.apiKey, model || 'gpt-3.5-turbo', messages, config.maxTokens);
+                break;
         }
+
+        // 2. Deduct Credit if successful
+        if (responseText) {
+            await User.findByIdAndUpdate(userId, { $inc: { credits: -1 } });
+            // console.log(`[AI Service] Deducted 1 credit for user ${userId}.`);
+        }
+
+        return responseText;
 
     } catch (error) {
         console.error('Error in AI generation:', error);
         return null;
     }
 };
+
 
 // Simplified versions for other functions (Sentiment, Summary) utilizing the reusable main generation or defaulting to OpenAI for simplicity if others are complex to adapt for small tasks
 // For robust implementation, we should adapt these too.

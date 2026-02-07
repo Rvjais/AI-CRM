@@ -139,6 +139,24 @@ function EmailView({ token }) {
     };
 
 
+    const handleDisconnect = async () => {
+        if (!window.confirm('Are you sure you want to disconnect your Gmail account?')) return;
+
+        setLoading(true);
+        try {
+            const data = await api.post('/api/auth/google/disconnect');
+            if (data.success) {
+                setIsConnected(false);
+                setUserProfile(null);
+                setThreads([]);
+            }
+        } catch (error) {
+            console.error('Error disconnecting Gmail:', error);
+            alert('Failed to disconnect Gmail.');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     if (loading) {
         return (
@@ -184,6 +202,7 @@ function EmailView({ token }) {
             onSearch={handleSearch}
             activeLabel={activeLabel}
             onLabelSelect={handleLabelChange}
+            onDisconnect={handleDisconnect}
         />
     );
 }

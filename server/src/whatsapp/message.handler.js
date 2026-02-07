@@ -4,10 +4,11 @@ import { saveMessage } from '../services/message.service.js';
 import { uploadToCloudinary } from '../services/cloudinary.service.js';
 import { uploadToMongo } from '../services/mongo.service.js';
 import logger from '../utils/logger.util.js';
+import { getClientModels } from '../utils/database.factory.js';
 
 /**
  * Message handler
- * Processes incoming WhatsApp messages
+ * Process incoming WhatsApp messages
  */
 
 /**
@@ -16,9 +17,6 @@ import logger from '../utils/logger.util.js';
  * @param {Object} msg - Baileys message object
  * @param {Object} io - Socket.io instance
  */
-import Contact from '../models/Contact.js';
-import Chat from '../models/Chat.js';
-import User from '../models/User.js';
 import { generateAIResponse, analyzeMessage } from '../services/ai.service.js';
 
 /**
@@ -30,6 +28,9 @@ import { generateAIResponse, analyzeMessage } from '../services/ai.service.js';
  */
 export const handleIncomingMessage = async (userId, msg, io, sendResponse) => {
     try {
+        // Fetch dynamic models for this user's database
+        const { Contact, Chat, Message } = await getClientModels(userId);
+
         console.log(`📩 [handleIncomingMessage] User ${userId}: Processing message`, {
             messageId: msg.key.id,
             from: msg.key.remoteJid,
@@ -68,7 +69,6 @@ export const handleIncomingMessage = async (userId, msg, io, sendResponse) => {
 
             // Find and update the original message
             // We use findOneAndUpdate to push the reaction
-            const Message = (await import('../models/Message.js')).default;
 
             // Normalize sender JID
             const reactorJid = jidNormalizedUser(msg.key.remoteJid || msg.key.participant);
@@ -175,7 +175,7 @@ export const handleIncomingMessage = async (userId, msg, io, sendResponse) => {
                 updateOps.$setOnInsert.name = phoneNumber;
             }
 
-            // Update Contact
+            // Update Contact using dynamic model
             await Contact.findOneAndUpdate(
                 { userId, jid: chatJid },
                 updateOps,
@@ -210,8 +210,7 @@ export const handleIncomingMessage = async (userId, msg, io, sendResponse) => {
             const quotedStanzaId = contextInfo.stanzaId;
 
             if (quotedStanzaId) {
-                // Dynamically import Message model if not already available in scope
-                const Message = (await import('../models/Message.js')).default;
+                // Determine Original Message using dynamic Message model
                 const originalMsg = await Message.findOne({ messageId: quotedStanzaId, userId });
 
                 if (originalMsg) {
@@ -225,7 +224,8 @@ export const handleIncomingMessage = async (userId, msg, io, sendResponse) => {
             messageData.mentions = msg.message[messageType].contextInfo.mentionedJid;
         }
 
-        // Save message to database
+        // Save message to database (Service handles dynamic save if updated)
+        // Wait, saveMessage service also needs to be dynamic. We updated it.
         const savedMessage = await saveMessage(messageData);
 
         console.log(`✅ [handleIncomingMessage] User ${userId}: Message saved successfully:`, savedMessage._id);
@@ -234,13 +234,6 @@ export const handleIncomingMessage = async (userId, msg, io, sendResponse) => {
         io.to(userId.toString()).emit('message:new', { message: savedMessage });
 
         logger.info(`Message processed for user ${userId}: ${msg.key.id}`);
-
-        // --- Sentiment Analysis & Chat Update ---
-        // DEFERRED: User requested 30-min scheduled batch processing instead of real-time.
-        // See cron job implementation.
-
-        // We still emit the message to UI above, which is enough for real-time chat.
-
 
         // --- AI Auto-Response Logic ---
         if (!fromMe && content.text && sendResponse) {
@@ -288,6 +281,7 @@ export const handleIncomingMessage = async (userId, msg, io, sendResponse) => {
         logger.error('Error handling incoming message:', error);
     }
 };
+
 
 /**
  * Extract message content based on type

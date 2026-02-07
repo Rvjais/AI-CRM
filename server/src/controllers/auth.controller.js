@@ -198,3 +198,35 @@ export const googleCallbackGet = asyncHandler(async (req, res) => {
     const frontendUrl = process.env.FRONTEND_URL || 'https://ai-crm-vert.vercel.app';
     return res.redirect(`${frontendUrl}?gmailConnected=true`);
 });
+/**
+ * Disconnect Google Account
+ * POST /api/auth/google/disconnect
+ */
+export const disconnectGoogle = asyncHandler(async (req, res) => {
+    const userId = req.userId;
+
+    const User = (await import('../models/User.js')).default;
+    const user = await User.findById(userId);
+
+    if (!user) {
+        throw new Error('User not found');
+    }
+
+    // Optional: Revoke token with Google
+    // const { oauth2Client } = await import('../config/google.config.js');
+    // if (user.gmailAccessToken) {
+    //     await oauth2Client.revokeToken(user.gmailAccessToken).catch(err => console.error('Token revocation failed:', err));
+    // }
+
+    // Clear Google data
+    user.gmailAccessToken = undefined;
+    user.gmailRefreshToken = undefined;
+    user.gmailTokenExpiry = undefined;
+    user.gmailConnected = false;
+    user.googleId = undefined;
+    user.googleEmail = undefined;
+
+    await user.save();
+
+    return successResponse(res, 200, 'Gmail disconnected successfully');
+});

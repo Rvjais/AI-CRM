@@ -7,10 +7,11 @@ import {
     FaTag,
     FaPlus,
     FaExclamationCircle,
-    FaTimes
+    FaTimes,
+    FaSignOutAlt
 } from 'react-icons/fa';
 
-function EmailSidebar({ labels, activeLabel, onLabelSelect, onComposeClick, isOpen, onClose }) {
+function EmailSidebar({ labels, activeLabel, onLabelSelect, onComposeClick, isOpen, onClose, onDisconnect }) {
     // Standard Gmail system labels
     const systemLabels = [
         { id: 'INBOX', name: 'Inbox', icon: <FaInbox /> },
@@ -29,9 +30,6 @@ function EmailSidebar({ labels, activeLabel, onLabelSelect, onComposeClick, isOp
             <div className="email-sidebar-header">
                 <h2>EMAIL BOXES</h2>
                 <div className="header-actions">
-                    <button className="icon-btn" onClick={onComposeClick} title="New Message">
-                        <FaPlus />
-                    </button>
                     <button className="icon-btn close-sidebar-btn" onClick={onClose} title="Close">
                         <FaTimes />
                     </button>
@@ -73,6 +71,12 @@ function EmailSidebar({ labels, activeLabel, onLabelSelect, onComposeClick, isOp
                         ))}
                     </div>
                 )}
+
+                <div className="nav-group logout-group" style={{ marginTop: 'auto', paddingTop: '16px' }}>
+                    <button className="disconnect-btn-sidebar" onClick={onDisconnect} style={{ width: '100%', justifyContent: 'flex-start', padding: '12px 16px', gap: '12px' }}>
+                        <FaSignOutAlt /> Disconnect Gmail
+                    </button>
+                </div>
             </nav>
         </div>
     );

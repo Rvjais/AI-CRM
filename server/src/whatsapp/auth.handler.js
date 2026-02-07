@@ -1,7 +1,7 @@
 import { proto, initAuthCreds } from '@whiskeysockets/baileys';
-import WhatsAppSession from '../models/WhatsAppSession.js';
 import { encryptObject, decryptObject } from '../utils/encryption.util.js';
 import logger from '../utils/logger.util.js';
+import { getClientModels } from '../utils/database.factory.js';
 
 /**
  * Auth state handler
@@ -16,9 +16,13 @@ import logger from '../utils/logger.util.js';
 export const loadAuthState = async (userId) => {
     let creds;
     let keys = {};
+    let WhatsAppSession;
 
     try {
         // Load session from database
+        const models = await getClientModels(userId);
+        WhatsAppSession = models.WhatsAppSession;
+
         const session = await WhatsAppSession.findOne({ userId }).select('+sessionData');
 
         if (session && session.sessionData) {
@@ -43,6 +47,13 @@ export const loadAuthState = async (userId) => {
      */
     const saveCreds = async () => {
         try {
+            if (!WhatsAppSession) {
+                // Try to get model again if it wasn't available during load
+                // (e.g. if DB connection failed earlier but is now fine? Unlikely but safe)
+                const models = await getClientModels(userId);
+                WhatsAppSession = models.WhatsAppSession;
+            }
+
             const sessionData = {
                 creds,
                 keys,
@@ -108,6 +119,8 @@ export const loadAuthState = async (userId) => {
  */
 export const clearAuthState = async (userId) => {
     try {
+        const { WhatsAppSession } = await getClientModels(userId);
+
         await WhatsAppSession.findOneAndUpdate(
             { userId },
             { sessionData: null, qrCode: null, pairingCode: null }
@@ -117,3 +130,4 @@ export const clearAuthState = async (userId) => {
         logger.error(`Error clearing auth state for user ${userId}:`, error);
     }
 };
+

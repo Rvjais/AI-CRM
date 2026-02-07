@@ -116,7 +116,11 @@ process.on('uncaughtException', (error) => {
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (reason, promise) => {
-    logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+    logger.error(`Unhandled Rejection: ${reason instanceof Error ? reason.message : reason}`);
+    if (reason instanceof Error) {
+        logger.error(reason.stack);
+    }
     gracefulShutdown('UNHANDLED_REJECTION');
 });
 

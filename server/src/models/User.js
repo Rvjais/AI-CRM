@@ -125,6 +125,28 @@ const userSchema = new mongoose.Schema(
             }],
             lastSync: { type: Date }
         },
+        // Billing & Credits
+        credits: {
+            type: Number,
+            default: 0,
+        },
+        pabblySubscriptionId: {
+            type: String
+        },
+        // User-Provided Infrastructure
+        mongoURI: {
+            type: String,
+            select: false // Encrypted/Hidden by default
+        },
+        cloudinaryConfig: {
+            cloudName: { type: String },
+            apiKey: { type: String },
+            apiSecret: { type: String, select: false } // Encrypted/Hidden
+        },
+        infrastructureReady: {
+            type: Boolean,
+            default: false
+        }
     },
     {
         timestamps: true,

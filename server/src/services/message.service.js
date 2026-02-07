@@ -1,7 +1,6 @@
-import Message from '../models/Message.js';
-import Chat from '../models/Chat.js';
-import { MESSAGE_STATUS, PAGINATION } from '../config/constants.js';
+import { MESSAGE_STATUS } from '../config/constants.js';
 import logger from '../utils/logger.util.js';
+import { getClientModels } from '../utils/database.factory.js';
 
 /**
  * Message service
@@ -15,6 +14,8 @@ import logger from '../utils/logger.util.js';
  */
 export const saveMessage = async (messageData) => {
     try {
+        const { Message, Chat } = await getClientModels(messageData.userId);
+
         // Use findOneAndUpdate with upsert to prevent duplicate key errors
         const message = await Message.findOneAndUpdate(
             { messageId: messageData.messageId, userId: messageData.userId },
@@ -50,13 +51,13 @@ export const saveMessage = async (messageData) => {
  */
 export const getChatMessages = async (userId, chatJid, page = 1, limit = 50) => {
     try {
+        const { Message } = await getClientModels(userId);
         const skip = (page - 1) * limit;
 
         const [messages, total] = await Promise.all([
             Message.find({ userId, chatJid, isDeleted: false })
                 .sort({ timestamp: -1 })
                 .skip(skip)
-                .limit(limit)
                 .limit(limit)
                 .populate('quotedMessage', 'content type senderName senderPn participant messageId') // Populate sender info too
                 .lean(),
@@ -86,9 +87,11 @@ export const getChatMessages = async (userId, chatJid, page = 1, limit = 50) => 
  */
 export const getUserChats = async (userId, includeArchived = false) => {
     try {
+        const { Message, Chat, Contact } = await getClientModels(userId);
+
         // Get all unique chat JIDs from messages
         const chatJids = await Message.distinct('chatJid', { userId });
-        logger.info(`getUserChats: Found ${chatJids.length} unique chatJids for user ${userId}: ${JSON.stringify(chatJids)}`);
+        // logger.info(`getUserChats: Found ${chatJids.length} unique chatJids for user ${userId}`);
 
         // Get chat details and last message for each
         const chats = await Promise.all(
@@ -105,7 +108,7 @@ export const getUserChats = async (userId, includeArchived = false) => {
                         status: { $ne: MESSAGE_STATUS.READ },
                         isDeleted: false
                     }),
-                    (await import('../models/Contact.js')).default.findOne({ userId, jid: chatJid }).lean()
+                    Contact.findOne({ userId, jid: chatJid }).lean()
                 ]);
 
                 if (!includeArchived && chatInfo?.isArchived) {
@@ -179,6 +182,7 @@ export const getUserChats = async (userId, includeArchived = false) => {
  */
 export const updateMessageStatus = async (messageId, userId, status) => {
     try {
+        const { Message } = await getClientModels(userId);
         const message = await Message.findOneAndUpdate(
             { messageId, userId },
             { status },
@@ -204,6 +208,7 @@ export const updateMessageStatus = async (messageId, userId, status) => {
  */
 export const deleteMessage = async (messageId, userId) => {
     try {
+        const { Message } = await getClientModels(userId);
         const message = await Message.findOneAndUpdate(
             { _id: messageId, userId },
             { isDeleted: true },
@@ -230,6 +235,7 @@ export const deleteMessage = async (messageId, userId) => {
  */
 export const editMessage = async (messageId, userId, newText) => {
     try {
+        const { Message } = await getClientModels(userId);
         const message = await Message.findOneAndUpdate(
             { _id: messageId, userId, fromMe: true, type: 'text' },
             { 'content.text': newText },
@@ -257,6 +263,7 @@ export const editMessage = async (messageId, userId, newText) => {
  */
 export const addReaction = async (messageId, userId, emoji, fromJid) => {
     try {
+        const { Message } = await getClientModels(userId);
         const message = await Message.findOneAndUpdate(
             { _id: messageId, userId },
             {
@@ -289,6 +296,7 @@ export const addReaction = async (messageId, userId, emoji, fromJid) => {
  */
 export const markMessagesAsRead = async (userId, chatJid) => {
     try {
+        const { Message, Chat } = await getClientModels(userId);
         await Message.updateMany(
             { userId, chatJid, fromMe: false, status: { $ne: MESSAGE_STATUS.READ } },
             { status: MESSAGE_STATUS.READ }
@@ -314,6 +322,7 @@ export const markMessagesAsRead = async (userId, chatJid) => {
  */
 export const getUnreadCount = async (userId) => {
     try {
+        const { Message } = await getClientModels(userId);
         return await Message.countDocuments({
             userId,
             fromMe: false,
