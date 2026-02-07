@@ -125,8 +125,17 @@ export const handleIncomingMessage = async (userId, msg, io, sendResponse) => {
         }
 
         // Determine chat JID - Normalize to avoid duplicates (LID vs Phone)
-        const chatJid = jidNormalizedUser(msg.key.remoteJid);
+        let chatJid = jidNormalizedUser(msg.key.remoteJid);
         const fromMe = msg.key.fromMe;
+
+        // NEW: If message is from a LID/Privacy Number, try to resolve to real phone JID
+        // This prevents duplicate chats (one for LID, one for Phone)
+        if (msg.key.senderPn) {
+            const phoneNumber = msg.key.senderPn.split('@')[0];
+            const phoneJid = `${phoneNumber}@s.whatsapp.net`;
+            console.log(`🔄 [handleIncomingMessage] Normalizing LID ${chatJid} -> Phone JID ${phoneJid}`);
+            chatJid = phoneJid;
+        }
 
         // Extract message content (now needs userId for media upload)
         const content = await extractMessageContent(msg, messageType, userId);
@@ -135,7 +144,7 @@ export const handleIncomingMessage = async (userId, msg, io, sendResponse) => {
         const messageData = {
             userId,
             messageId: msg.key.id,
-            chatJid,
+            chatJid, // Now consistently uses phone JID if available
             fromMe,
             type: mapMessageType(messageType),
             content,

@@ -259,14 +259,17 @@ function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat, 
                 )}
                 <div className="header-info">
                     <div className="avatar-large">
-                        {(selectedChat.name || selectedChat.phone || 'U')[0].toUpperCase()}
+                        {(selectedChat.contactName || selectedChat.name || selectedChat.phoneNumber || selectedChat.phone || 'U')[0].toUpperCase()}
                     </div>
                     <div className="user-details">
                         <h3 className="user-name">
-                            {selectedChat.name || selectedChat.phone || 'Unknown Contact'}
+                            {selectedChat.contactName || selectedChat.name || selectedChat.phoneNumber || selectedChat.phone || 'Unknown Contact'}
                         </h3>
+                        {/* Only show phone if it's different from the name being displayed */}
                         <p className="user-status">
-                            {selectedChat.phone !== selectedChat.name ? selectedChat.phone : ''}
+                            {(selectedChat.phoneNumber || selectedChat.phone) !== (selectedChat.contactName || selectedChat.name)
+                                ? (selectedChat.phoneNumber || selectedChat.phone)
+                                : ''}
                         </p>
                     </div>
                 </div>

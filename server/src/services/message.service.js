@@ -17,9 +17,21 @@ export const saveMessage = async (messageData) => {
         const { Message, Chat } = await getClientModels(messageData.userId);
 
         // Use findOneAndUpdate with upsert to prevent duplicate key errors
+        // Ensure chatJid is consistent if this is a LID but we have a phone number
+        let finalChatJid = messageData.chatJid;
+        if (messageData.senderPn && finalChatJid.length > 15 && !finalChatJid.includes('@g.us')) {
+            // Basic heuristic: if we have a senderPn and the JID looks like a LID (long ID) and not a group
+            // We normalize to phone number JID
+            const phoneJid = `${messageData.senderPn}@s.whatsapp.net`;
+            if (finalChatJid !== phoneJid) {
+                logger.info(`[saveMessage] Normalizing LID ${finalChatJid} -> ${phoneJid}`);
+                finalChatJid = phoneJid;
+            }
+        }
+
         const message = await Message.findOneAndUpdate(
             { messageId: messageData.messageId, userId: messageData.userId },
-            messageData,
+            { ...messageData, chatJid: finalChatJid },
             { upsert: true, new: true, setDefaultsOnInsert: true }
         );
 
@@ -93,6 +105,18 @@ export const getUserChats = async (userId, includeArchived = false) => {
         const chatJids = await Message.distinct('chatJid', { userId });
         // logger.info(`getUserChats: Found ${chatJids.length} unique chatJids for user ${userId}`);
 
+        // OPTIMIZATION: Fetch ALL contacts for this user to resolve names efficiently
+        // This helps when the 'Phone' contact has no name, but a 'LID' contact for the same phone DOES.
+        const allContacts = await Contact.find({ userId }).lean();
+        const phoneToNameMap = {};
+
+        allContacts.forEach(c => {
+            if (c.phoneNumber && c.name && c.name !== c.phoneNumber) {
+                // Priority to names that are NOT just the phone number
+                phoneToNameMap[c.phoneNumber] = c.name;
+            }
+        });
+
         // Get chat details and last message for each
         const chats = await Promise.all(
             chatJids.map(async (chatJid) => {
@@ -108,26 +132,27 @@ export const getUserChats = async (userId, includeArchived = false) => {
                         status: { $ne: MESSAGE_STATUS.READ },
                         isDeleted: false
                     }),
-                    Contact.findOne({ userId, jid: chatJid }).lean()
+                    // We already fetched all contacts, but finding specific one here is still okay for direct match
+                    // But we can just use our map mostly. 
+                    // Let's keep specific find for direct JID match in case it has specific metadata? 
+                    // Actually, let's just find from our in-memory array to save DB calls.
+                    Promise.resolve(allContacts.find(c => c.jid === chatJid))
                 ]);
 
                 if (!includeArchived && chatInfo?.isArchived) {
                     return null;
                 }
 
-                // NEW LOGIC: Prioritize details from Contact model, then incoming message, then Chat model
+                // Initial resolution
                 let contactName = contactInfo?.name || chatInfo?.contactName;
                 let phoneNumber = contactInfo?.phoneNumber || chatInfo?.phoneNumber;
 
                 // Try to find the last incoming message to grab details from
-                // We optimize by only doing this if we want to ensure accuracy or data is missing.
                 let lastIncomingMsg = null;
 
-                // If the last message in general is incoming, use it
                 if (lastMessage && !lastMessage.fromMe) {
                     lastIncomingMsg = lastMessage;
                 } else if (!contactName) {
-                    // Only scan back if we don't have a contact name yet
                     lastIncomingMsg = await Message.findOne({
                         userId,
                         chatJid,
@@ -137,11 +162,30 @@ export const getUserChats = async (userId, includeArchived = false) => {
                 }
 
                 if (lastIncomingMsg) {
-                    if (lastIncomingMsg.senderName) {
+                    if (lastIncomingMsg.senderName && !contactName) {
+                        // Only use senderName if we don't have a better contact name
                         contactName = lastIncomingMsg.senderName;
                     }
-                    if (lastIncomingMsg.senderPn) {
+                    if (lastIncomingMsg.senderPn && !phoneNumber) {
                         phoneNumber = lastIncomingMsg.senderPn;
+                    }
+                }
+
+                // FINAL FALLBACK: Check our map
+                // If we have a phone number but no name (or name is same as phone), look for ANY contact with this phone
+                // containing a real name (e.g. from LID)
+                if (phoneNumber && (!contactName || contactName === phoneNumber)) {
+                    if (phoneToNameMap[phoneNumber]) {
+                        contactName = phoneToNameMap[phoneNumber];
+                    }
+                }
+
+                // If we still don't have a phone number but the JID itself is a phone JID
+                if (!phoneNumber && chatJid.includes('@s.whatsapp.net')) {
+                    phoneNumber = chatJid.split('@')[0];
+                    // Try map again
+                    if ((!contactName || contactName === phoneNumber) && phoneToNameMap[phoneNumber]) {
+                        contactName = phoneToNameMap[phoneNumber];
                     }
                 }
 

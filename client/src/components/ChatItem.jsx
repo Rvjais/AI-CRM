@@ -6,13 +6,13 @@ function ChatItem({ chat, isSelected, onClick }) {
             return <img src={chat.profilePicture} alt={chat.name} />;
         }
 
-        const initial = (chat.name || chat.phone || '?')[0].toUpperCase();
+        const initial = (chat.contactName || chat.name || chat.phoneNumber || chat.phone || '?')[0].toUpperCase();
         return <div className="avatar-placeholder">{initial}</div>;
     };
 
     const getLastMessageTime = () => {
         if (!chat.lastMessageTime) return '';
-
+        // ... (rest of function unchanged, just context)
         const date = new Date(chat.lastMessageTime);
         const now = new Date();
         const diff = now - date;
@@ -36,7 +36,7 @@ function ChatItem({ chat, isSelected, onClick }) {
             <div className="chat-info">
                 <div className="chat-header-row">
                     <div className="name-with-sentiment">
-                        <h4 className="chat-name">{chat.name || chat.phone}</h4>
+                        <h4 className="chat-name">{chat.contactName || chat.name || chat.phoneNumber || chat.phone}</h4>
                         {chat.sentiment && (
                             <span
                                 className={`sentiment-dot ${chat.sentiment}`}

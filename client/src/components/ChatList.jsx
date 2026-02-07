@@ -8,12 +8,15 @@ function ChatList({ chats, selectedChat, onSelectChat, aiEnabled, onToggleAI, on
     const [searchQuery, setSearchQuery] = useState('');
 
     const filteredChats = chats.filter(chat => {
-        const matchesSearch = chat.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            chat.phone?.includes(searchQuery);
+        const name = chat.contactName || chat.name || '';
+        const phone = chat.phoneNumber || chat.phone || '';
+
+        const matchesSearch = name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            phone.includes(searchQuery);
 
         const matchesAI = !aiEnabled || chat.aiEnabled;
 
-        const isBroadcast = chat.jid.includes('@broadcast');
+        const isBroadcast = (chat.chatJid || chat.jid || '').includes('@broadcast');
 
         if (activeTab === 'GROUP') {
             return matchesSearch && matchesAI && (chat.isGroup || isBroadcast);

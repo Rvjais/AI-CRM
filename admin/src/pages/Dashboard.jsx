@@ -79,12 +79,17 @@ const Dashboard = () => {
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col">
             {/* Header */}
-            <header className="bg-white shadow px-6 py-4 flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                    <Activity className="text-blue-600" />
-                    <h1 className="text-xl font-bold text-gray-800">RainCRM Admin</h1>
+            <header className="bg-white shadow px-4 py-3 md:px-6 md:py-4 flex flex-col md:flex-row justify-between items-center gap-3 md:gap-0 sticky top-0 z-10">
+                <div className="flex items-center gap-2 w-full md:w-auto justify-between md:justify-start">
+                    <div className="flex items-center gap-2">
+                        <Activity className="text-blue-600" />
+                        <h1 className="text-lg md:text-xl font-bold text-gray-800">RainCRM Admin</h1>
+                    </div>
+                    {/* Mobile Logout Button shown in header row on small screens? Or keep standard layout? 
+                        Let's keep the user block separate but accessible. */}
                 </div>
-                <div className="flex items-center gap-4">
+
+                <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end border-t md:border-t-0 pt-2 md:pt-0 mt-1 md:mt-0">
                     <span className="text-sm text-gray-600">Welcome, Admin</span>
                     <button onClick={logout} className="p-2 hover:bg-gray-100 rounded-full text-red-500" title="Logout">
                         <LogOut size={20} />
@@ -92,9 +97,9 @@ const Dashboard = () => {
                 </div>
             </header>
 
-            <main className="flex-1 p-6 max-w-7xl w-full mx-auto relative">
+            <main className="flex-1 p-4 md:p-6 max-w-7xl w-full mx-auto relative">
                 {/* Stats Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
                     <StatCard icon={<Users />} title="Total Clients" value={stats.totalUsers} color="blue" />
                     <StatCard icon={<CheckCircle />} title="Active Clients" value={stats.activeUsers} color="green" />
                     <StatCard icon={<Activity />} title="Active WhatsApp" value={stats.connectedSessions} color="purple" />
@@ -103,37 +108,39 @@ const Dashboard = () => {
 
                 {/* Users Table */}
                 <div className="bg-white rounded-lg shadow overflow-hidden">
-                    <div className="px-6 py-4 border-b">
+                    <div className="px-4 py-3 md:px-6 md:py-4 border-b flex justify-between items-center">
                         <h2 className="text-lg font-semibold text-gray-800">Client Management</h2>
                     </div>
                     <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-gray-50">
                                 <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Credits</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">WhatsApp</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    <th className="px-4 py-3 md:px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                    <th className="px-4 py-3 md:px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">Email</th>
+                                    <th className="px-4 py-3 md:px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Credits</th>
+                                    <th className="px-4 py-3 md:px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">WhatsApp</th>
+                                    <th className="px-4 py-3 md:px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th className="px-4 py-3 md:px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {users.map(user => (
                                     <tr key={user._id}>
-                                        <td className="px-6 py-4 whitespace-nowrap">
+                                        <td className="px-4 py-3 md:px-6 whitespace-nowrap">
                                             <div className="font-medium text-gray-900">{user.name}</div>
+                                            {/* Show email on mobile below name */}
+                                            <div className="text-xs text-gray-500 sm:hidden">{user.email}</div>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.email}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-blue-600">
+                                        <td className="px-4 py-3 md:px-6 whitespace-nowrap text-sm text-gray-500 hidden sm:table-cell">{user.email}</td>
+                                        <td className="px-4 py-3 md:px-6 whitespace-nowrap text-sm font-semibold text-blue-600">
                                             {user.credits || 0}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
+                                        <td className="px-4 py-3 md:px-6 whitespace-nowrap hidden md:table-cell">
                                             <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${user.whatsappConnected ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
                                                 {user.whatsappConnected ? 'Connected' : 'Disconnected'}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
+                                        <td className="px-4 py-3 md:px-6 whitespace-nowrap">
                                             <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                                                 {user.isActive ? 'Active' : 'Suspended'}
                                             </span>

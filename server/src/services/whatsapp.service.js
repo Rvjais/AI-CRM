@@ -44,6 +44,9 @@ export const connectWhatsApp = async (userId, io) => {
         // Create logger
         const socketLogger = pino({ level: 'silent' }); // Set to 'debug' for detailed logs
 
+        // Import contact handler dynamically
+        const { handleContactsUpsert, handleContactsUpdate } = await import('../whatsapp/contact.handler.js');
+
         // Create socket
         const sock = makeWASocket({
             version,
@@ -143,6 +146,17 @@ export const connectWhatsApp = async (userId, io) => {
         });
 
         console.log(`✅ [WhatsApp] Event listener 'messages.upsert' attached for user ${userId}`);
+
+        // Handle contacts updates
+        sock.ev.on('contacts.upsert', async (contacts) => {
+            console.log(`👤 [contacts.upsert] Syncing ${contacts.length} contacts for user ${userId}`);
+            await handleContactsUpsert(userId, contacts);
+        });
+
+        sock.ev.on('contacts.update', async (updates) => {
+            console.log(`👤 [contacts.update] Updating ${updates.length} contacts for user ${userId}`);
+            await handleContactsUpdate(userId, updates);
+        });
 
         // Handle message updates (read, delivered, etc.)
         sock.ev.on('messages.update', async (updates) => {
