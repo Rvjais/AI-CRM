@@ -279,14 +279,17 @@ function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat, 
                     >
                         <FaArchive />
                     </button>
-                    {/* AI Toggle Button */}
-                    <button
-                        className={`ai-toggle-btn ${selectedChat.aiEnabled ? 'active' : ''}`}
-                        onClick={toggleChatAI}
-                        title={selectedChat.aiEnabled ? "Disable AI" : "Enable AI"}
-                    >
-                        {selectedChat.aiEnabled ? '✨ AI On' : '🤖 AI Off'}
-                    </button>
+                    {/* AI Toggle Switch */}
+                    <div className="ai-wrapper" onClick={toggleChatAI} title={selectedChat.aiEnabled ? "Disable AI" : "Enable AI"}>
+                        <span className={`ai-status-text ${selectedChat.aiEnabled ? 'active' : ''}`}>
+                            {selectedChat.aiEnabled ? 'AI Active' : 'AI Offline'}
+                        </span>
+                        <div className={`ai-switch ${selectedChat.aiEnabled ? 'active' : ''}`}>
+                            <div className="ai-knob">
+                                {selectedChat.aiEnabled && <span className="ai-sparkle">✨</span>}
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
