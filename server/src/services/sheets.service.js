@@ -41,14 +41,37 @@ export const syncChatToSheet = async (userId, chatJid, extractedData) => {
             return;
         }
 
-        const { columns } = user.sheetsConfig;
+        // AUTOMATICALLY ADD 'PHONE' COLUMN IF MISSING
+        let columns = user.sheetsConfig.columns || [];
+        const phoneColExists = columns.some(c => c.key.toLowerCase().includes('phone') || c.key.toLowerCase() === 'number');
+
+        if (!phoneColExists) {
+            console.log(`[Sync] 'Phone' column missing for user ${userId}. Auto-adding...`);
+
+            // Add new column definition
+            user.sheetsConfig.columns.push({
+                key: 'phone',
+                header: 'Phone Number',
+                description: 'Sender Phone Number (Auto-Added)'
+            });
+
+            // Save user config
+            await user.save();
+
+            // Update local columns variable
+            columns = user.sheetsConfig.columns;
+
+            // Sync headers to Sheet immediately
+            await updateSheetHeaders(userId);
+            console.log(`[Sync] Added 'Phone Number' column and updated Sheet headers.`);
+        }
 
         // Prepare row data
         const enrichedData = {
             ...extractedData,
             'chat_id': chatJid,
             'timestamp': new Date().toISOString(),
-            'phone': chatJid.split('@')[0]
+            'phone': chatJid.split('@')[0] // Always ensure phone is populated from JID
         };
 
         // IDENTIFY UNIQUE KEY COLUMN (prefer 'phone' or 'number')

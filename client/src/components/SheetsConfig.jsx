@@ -21,10 +21,29 @@ function SheetsConfig() {
         try {
             const result = await api.get('/api/sheets/config');
             if (result.success && result.data) {
+                let columns = result.data.columns || [];
+
+                // Ensure Phone variable is always present and first
+                const phoneIndex = columns.findIndex(c => c.key === 'phone');
+                const phoneVar = {
+                    key: 'phone',
+                    header: 'Phone Number',
+                    description: 'Sender Phone Number (Auto-Added)'
+                };
+
+                if (phoneIndex === -1) {
+                    columns = [phoneVar, ...columns];
+                } else {
+                    // Move to front if exists but not first
+                    const existingPhone = columns[phoneIndex];
+                    columns.splice(phoneIndex, 1);
+                    columns = [existingPhone, ...columns];
+                }
+
                 setConfig({
                     spreadsheetId: result.data.spreadsheetId || '',
                     sheetName: result.data.sheetName || 'Sheet1',
-                    columns: result.data.columns || []
+                    columns: columns
                 });
             }
         } catch (error) {
@@ -146,31 +165,49 @@ function SheetsConfig() {
                     <span>Action</span>
                 </div>
 
-                {config.columns.map((col, index) => (
-                    <div key={index} className="column-row">
-                        <input
-                            type="text"
-                            placeholder="e.g. customerName"
-                            value={col.key}
-                            onChange={(e) => handleColumnChange(index, 'key', e.target.value)}
-                        />
-                        <input
-                            type="text"
-                            placeholder="e.g. Customer Name"
-                            value={col.header}
-                            onChange={(e) => handleColumnChange(index, 'header', e.target.value)}
-                        />
-                        <input
-                            type="text"
-                            placeholder="e.g. The extracted name of the client"
-                            value={col.description}
-                            onChange={(e) => handleColumnChange(index, 'description', e.target.value)}
-                        />
-                        <button className="remove-btn" onClick={() => removeColumn(index)}>
-                            <FaTrash />
-                        </button>
-                    </div>
-                ))}
+                {config.columns.map((col, index) => {
+                    const isPhone = col.key === 'phone';
+                    return (
+                        <div key={index} className="column-row">
+                            <input
+                                type="text"
+                                placeholder="e.g. customerName"
+                                value={col.key}
+                                onChange={(e) => handleColumnChange(index, 'key', e.target.value)}
+                                disabled={isPhone}
+                                title={isPhone ? "Default variable (cannot change)" : ""}
+                                style={isPhone ? { backgroundColor: '#f3f4f6', cursor: 'not-allowed' } : {}}
+                            />
+                            <input
+                                type="text"
+                                placeholder="e.g. Customer Name"
+                                value={col.header}
+                                onChange={(e) => handleColumnChange(index, 'header', e.target.value)}
+                                disabled={isPhone}
+                                title={isPhone ? "Default variable (cannot change)" : ""}
+                                style={isPhone ? { backgroundColor: '#f3f4f6', cursor: 'not-allowed' } : {}}
+                            />
+                            <input
+                                type="text"
+                                placeholder="e.g. The extracted name of the client"
+                                value={col.description}
+                                onChange={(e) => handleColumnChange(index, 'description', e.target.value)}
+                                disabled={isPhone}
+                                title={isPhone ? "Default variable (cannot change)" : ""}
+                                style={isPhone ? { backgroundColor: '#f3f4f6', cursor: 'not-allowed' } : {}}
+                            />
+                            {isPhone ? (
+                                <div style={{ width: '36px', display: 'flex', justifyContent: 'center' }}>
+                                    <span style={{ fontSize: '18px', color: '#9ca3af' }}>🔒</span>
+                                </div>
+                            ) : (
+                                <button className="remove-btn" onClick={() => removeColumn(index)}>
+                                    <FaTrash />
+                                </button>
+                            )}
+                        </div>
+                    );
+                })}
 
                 <button className="add-btn" onClick={addColumn}>
                     <FaPlus /> Add Variable
