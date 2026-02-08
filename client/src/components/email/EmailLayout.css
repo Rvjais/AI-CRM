@@ -468,6 +468,10 @@
     display: none;
 }
 
+.mobile-close-btn {
+    display: none;
+}
+
 .desktop-actions {
     display: flex;
     gap: 8px;
@@ -874,6 +878,23 @@
         font-size: 14px;
         margin-left: -2px;
         /* Visual center adjustment */
+    }
+
+    .mobile-close-btn {
+        display: flex !important;
+        background: #f1f3f4 !important;
+        color: #5f6368 !important;
+        width: 36px !important;
+        height: 36px !important;
+        border-radius: 50%;
+        align-items: center;
+        justify-content: center;
+        margin-right: 8px;
+    }
+
+    .mobile-close-btn:hover {
+        background: #e0e0e0 !important;
+        color: #202124 !important;
     }
 
     /* Hide footer send button on mobile since it's in header */

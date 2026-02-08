@@ -45,6 +45,9 @@ function EmailCompose({ onClose, onSuccess }) {
                 <div className="compose-header">
                     <h3>New Message</h3>
                     <div className="compose-actions">
+                        <button className="icon-btn mobile-close-btn" onClick={onClose}>
+                            <FaTimes />
+                        </button>
                         <button className="icon-btn mobile-send-btn" onClick={handleSend}>
                             <FaPaperPlane />
                         </button>
