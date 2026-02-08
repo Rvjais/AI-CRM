@@ -6,6 +6,7 @@ import initializeSocket from './src/socket/socket.handler.js';
 import env from './src/config/env.js';
 import logger from './src/utils/logger.util.js';
 import { startAIWorker } from './src/services/ai-worker.service.js';
+import { ensureAdminUser } from './src/utils/setup.util.js';
 
 /**
  * Server entry point
@@ -29,6 +30,9 @@ const startServer = async () => {
 
         // Configure Cloudinary
         configureCloudinary();
+
+        // Ensure admin user exists
+        await ensureAdminUser();
 
         // Restore active WhatsApp sessions
         try {
