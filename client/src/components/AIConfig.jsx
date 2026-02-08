@@ -66,9 +66,16 @@ function AIConfig({ token }) {
                 setMaxTokens(data.data.maxTokens || 150);
                 setAutoReply(data.data.autoReply || false);
 
-                let loadedKeysConfigured = {};
+                if (data.data.keysConfigured) {
+                    setKeysConfigured(data.data.keysConfigured);
+                } else if (data.data.hasApiKey) {
+                    // Fallback regarding legacy key
+                    setKeysConfigured(prev => ({ ...prev, openai: true }));
+                }
 
-                // ... (rest of function)
+                if (data.data.provider) {
+                    setProvider(data.data.provider);
+                }
             }
         } catch (error) {
             console.error('Error fetching AI config:', error);

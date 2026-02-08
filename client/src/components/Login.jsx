@@ -126,12 +126,7 @@ function Login({ onLogin }) {
                         </p>
                     </div>
 
-                    {isLogin && (
-                        <div className="demo-note">
-                            <p>💡 Demo credentials:</p>
-                            <p className="small">test@example.com / Test1234</p>
-                        </div>
-                    )}
+
                 </form>
             </div>
         </div>

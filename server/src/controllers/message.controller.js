@@ -107,13 +107,38 @@ export const sendMessage = asyncHandler(async (req, res) => {
         }
     }
 
-    sentMessage = await whatsappService.sendMessage(userId, chatJid, messageContent, messageOptions);
+    // [FIX] Normalize LID for outgoing messages
+    let targetJid = chatJid;
+    let storageJid = chatJid;
 
-    // Save to database
+    // Check if JID is a LID (longer than typical phone, usually ~15 digits for user part)
+    // Phone numbers: 10-13 digits. IDs: 15+ digits.
+    const isLid = !chatJid.includes('@g.us') && chatJid.replace('@s.whatsapp.net', '').replace('@lid', '').length > 14;
+
+    if (isLid) {
+        try {
+            // Check if we have a mapping for this LID
+            const Contact = (await import('../models/Contact.js')).default;
+            const contact = await Contact.findOne({ userId, jid: chatJid });
+
+            if (contact && contact.phoneNumber) {
+                // We found a link! Use Phone JID for storage.
+                const phoneJid = `${contact.phoneNumber}@s.whatsapp.net`;
+                console.log(`🔄 [sendMessage] Resolved LID ${chatJid} -> Phone JID ${phoneJid} for storage`);
+                storageJid = phoneJid;
+            }
+        } catch (e) {
+            console.warn('Error resolving LID to Phone:', e);
+        }
+    }
+
+    sentMessage = await whatsappService.sendMessage(userId, targetJid, messageContent, messageOptions);
+
+    // Save to database with NORMALIZED JID
     const messageData = {
         userId,
         messageId: sentMessage.key.id,
-        chatJid,
+        chatJid: storageJid, // Use the resolved Phone JID if available
         fromMe: true,
         type,
         content,
@@ -356,6 +381,17 @@ export const toggleAI = asyncHandler(async (req, res) => {
     );
 
     return successResponse(res, 200, `AI ${enabled ? 'enabled' : 'disabled'} for chat`, chat);
+});
+
+/**
+ * Normalize chats (Merge LID and Phone)
+ * POST /api/messages/normalize
+ */
+export const normalizeChats = asyncHandler(async (req, res) => {
+    const userId = req.userId;
+    const result = await messageService.normalizeChats(userId);
+
+    return successResponse(res, 200, 'Chats normalized successfully', result);
 });
 
 /**

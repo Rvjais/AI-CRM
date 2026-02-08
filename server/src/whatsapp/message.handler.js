@@ -42,6 +42,12 @@ export const handleIncomingMessage = async (userId, msg, io, sendResponse) => {
         // --- TEMPORARY DEBUG LOGGING REMOVED ---
         // --------------------------------
 
+        // [FIX] Ignore status/broadcast messages
+        if (msg.key.remoteJid === 'status@broadcast' || (msg.key.remoteJid && msg.key.remoteJid.includes('broadcast'))) {
+            console.log(`🚫 [handleIncomingMessage] User ${userId}: Ignoring status/broadcast message`);
+            return;
+        }
+
         // Prioritize message types by filtering out metadata keys
         const messageKeys = Object.keys(msg.message || {});
         let messageType = messageKeys.find(key =>
@@ -135,6 +141,18 @@ export const handleIncomingMessage = async (userId, msg, io, sendResponse) => {
             const phoneJid = `${phoneNumber}@s.whatsapp.net`;
             console.log(`🔄 [handleIncomingMessage] Normalizing LID ${chatJid} -> Phone JID ${phoneJid}`);
             chatJid = phoneJid;
+        } else if (chatJid.includes('@lid')) {
+            // Fallback: If no senderPn, check if we already have this LID linked to a phone number in DB
+            try {
+                const contact = await Contact.findOne({ userId, jid: chatJid });
+                if (contact && contact.phoneNumber) {
+                    const phoneJid = `${contact.phoneNumber}@s.whatsapp.net`;
+                    console.log(`🔄 [handleIncomingMessage] Resolved LID ${chatJid} -> Phone JID ${phoneJid} via DB`);
+                    chatJid = phoneJid;
+                }
+            } catch (e) {
+                console.error('Error resolving LID via DB:', e);
+            }
         }
 
         // Extract message content (now needs userId for media upload)
@@ -208,6 +226,21 @@ export const handleIncomingMessage = async (userId, msg, io, sendResponse) => {
                 chatUpdateOps,
                 { upsert: true }
             );
+
+            // [FIX] Link LID to Phone Number in Contact DB
+            // If the incoming message has a senderPn, it means the source was a LID.
+            // We should update the Contact record for the *original* LID JID with this phone number.
+            if (msg.key.senderPn) {
+                const lidJid = jidNormalizedUser(msg.key.remoteJid); // The LID
+                if (lidJid !== chatJid) { // explicit check, though specific logic above ensures they are diff
+                    console.log(`🔗 [handleIncomingMessage] Linking LID ${lidJid} to Phone ${phoneNumber}`);
+                    await Contact.findOneAndUpdate(
+                        { userId, jid: lidJid },
+                        { $set: { phoneNumber: phoneNumber } },
+                        { upsert: true, new: true }
+                    );
+                }
+            }
 
         } catch (contactError) {
             console.error('Error updating contact:', contactError);

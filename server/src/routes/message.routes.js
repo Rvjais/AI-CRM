@@ -26,6 +26,7 @@ router.post('/:messageId/forward', validate(schemas.forwardMessage), messageCont
 router.post('/:chatJid/summarize', messageController.summarizeChat);
 router.post('/bulk-toggle-ai', messageController.bulkToggleAI);
 router.post('/:chatJid/toggle-ai', messageController.toggleAI);
+router.post('/normalize', messageController.normalizeChats);
 router.post('/:chatJid/archive', messageController.toggleArchive);
 
 export default router;

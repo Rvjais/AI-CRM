@@ -19,11 +19,28 @@ export const saveMessage = async (messageData) => {
         // Use findOneAndUpdate with upsert to prevent duplicate key errors
         // Ensure chatJid is consistent if this is a LID but we have a phone number
         let finalChatJid = messageData.chatJid;
-        if (messageData.senderPn && finalChatJid.length > 15 && !finalChatJid.includes('@g.us')) {
-            // Basic heuristic: if we have a senderPn and the JID looks like a LID (long ID) and not a group
-            // We normalize to phone number JID
-            const phoneJid = `${messageData.senderPn}@s.whatsapp.net`;
-            if (finalChatJid !== phoneJid) {
+
+        // Check if JID is a LID (longer than typical phone, usually ~15 digits for user part)
+        const isLid = !finalChatJid.includes('@g.us') && finalChatJid.includes('@lid');
+
+        if (isLid) {
+            let phoneJid = null;
+
+            // 1. Try to get phone from senderPn if available (mostly incoming)
+            if (messageData.senderPn) {
+                phoneJid = `${messageData.senderPn}@s.whatsapp.net`;
+            }
+
+            // 2. If not, try to look up in Contact DB (for outgoing or incoming without Pn)
+            if (!phoneJid) {
+                const { Contact } = await getClientModels(messageData.userId);
+                const contact = await Contact.findOne({ userId: messageData.userId, jid: finalChatJid });
+                if (contact && contact.phoneNumber) {
+                    phoneJid = `${contact.phoneNumber}@s.whatsapp.net`;
+                }
+            }
+
+            if (phoneJid && finalChatJid !== phoneJid) {
                 logger.info(`[saveMessage] Normalizing LID ${finalChatJid} -> ${phoneJid}`);
                 finalChatJid = phoneJid;
             }
@@ -63,17 +80,39 @@ export const saveMessage = async (messageData) => {
  */
 export const getChatMessages = async (userId, chatJid, page = 1, limit = 50) => {
     try {
-        const { Message } = await getClientModels(userId);
+        const { Message, Contact } = await getClientModels(userId);
         const skip = (page - 1) * limit;
 
+        // [FIX] merged view support
+        // If chatJid is a Phone JID, also look for messages from associated LIDs.
+        // If chatJid is a LID, normalize to Phone JID first?
+        // Actually, let's look up all aliases.
+
+        let jidsToQuery = [chatJid];
+
+        if (chatJid.includes('@s.whatsapp.net')) {
+            const phoneNumber = chatJid.split('@')[0];
+            // Find LIDs that map to this phone number
+            const lidContacts = await Contact.find({ userId, phoneNumber: phoneNumber, jid: { $regex: /@lid$/ } });
+            lidContacts.forEach(c => jidsToQuery.push(c.jid));
+        } else if (chatJid.includes('@lid')) {
+            // If we are asking for a LID, maybe we should also include the phone JID?
+            // But usually frontend will now ask for Phone JID because getUserChats returns it.
+            // Just in case:
+            const contact = await Contact.findOne({ userId, jid: chatJid });
+            if (contact && contact.phoneNumber) {
+                jidsToQuery.push(`${contact.phoneNumber}@s.whatsapp.net`);
+            }
+        }
+
         const [messages, total] = await Promise.all([
-            Message.find({ userId, chatJid, isDeleted: false })
+            Message.find({ userId, chatJid: { $in: jidsToQuery }, isDeleted: false })
                 .sort({ timestamp: -1 })
                 .skip(skip)
                 .limit(limit)
                 .populate('quotedMessage', 'content type senderName senderPn participant messageId') // Populate sender info too
                 .lean(),
-            Message.countDocuments({ userId, chatJid, isDeleted: false }),
+            Message.countDocuments({ userId, chatJid: { $in: jidsToQuery }, isDeleted: false }),
         ]);
 
         return {
@@ -376,5 +415,104 @@ export const getUnreadCount = async (userId) => {
     } catch (error) {
         logger.error('Get unread count error:', error);
         throw error;
+    }
+};
+
+/**
+ * Normalize chats (Merge LID chats into Phone chats)
+ * @param {String} userId - User ID
+ */
+export const normalizeChats = async (userId) => {
+    try {
+        const { Contact, Message, Chat } = await getClientModels(userId);
+
+        // 1. Find all contacts that are LIDs
+        const lidContacts = await Contact.find({
+            userId,
+            jid: { $regex: /@lid$/ }
+        });
+
+        logger.info(`[normalizeChats] Found ${lidContacts.length} LID contacts for user ${userId}`);
+
+        let migratedCount = 0;
+
+        for (const contact of lidContacts) {
+            const lidJid = contact.jid;
+            let phoneNumber = contact.phoneNumber;
+
+            // Check if phoneNumber is valid (not undefined, not null, not empty AND not just the LID ID itself)
+            // LIDs are usually long strings. Phone numbers are usually 10-13 digits.
+            // If contact.phoneNumber == contact.jid.split('@')[0], it's likely just a copy of LID ID.
+            const lidId = lidJid.split('@')[0];
+            const isInvalidPhone = !phoneNumber || phoneNumber === lidId;
+
+            if (isInvalidPhone) {
+                // Try to recover phone number from Messages
+                // Look for ANY message in this chat that has a senderPn
+                const msgWithPn = await Message.findOne({
+                    userId,
+                    chatJid: lidJid,
+                    senderPn: { $exists: true, $ne: null }
+                }).select('senderPn');
+
+                if (msgWithPn && msgWithPn.senderPn) {
+                    phoneNumber = msgWithPn.senderPn.split('@')[0]; // Ensure just the number
+                    logger.info(`[normalizeChats] Recovered phone ${phoneNumber} for LID ${lidJid} from message history`);
+
+                    // Update the Contact record permanently
+                    await Contact.updateOne(
+                        { _id: contact._id },
+                        { $set: { phoneNumber: phoneNumber } }
+                    );
+                } else {
+                    // Cannot resolve, skip
+                    // logger.warn(`[normalizeChats] Could not resolve phone number for LID ${lidJid}`);
+                    continue;
+                }
+            }
+
+
+
+            const phoneJid = `${phoneNumber}@s.whatsapp.net`;
+
+            if (lidJid === phoneJid) continue;
+
+            // 2. Update all messages: LID -> Phone
+            const updateResult = await Message.updateMany(
+                { userId, chatJid: lidJid },
+                { $set: { chatJid: phoneJid } }
+            );
+
+            if (updateResult.modifiedCount > 0) {
+                logger.info(`[normalizeChats] Migrated ${updateResult.modifiedCount} messages from ${lidJid} to ${phoneJid}`);
+                migratedCount += updateResult.modifiedCount;
+
+                // 3. Delete the old LID Chat record (identifiable by JID) if a Phone Chat exists
+                // If Phone Chat does NOT exist, we should probably rename the LID chat to Phone Chat?
+                // Simpler: Just delete LID chat. The next message/scan will recreate Phone Chat or update it.
+                // Actually, let's upsert the Phone chat with data from LID chat if Phone chat missing.
+
+                const lidChat = await Chat.findOne({ userId, chatJid: lidJid });
+                const phoneChat = await Chat.findOne({ userId, chatJid: phoneJid });
+
+                if (lidChat) {
+                    if (phoneChat) {
+                        // Phone chat exists, just delete LID chat. 
+                        // Maybe merge unread counts? Nah, simplest is delete.
+                        await Chat.findByIdAndDelete(lidChat._id);
+                    } else {
+                        // Phone chat doesn't exist, rename LID chat to Phone chat
+                        lidChat.chatJid = phoneJid;
+                        lidChat.phoneNumber = contact.phoneNumber;
+                        await lidChat.save();
+                    }
+                }
+            }
+        }
+
+        return { success: true, migratedMessages: migratedCount };
+    } catch (error) {
+        logger.error('[normalizeChats] Error:', error);
+        return { success: false, error: error.message };
     }
 };
