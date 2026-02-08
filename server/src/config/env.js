@@ -12,6 +12,7 @@ const env = {
   NODE_ENV: process.env.NODE_ENV || 'development',
   PORT: parseInt(process.env.PORT || '5000', 10),
   FRONTEND_URL: process.env.FRONTEND_URL || 'https://ai-crm-vert.vercel.app',
+  ALLOWED_ORIGINS: (process.env.CORS_ORIGIN || process.env.FRONTEND_URL || 'https://ai-crm-vert.vercel.app').split(',').map(origin => origin.trim()),
 
   // Database
   MONGODB_URI: process.env.MONGODB_URI || 'mongodb://localhost:27017/whatsapp-platform',

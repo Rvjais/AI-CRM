@@ -29,8 +29,8 @@ app.use(cors({
             return callback(null, true);
         }
 
-        // Allow configured frontend URL
-        if (origin === env.FRONTEND_URL) {
+        // Allow configured allowed origins
+        if (env.ALLOWED_ORIGINS.includes(origin)) {
             return callback(null, true);
         }
 
