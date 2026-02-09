@@ -57,6 +57,7 @@ export const listThreads = async (userId, options = {}) => {
 
             return {
                 ...thread,
+                snippet: thread.snippet, // Pass snippet from list response (it's in the initial thread object)
                 subject: headers.find(h => h.name === 'Subject')?.value || '(No Subject)',
                 from: headers.find(h => h.name === 'From')?.value || '(Unknown Sender)',
                 date: headers.find(h => h.name === 'Date')?.value || '',

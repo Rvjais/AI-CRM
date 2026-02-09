@@ -65,7 +65,21 @@ function EmailList({ threads, loading, onThreadSelect, selectedThreadId, onRefre
                                     <span className="thread-sender">{getSenderName(thread.from)}</span>
                                     <span className="thread-date">{formatDate(thread.timestamp)}</span>
                                 </div>
-                                <div className="thread-subject">{thread.subject}</div>
+                                <div className="thread-subject">
+                                    <div className="thread-badges">
+                                        {thread.sentiment && (
+                                            <span className={`sentiment-badge ${thread.sentiment}`}>
+                                                {thread.sentiment.charAt(0).toUpperCase() + thread.sentiment.slice(1)}
+                                            </span>
+                                        )}
+                                        {thread.importanceScore && (
+                                            <span className="score-badge">
+                                                Score: {thread.importanceScore}/10
+                                            </span>
+                                        )}
+                                    </div>
+                                    {thread.subject}
+                                </div>
                                 <div className="thread-snippet">{thread.snippet}</div>
                             </div>
                         ))}

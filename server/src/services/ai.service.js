@@ -652,3 +652,56 @@ export const analyzeMessage = async (userId, chatJid, messageText, schema = []) 
         return { sentiment: 'neutral', summary: null, suggestions: [], extractedData: {} };
     }
 };
+export const analyzeEmail = async (userId, emailText) => {
+    try {
+        const config = await getUserAIConfig(userId);
+        if (!config.apiKey) return null;
+
+        const systemPrompt = `
+        You are an intelligent email assistant. Analyze the following email content.
+        
+        Task:
+        1. Determine the Sentiment (positive, neutral, negative).
+        2. Generate a very brief Summary (1 sentence).
+        3. Rate Importance (1-10) based on urgency, deal size, or support severity.
+        4. Give a short Reason for the importance score.
+
+        Output strictly JSON:
+        {
+            "sentiment": "positive|neutral|negative",
+            "summary": "...",
+            "importanceScore": number,
+            "importanceReason": "..."
+        }
+        `;
+
+        const messages = [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: emailText.substring(0, 3000) } // Limit text to avoid token limits
+        ];
+
+        let content = '';
+        if (config.provider === 'gemini') {
+            content = await generateGeminiResponse(config.apiKey, 'gemini-2.5-flash', messages, 300);
+        } else if (config.provider === 'anthropic') {
+            content = await generateClaudeResponse(config.apiKey, 'claude-3-haiku-20240307', messages, 300);
+        } else {
+            content = await generateOpenAIResponse(config.apiKey, config.model || 'gpt-3.5-turbo', messages, 300);
+        }
+
+        if (content) {
+            content = content.replace(/```json\n?|\n?```/g, '').trim();
+            try {
+                return JSON.parse(content);
+            } catch (e) {
+                console.error('Failed to parse analyzeEmail JSON:', content);
+                return null;
+            }
+        }
+        return null;
+
+    } catch (error) {
+        console.error('Error in analyzeEmail:', error);
+        return null;
+    }
+};
