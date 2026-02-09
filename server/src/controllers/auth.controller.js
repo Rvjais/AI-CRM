@@ -91,6 +91,13 @@ export const changePassword = asyncHandler(async (req, res) => {
  */
 export const getGoogleAuthUrl = asyncHandler(async (req, res) => {
     const userId = req.userId;
+    const User = (await import('../models/User.js')).default;
+    const user = await User.findById(userId);
+
+    if (user.credits < 50) {
+        throw new Error('Insufficient credits. You need 50 credits to connect a Gmail account.');
+    }
+
     const { oauth2Client, GMAIL_SCOPES } = await import('../config/google.config.js');
 
     const url = oauth2Client.generateAuthUrl({

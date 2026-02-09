@@ -65,6 +65,17 @@ const processJob = async (campaign, job) => {
     job.status = 'PROCESSING';
     await job.save();
 
+    // 0. Check and Deduct Credits (Atomic)
+    const User = (await import('../models/User.js')).default;
+    const user = await User.findOneAndUpdate(
+        { _id: job.userId, credits: { $gte: 1 } },
+        { $inc: { credits: -1 } }
+    );
+
+    if (!user) {
+        throw new Error('Insufficient credits (Required: 1)');
+    }
+
     try {
         let sentId = null;
 
@@ -133,6 +144,9 @@ const processJob = async (campaign, job) => {
         await Campaign.findByIdAndUpdate(campaign._id, { $inc: { 'stats.sent': 1 } });
 
     } catch (error) {
+        // Refund credits on failure
+        await User.findByIdAndUpdate(job.userId, { $inc: { credits: 1 } });
+
         logger.error(`Job failed ${job._id}:`, error);
 
         await CampaignJob.findByIdAndUpdate(job._id, {
