@@ -254,7 +254,61 @@ export const sendMessage = async (userId, jid, content, options = {}) => {
     const sock = getConnection(userId);
     if (!sock) throw new Error('WhatsApp not connected');
 
-    return await sock.sendMessage(jid, content, options);
+    const result = await sock.sendMessage(jid, content, options);
+
+    // Persist to Database
+    try {
+        const { Message, Chat } = await getClientModels(userId);
+
+        const messageType = Object.keys(content)[0]; // e.g., 'text' or 'image'
+        const textContent = content.text || content.caption || '';
+
+        // Map content to schema format
+        const msgData = {
+            userId,
+            messageId: result.key.id,
+            chatJid: jid,
+            fromMe: true,
+            type: messageType === 'text' ? 'text' : (messageType === 'image' ? 'image' : 'unknown'), // Simplified mapping
+            content: {
+                text: textContent
+            },
+            status: 'sent',
+            timestamp: new Date(),
+            senderPn: sock.user.id.split(':')[0]
+        };
+
+        if (content.image) {
+            msgData.type = 'image';
+            msgData.content.url = content.image.url;
+            msgData.content.caption = content.caption;
+        }
+
+        await Message.create(msgData);
+
+        // Update Chat
+        await Chat.findOneAndUpdate(
+            { userId, jid },
+            {
+                $set: {
+                    lastMessage: {
+                        content: textContent,
+                        timestamp: new Date(),
+                        type: msgData.type,
+                        fromMe: true
+                    },
+                    timestamp: new Date()
+                }
+            },
+            { upsert: true }
+        );
+
+    } catch (saveError) {
+        logger.error(`Failed to save sent message for user ${userId}:`, saveError);
+        // Don't throw, as the message was actually sent
+    }
+
+    return result;
 };
 
 /**

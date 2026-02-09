@@ -13,6 +13,8 @@ import sheetsRoutes from './sheets.routes.js';
 import adminRoutes from './admin.routes.js';
 import userRoutes from './user.routes.js';
 import webhookRoutes from './webhook.routes.js';
+import importRoutes from './import.routes.js';
+import campaignRoutes from './campaign.routes.js';
 
 const router = express.Router();
 
@@ -25,6 +27,8 @@ router.use('/auth', authRoutes);
 router.use('/whatsapp', whatsappRoutes);
 router.use('/messages', messageRoutes);
 router.use('/contacts', contactRoutes);
+router.use('/imports', importRoutes);
+router.use('/campaigns', campaignRoutes);
 router.use('/ai', aiRoutes);
 router.use('/groups', groupRoutes);
 router.use('/media', mediaRoutes);

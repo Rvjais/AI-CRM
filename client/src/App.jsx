@@ -18,6 +18,8 @@ import AIConfig from './components/AIConfig';
 import EmailView from './components/EmailView';
 import SheetsConfig from './components/SheetsConfig';
 import InfrastructureConfig from './components/InfrastructureConfig';
+import CampaignManager from './components/CampaignManager';
+import ImportManager from './components/ImportManager';
 import ComingSoon from './components/ComingSoon';
 import Login from './components/Login';
 import './App.css';
@@ -47,13 +49,6 @@ function App() {
       const data = await api.get('/api/user/infrastructure');
       if (data.success && data.data) {
         setInfrastructureReady(data.data.infrastructureReady);
-        // If not ready and trying to access blocked views, redirect?
-        // Let's handle it in renderView mainly
-        if (!data.data.infrastructureReady && activeView === 'whatsapp') {
-          // Optional: Force view change
-          // setActiveView('infrastructure'); 
-          // But user might want to see dashboard, so let's use gating in Render
-        }
       }
     } catch (err) {
       console.error("Failed to check infrastructure", err);
@@ -107,6 +102,15 @@ function App() {
         <div className={activeView === 'email' ? 'view-active' : 'view-hidden'}>
           <EmailView token={token} />
         </div>
+
+        <div className={activeView === 'campaigns' ? 'view-active' : 'view-hidden'}>
+          <CampaignManager />
+        </div>
+
+        <div className={activeView === 'audience' ? 'view-active' : 'view-hidden'}>
+          <ImportManager />
+        </div>
+
         <div className={activeView === 'voiceagent' ? 'view-active' : 'view-hidden'}>
           <ComingSoon title="Voice Agent" icon="🎤" />
         </div>

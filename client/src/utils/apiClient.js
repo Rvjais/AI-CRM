@@ -63,14 +63,26 @@ export const get = async (endpoint, options = {}) => {
  * @returns {Promise<Object>} Response data
  */
 export const post = async (endpoint, data = {}, options = {}) => {
+    const isFormData = data instanceof FormData;
+
+    // Prepare headers
+    const headers = {
+        ...getAuthHeaders(),
+        ...options.headers,
+    };
+
+    // Set Content-Type to json if NOT formData
+    // If it IS FormData, DELETE any 'Content-Type' header to let browser set boundary
+    if (!isFormData) {
+        headers['Content-Type'] = 'application/json';
+    } else {
+        delete headers['Content-Type'];
+    }
+
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            ...getAuthHeaders(),
-            ...options.headers,
-        },
-        body: JSON.stringify(data),
+        headers,
+        body: isFormData ? data : JSON.stringify(data),
         ...options,
     });
 

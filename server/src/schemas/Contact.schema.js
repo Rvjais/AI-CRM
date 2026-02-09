@@ -37,6 +37,31 @@ const contactSchema = new mongoose.Schema(
             type: Boolean,
             default: false,
         },
+        // CRM Fields
+        email: {
+            type: String,
+            trim: true,
+            lowercase: true,
+            index: true,
+        },
+        tags: [{
+            type: String,
+            trim: true,
+            index: true,
+        }],
+        customAttributes: {
+            type: Map,
+            of: String,
+            default: {}
+        },
+        source: {
+            type: String,
+            default: 'WHATSAPP', // 'WHATSAPP', 'IMPORT', 'MANUAL'
+        },
+        importBatchId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'ImportBatch',
+        },
     },
     {
         timestamps: true,

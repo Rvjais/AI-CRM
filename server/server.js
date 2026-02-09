@@ -7,6 +7,7 @@ import env from './src/config/env.js';
 import logger from './src/utils/logger.util.js';
 import { startAIWorker } from './src/services/ai-worker.service.js';
 import { ensureAdminUser } from './src/utils/setup.util.js';
+import { startQueueProcessor } from './src/services/campaign.queue.js';
 
 /**
  * Server entry point
@@ -58,6 +59,9 @@ const startServer = async () => {
         // Start AI Cron Job (30-min scheduled tasks)
         const { startAiCron } = await import('./src/jobs/ai.cron.js');
         startAiCron();
+
+        // Start Campaign Queue Processor
+        startQueueProcessor();
 
 
         // Start listening
