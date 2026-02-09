@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FaWhatsapp, FaEnvelope, FaMicrophone, FaBrain, FaTachometerAlt, FaCog, FaSignOutAlt, FaChevronLeft, FaChevronRight, FaTable, FaDatabase, FaCoins, FaPaperPlane, FaUsers } from 'react-icons/fa';
+import { FaWhatsapp, FaEnvelope, FaMicrophone, FaBrain, FaTachometerAlt, FaCog, FaSignOutAlt, FaChevronLeft, FaChevronRight, FaTable, FaDatabase, FaCoins, FaPaperPlane, FaUsers, FaWpforms } from 'react-icons/fa';
 import api from '../utils/apiClient';
 import './Sidebar.css';
 
@@ -30,6 +30,7 @@ function Sidebar({ activeView, onViewChange, onLogout, isCollapsed, setIsCollaps
         { id: 'email', icon: FaEnvelope, label: 'Email' },
         { id: 'campaigns', icon: FaPaperPlane, label: 'Campaigns' },
         { id: 'audience', icon: FaUsers, label: 'Audience' },
+        { id: 'forms', icon: FaWpforms, label: 'Forms' },
         { id: 'sheets', icon: FaTable, label: 'Sheets' },
         { id: 'voiceagent', icon: FaMicrophone, label: 'Voice Agent' },
         { id: 'aiconfig', icon: FaBrain, label: 'AI Config' },

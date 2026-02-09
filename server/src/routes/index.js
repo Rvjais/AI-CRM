@@ -15,6 +15,7 @@ import userRoutes from './user.routes.js';
 import webhookRoutes from './webhook.routes.js';
 import importRoutes from './import.routes.js';
 import campaignRoutes from './campaign.routes.js';
+import formRoutes from './form.routes.js';
 
 const router = express.Router();
 
@@ -39,6 +40,7 @@ router.use('/sheets', sheetsRoutes);
 router.use('/admin', adminRoutes);
 router.use('/user', userRoutes);
 router.use('/webhooks', webhookRoutes);
+router.use('/forms', formRoutes);
 
 // Health check endpoint
 router.get('/health', (req, res) => {

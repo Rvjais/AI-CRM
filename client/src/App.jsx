@@ -20,6 +20,7 @@ import SheetsConfig from './components/SheetsConfig';
 import InfrastructureConfig from './components/InfrastructureConfig';
 import CampaignManager from './components/CampaignManager';
 import ImportManager from './components/ImportManager';
+import FormBuilder from './components/FormBuilder';
 import ComingSoon from './components/ComingSoon';
 import Login from './components/Login';
 import './App.css';
@@ -109,6 +110,10 @@ function App() {
 
         <div className={activeView === 'audience' ? 'view-active' : 'view-hidden'}>
           <ImportManager />
+        </div>
+
+        <div className={activeView === 'forms' ? 'view-active' : 'view-hidden'}>
+          <FormBuilder />
         </div>
 
         <div className={activeView === 'voiceagent' ? 'view-active' : 'view-hidden'}>
