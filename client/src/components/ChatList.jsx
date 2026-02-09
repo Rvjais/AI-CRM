@@ -18,12 +18,22 @@ function ChatList({ chats, selectedChat, onSelectChat, aiEnabled, onToggleAI, on
 
         const isBroadcast = (chat.chatJid || chat.jid || '').includes('@broadcast');
 
-        if (activeTab === 'GROUP') {
-            return matchesSearch && matchesAI && (chat.isGroup || isBroadcast);
-        } else if (activeTab === 'ARCHIVED') {
+        if (activeTab === 'ARCHIVED') {
             return matchesSearch && matchesAI && chat.isArchived;
         }
-        return matchesSearch && matchesAI && !chat.isGroup && !chat.isArchived && !isBroadcast;
+
+        // For other tabs, exclude archived
+        if (chat.isArchived) return false;
+
+        if (activeTab === 'GROUP') {
+            return matchesSearch && matchesAI && (chat.isGroup || isBroadcast);
+        } else if (activeTab === 'CAMPAIGN') {
+            return matchesSearch && matchesAI && chat.category === 'campaign';
+        } else {
+            // CHAT tab (Default)
+            // Exclude groups, broadcast, and campaigns
+            return matchesSearch && matchesAI && !chat.isGroup && !isBroadcast && chat.category !== 'campaign';
+        }
     });
 
     return (
@@ -47,6 +57,12 @@ function ChatList({ chats, selectedChat, onSelectChat, aiEnabled, onToggleAI, on
                     onClick={() => setActiveTab('GROUP')}
                 >
                     GROUP
+                </button>
+                <button
+                    className={`tab ${activeTab === 'CAMPAIGN' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('CAMPAIGN')}
+                >
+                    CAMPAIGN
                 </button>
                 <button
                     className={`tab ${activeTab === 'ARCHIVED' ? 'active' : ''}`}

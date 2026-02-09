@@ -287,19 +287,32 @@ export const sendMessage = async (userId, jid, content, options = {}) => {
         await Message.create(msgData);
 
         // Update Chat
+        const updateOps = {
+            $set: {
+                lastMessage: {
+                    content: textContent,
+                    timestamp: new Date(),
+                    type: msgData.type,
+                    fromMe: true
+                },
+                timestamp: new Date()
+            },
+            $setOnInsert: {
+                category: options.isCampaign ? 'campaign' : 'normal'
+            }
+        };
+
+        if (options.isCampaign) {
+            // If it's a campaign message, we try to set category to campaign ONLY ON INSERT.
+            // If chat exists, it keeps its category.
+            // Logic handled by $setOnInsert above.
+        } else {
+            // Normal message. If chat doesn't exist, it defaults to normal.
+        }
+
         await Chat.findOneAndUpdate(
             { userId, jid },
-            {
-                $set: {
-                    lastMessage: {
-                        content: textContent,
-                        timestamp: new Date(),
-                        type: msgData.type,
-                        fromMe: true
-                    },
-                    timestamp: new Date()
-                }
-            },
+            updateOps,
             { upsert: true }
         );
 
@@ -316,10 +329,11 @@ export const sendMessage = async (userId, jid, content, options = {}) => {
  * @param {String} userId - User ID
  * @param {String} jid - Recipient JID
  * @param {String} text - Message text
+ * @param {Object} options - Extra options (isCampaign, etc.)
  * @returns {Object} Sent message
  */
-export const sendTextMessage = async (userId, jid, text) => {
-    return sendMessage(userId, jid, { text });
+export const sendTextMessage = async (userId, jid, text, options = {}) => {
+    return sendMessage(userId, jid, { text }, options);
 };
 
 /**

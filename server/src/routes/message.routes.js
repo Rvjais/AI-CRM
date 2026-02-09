@@ -28,5 +28,6 @@ router.post('/bulk-toggle-ai', messageController.bulkToggleAI);
 router.post('/:chatJid/toggle-ai', messageController.toggleAI);
 router.post('/normalize', messageController.normalizeChats);
 router.post('/:chatJid/archive', messageController.toggleArchive);
+router.post('/:chatJid/move', messageController.moveChat);
 
 export default router;

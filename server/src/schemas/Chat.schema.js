@@ -72,6 +72,12 @@ const chatSchema = new mongoose.Schema(
             type: Date,
             default: null,
         },
+        category: {
+            type: String,
+            enum: ['normal', 'campaign', 'archived', 'group'],
+            default: 'normal',
+            index: true
+        }
     },
     {
         timestamps: true,

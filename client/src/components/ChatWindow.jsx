@@ -70,6 +70,23 @@ function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat, 
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
 
+    const handleMoveToMain = async () => {
+        if (!selectedChat) return;
+
+        // Optimistic update
+        const updatedChat = { ...selectedChat, category: 'normal' };
+        if (onUpdateChat) onUpdateChat(updatedChat);
+
+        try {
+            const jidToUse = selectedChat.jid || (selectedChat.phone.includes('@') ? selectedChat.phone : `${selectedChat.phone}@s.whatsapp.net`);
+            await api.post(`/api/messages/${encodeURIComponent(jidToUse)}/move`, { category: 'normal' });
+        } catch (error) {
+            console.error('Error moving chat:', error);
+            // Revert on error (optional, but good practice)
+            if (onUpdateChat) onUpdateChat({ ...selectedChat });
+        }
+    };
+
     useEffect(() => {
         scrollToBottom();
     }, [messages]);
@@ -282,6 +299,16 @@ function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat, 
                     >
                         <FaArchive />
                     </button>
+                    {/* Move to Main Button for Campaign Chats */}
+                    {selectedChat.category === 'campaign' && (
+                        <button
+                            className="action-btn"
+                            onClick={handleMoveToMain}
+                            title="Move to Main Chat"
+                        >
+                            <FaPaperPlane /> {/* Or other icon like FaInbox */}
+                        </button>
+                    )}
                     {/* AI Toggle Switch */}
                     <div className="ai-wrapper" onClick={toggleChatAI} title={selectedChat.aiEnabled ? "Disable AI" : "Enable AI"}>
                         <span className={`ai-status-text ${selectedChat.aiEnabled ? 'active' : ''}`}>

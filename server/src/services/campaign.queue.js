@@ -110,7 +110,7 @@ const processJob = async (campaign, job) => {
             // Random delay 1-5s to prevent burst (even within batch)
             await new Promise(r => setTimeout(r, Math.random() * 5000));
 
-            const result = await whatsappService.sendTextMessage(job.userId, contact.jid, text);
+            const result = await whatsappService.sendTextMessage(job.userId, contact.jid, text, { isCampaign: true });
             // TODO: Handle media if template.mediaUrl exists
 
             sentId = result?.key?.id;

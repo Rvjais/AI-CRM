@@ -415,6 +415,29 @@ export const toggleArchive = asyncHandler(async (req, res) => {
 });
 
 /**
+ * Move chat to a different category
+ * POST /api/messages/:chatJid/move
+ */
+export const moveChat = asyncHandler(async (req, res) => {
+    const { chatJid } = req.params;
+    const { category } = req.body; // 'normal', 'campaign', 'archived', 'group'
+
+    if (!['normal', 'campaign', 'archived', 'group'].includes(category)) {
+        throw new Error('Invalid category');
+    }
+
+    const Chat = (await import('../models/Chat.js')).default;
+
+    const chat = await Chat.findOneAndUpdate(
+        { userId: req.userId, chatJid },
+        { category: category },
+        { new: true, upsert: true }
+    );
+
+    return successResponse(res, 200, `Chat moved to ${category}`, chat);
+});
+
+/**
  * Force regenerate AI summary for a chat
  */
 export const summarizeChat = asyncHandler(async (req, res) => {
