@@ -24,8 +24,18 @@ app.use(cors({
         // Allow requests with no origin (like mobile apps, curl, or file://)
         if (!origin) return callback(null, true);
 
-        // Allow localhost on any port
+        // Allow localhost
         if (origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1')) {
+            return callback(null, true);
+        }
+
+        // Allow Vercel deployments
+        const allowedVercelDomains = [
+            'https://ai-crm-vert.vercel.app', // Frontend
+            'https://ai-crm-lz5h.vercel.app'  // Admin
+        ];
+
+        if (allowedVercelDomains.includes(origin) || origin.endsWith('.vercel.app')) {
             return callback(null, true);
         }
 

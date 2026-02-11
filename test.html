@@ -5,47 +5,43 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
-    <!-- Embeddable Form: Untitled Form -->
-    <div id="rain-crm-form-698c4326c3e462ec563cac13"
-        style="font-family: system-ui, -apple-system, sans-serif; max-width: 510px; min-height: auto; margin: 0 auto; padding: 2rem; background-color: #126d43; border-radius: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #e5e7eb;">
-        <h2 style="font-size: 1.5rem; font-weight: 700; margin: 0 0 0.5rem 0; color: #e9f2ef; text-align: left;">
-            Untitled Form</h2>
-        <p style="color: #dbe1df; opacity: 0.8; margin: 0 0 1.5rem 0; text-align: left; font-size: 1rem;">Please fill
+    <!-- Embeddable Form: Spiderman -->
+    <div id="rain-crm-form-698c4a28748b02dc7cc9f6d4"
+        style="font-family: system-ui, -apple-system, sans-serif; max-width: 42rem; min-height: auto; margin: 0 auto; padding: 2rem; background-color: #ffffff; border-radius: 0.75rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #e5e7eb;">
+        <h2 style="font-size: 1.5rem; font-weight: 700; margin: 0 0 0.5rem 0; color: #111827; text-align: left;">
+            Spiderman</h2>
+        <p style="color: #1f2937; opacity: 0.8; margin: 0 0 1.5rem 0; text-align: left; font-size: 1rem;">Please fill
             out the form below.</p>
 
-        <form id="form-698c4326c3e462ec563cac13" onsubmit="submitRainForm(event, '698c4326c3e462ec563cac13')">
+        <form id="form-698c4a28748b02dc7cc9f6d4" onsubmit="submitRainForm(event, '698c4a28748b02dc7cc9f6d4')">
             <div style="display: flex; flex-wrap: wrap; justify-content: space-between;">
                 <div style="text-align: left; margin-bottom: 1rem; width: 100%;">
                     <label
-                        style="display:block; margin-bottom: 0.5rem; font-weight: 500; font-size: 0.875rem; color: #dbe1df; text-align: left;">New
-                        Email</label>
-                    <input type="email" name="New Email" placeholder=""
+                        style="display:block; margin-bottom: 0.5rem; font-weight: 500; font-size: 0.875rem; color: #1f2937; text-align: left;">Test</label>
+                    <input type="text" name="Test" placeholder="bla bla bla "
                         style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 1rem; font-family: inherit; margin-bottom: 0; box-sizing: border-box; background-color: #ffffff; color: #1f2937;">
                 </div>
                 <div style="text-align: left; margin-bottom: 1rem; width: 100%;">
                     <label
-                        style="display:block; margin-bottom: 0.5rem; font-weight: 500; font-size: 0.875rem; color: #dbe1df; text-align: left;">New
-                        Number</label>
-                    <input type="number" name="New Number" placeholder=""
+                        style="display:block; margin-bottom: 0.5rem; font-weight: 500; font-size: 0.875rem; color: #1f2937; text-align: left;">Kya
+                        bhai kya haal</label>
+                    <input type="text" name="Kya bhai kya haal" placeholder="Haal batao"
                         style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 1rem; font-family: inherit; margin-bottom: 0; box-sizing: border-box; background-color: #ffffff; color: #1f2937;">
                 </div>
                 <div style="text-align: left; margin-bottom: 1rem; width: 100%;">
                     <label
-                        style="display:block; margin-bottom: 0.5rem; font-weight: 500; font-size: 0.875rem; color: #dbe1df; text-align: left;">New
-                        Select</label>
-                    <select name="New Select"
+                        style="display:block; margin-bottom: 0.5rem; font-weight: 500; font-size: 0.875rem; color: #1f2937; text-align: left;">Khao
+                        piyo aish kro mitro</label>
+                    <input type="text" name="Khao piyo aish kro mitro" placeholder="Khana Khaya"
                         style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 1rem; font-family: inherit; margin-bottom: 0; box-sizing: border-box; background-color: #ffffff; color: #1f2937;">
-                        <option value="Option 1">Option 1</option>
-                        <option value="Option 2">Option 2</option>
-                    </select>
                 </div>
             </div>
             <div style="text-align: left; margin-top: 1rem;">
                 <button type="submit"
-                    style="width: 100%; background-color: #111212; color: white; font-weight: 600; padding: 0.75rem; border-radius: 0.375rem; border: none; cursor: pointer; font-size: 1rem; font-family: inherit;">Submit</button>
+                    style="width: 100%; background-color: #4f46e5; color: white; font-weight: 600; padding: 0.75rem; border-radius: 0.375rem; border: none; cursor: pointer; font-size: 1rem; font-family: inherit;">Submit</button>
             </div>
         </form>
-        <div id="form-message-698c4326c3e462ec563cac13"
+        <div id="form-message-698c4a28748b02dc7cc9f6d4"
             style="margin-top: 1rem; display: none; padding: 1rem; border-radius: 0.375rem; text-align: center;"></div>
     </div>
 
@@ -62,7 +58,11 @@
             btn.innerText = 'Submitting...';
 
             try {
-                const response = await fetch('http://localhost:5173/api/forms/698c4326c3e462ec563cac13/submit', {
+                // UPDATE THIS URL TO YOUR BACKEND (Localhost or Hosted)
+                // Local: http://localhost:3000
+                // Hosted: https://rain-crm-backend.onrender.com
+                const API_BASE = 'https://rain-crm-backend.onrender.com'; // Defaulting to Hosted Backend
+                const response = await fetch(`${API_BASE}/api/forms/698c4a28748b02dc7cc9f6d4/submit`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
