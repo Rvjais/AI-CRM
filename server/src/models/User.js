@@ -133,10 +133,11 @@ const userSchema = new mongoose.Schema(
         pabblySubscriptionId: {
             type: String
         },
-        // User-Provided Infrastructure
+        // User-Provided Infrastructure (DEPRECATED - Single DB Arch)
         mongoURI: {
             type: String,
-            select: false // Encrypted/Hidden by default
+            select: false,
+            required: false
         },
         cloudinaryConfig: {
             cloudName: { type: String },
@@ -145,7 +146,7 @@ const userSchema = new mongoose.Schema(
         },
         infrastructureReady: {
             type: Boolean,
-            default: false
+            default: true // Always true in Single DB Arch
         }
     },
     {
@@ -193,8 +194,12 @@ userSchema.methods.toPublicJSON = function () {
     };
 };
 
+// Methods
+// ... (keeping methods) ...
+
 // Indexes
-userSchema.index({ email: 1 });
+// email index is already defined in the schema options with unique: true
+// userSchema.index({ email: 1 }); // REMOVE REDUNDANT INDEX
 
 const User = mongoose.model('User', userSchema);
 

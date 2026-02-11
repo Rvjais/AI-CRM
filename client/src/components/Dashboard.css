@@ -778,8 +778,8 @@
     margin-top: 16px;
     background: #fffbeb;
     border: 1px solid #fcd34d;
-    border-radius: 10px;
-    padding: 12px;
+    border-radius: 12px;
+    padding: 16px;
     box-shadow: 0 4px 6px -1px rgba(234, 179, 8, 0.05);
     position: relative;
     overflow: hidden;
@@ -800,51 +800,84 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
 }
 
 .priority-badge {
     color: #b45309;
     font-weight: 700;
-    font-size: 12px;
+    font-size: 13px;
     display: flex;
     align-items: center;
     gap: 6px;
 }
 
-.priority-score {
-    background: #d97706;
-    color: white;
-    padding: 3px 8px;
-    border-radius: 20px;
-    font-size: 10px;
-    font-weight: 700;
-    box-shadow: 0 2px 4px rgba(217, 119, 6, 0.2);
+.priority-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
-.priority-item .pi-subject {
+.priority-item {
+    background: white;
+    border-radius: 8px;
+    padding: 12px;
+    border: 1px solid #fcd34d;
+    /* Subtle amber border */
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.priority-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(217, 119, 6, 0.1);
+}
+
+.pi-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.pi-score {
+    font-size: 11px;
     font-weight: 700;
+    color: #b45309;
+    background: #fef3c7;
+    padding: 2px 8px;
+    border-radius: 10px;
+}
+
+.pi-date {
+    font-size: 11px;
+    color: #9ca3af;
+}
+
+.pi-subject {
     font-size: 13px;
+    font-weight: 600;
     color: #1f2937;
-    margin-bottom: 4px;
+    margin-bottom: 2px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-.priority-item .pi-from {
+.pi-from {
     font-size: 11px;
     color: #6b7280;
     margin-bottom: 6px;
     display: block;
 }
 
-.priority-item .pi-reason {
+.pi-reason {
     font-size: 11px;
     color: #b45309;
     font-style: italic;
-    line-height: 1.4;
-    background: rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.6);
     padding: 6px;
     border-radius: 6px;
+    line-height: 1.4;
+    border: 1px dashed #fcd34d;
 }

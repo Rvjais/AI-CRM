@@ -58,6 +58,7 @@ export const saveMessage = async (messageData) => {
             {
                 lastMessageAt: message.timestamp,
                 $inc: { unreadCount: messageData.fromMe ? 0 : 1 },
+                hostNumber: messageData.hostNumber // [FIX] Ensure Chat is associated with this host
             },
             { upsert: true }
         );
@@ -138,10 +139,24 @@ export const getChatMessages = async (userId, chatJid, page = 1, limit = 50) => 
  */
 export const getUserChats = async (userId, includeArchived = false) => {
     try {
-        const { Message, Chat, Contact } = await getClientModels(userId);
+        const { Message, Chat, Contact, WhatsAppSession } = await getClientModels(userId);
 
-        // Get all unique chat JIDs from messages
-        const chatJids = await Message.distinct('chatJid', { userId });
+        // [FIX] Get currently connected Host Number
+        const session = await WhatsAppSession.findOne({ userId });
+        const activeHostNumber = session?.status === 'connected' ? session.phoneNumber : null;
+
+        // If no active connection, maybe return empty? Or all?
+        // User request: Isolation. So if connected, SHOW ONLY THAT HOST'S CHATS.
+        // If not connected, we can't be sure, but maybe show all? 
+        // Safer to filter by hostNumber if available.
+
+        let matchQuery = { userId };
+        if (activeHostNumber) {
+            matchQuery.hostNumber = activeHostNumber;
+        }
+
+        // Get all unique chat JIDs from messages (Filtered by hostNumber if active)
+        const chatJids = await Message.distinct('chatJid', matchQuery);
         // logger.info(`getUserChats: Found ${chatJids.length} unique chatJids for user ${userId}`);
 
         // OPTIMIZATION: Fetch ALL contacts for this user to resolve names efficiently

@@ -4,36 +4,53 @@
  * @returns {Array} Array of objects
  */
 export const parseCsv = (buffer) => {
-    const content = buffer.toString().trim();
+    const content = buffer.toString().trim().replace(/^\uFEFF/, ''); // Remove BOM
     const lines = content.split(/\r?\n/);
-
     if (lines.length === 0) return [];
 
-    // Parse headers (first line)
-    const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, '').toLowerCase());
+    // Regex to match CSV fields: 
+    // 1. Quoted fields: "([^"]*(?:""[^"]*)*)"
+    // 2. Standard fields: ([^",]+)
+    // 3. Empty fields: (,, or ,$) handled by loop
+    const parseLine = (text) => {
+        const result = [];
+        let start = 0;
+        let inQuotes = false;
+        for (let i = 0; i < text.length; i++) {
+            if (text[i] === '"') {
+                inQuotes = !inQuotes;
+            } else if (text[i] === ',' && !inQuotes) {
+                let field = text.substring(start, i);
+                // Remove surrounding quotes and unescape double quotes
+                if (field.startsWith('"') && field.endsWith('"')) {
+                    field = field.slice(1, -1).replace(/""/g, '"');
+                }
+                result.push(field.trim());
+                start = i + 1;
+            }
+        }
+        // Last field
+        let lastField = text.substring(start);
+        if (lastField.startsWith('"') && lastField.endsWith('"')) {
+            lastField = lastField.slice(1, -1).replace(/""/g, '"');
+        }
+        result.push(lastField.trim());
+        return result;
+    };
+
+    const headers = parseLine(lines[0]).map(h => h.toLowerCase());
 
     const results = [];
-
     for (let i = 1; i < lines.length; i++) {
         const line = lines[i].trim();
         if (!line) continue;
-
-        // Handle quoted values logic simplistically (split by comma ignoring commas in quotes matches)
-        // For now, simple split. TODO: Use full CSV parser if complex data needed.
-        const values = line.split(',');
-
+        const values = parseLine(line);
         const row = {};
-
-        headers.forEach((header, index) => {
-            let value = values[index] ? values[index].trim() : '';
-            // Remove quotes
-            value = value.replace(/^"|"$/g, '');
-            row[header] = value;
+        headers.forEach((h, idx) => {
+            row[h] = values[idx] || '';
         });
-
         results.push(row);
     }
-
     return results;
 };
 

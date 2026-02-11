@@ -16,10 +16,11 @@ const connectDB = async (retries = 5) => {
             socketTimeoutMS: 45000,
         };
 
+        console.log('DEBUG: Connecting to MongoDB...', env.MONGODB_URI?.substring(0, 20) + '...');
         await mongoose.connect(env.MONGODB_URI, options);
 
-        logger.info('✅ MongoDB connected successfully');
-        logger.info(`📊 Database: ${mongoose.connection.name}`);
+        console.log('✅ MongoDB connected successfully');
+        console.log(`📊 Database: ${mongoose.connection.name}`);
 
     } catch (error) {
         logger.error('❌ MongoDB connection error:', error.message);

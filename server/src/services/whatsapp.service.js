@@ -138,7 +138,8 @@ export const connectWhatsApp = async (userId, io) => {
                     const sendResponse = async (jid, text) => {
                         await sock.sendMessage(jid, { text });
                     };
-                    await handleIncomingMessage(userId, msg, io, sendResponse);
+                    const hostNumber = sock.user.id.split(':')[0]; // [FIX] Get host number
+                    await handleIncomingMessage(userId, msg, io, sendResponse, hostNumber);
                 }
             } else {
                 console.log(`⏭️  [messages.upsert] Skipping type: ${type}`);
@@ -275,7 +276,9 @@ export const sendMessage = async (userId, jid, content, options = {}) => {
             },
             status: 'sent',
             timestamp: new Date(),
-            senderPn: sock.user.id.split(':')[0]
+            timestamp: new Date(),
+            senderPn: sock.user.id.split(':')[0],
+            hostNumber: sock.user.id.split(':')[0] // [FIX] Add hostNumber
         };
 
         if (content.image) {

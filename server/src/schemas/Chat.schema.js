@@ -77,6 +77,11 @@ const chatSchema = new mongoose.Schema(
             enum: ['normal', 'campaign', 'archived', 'group'],
             default: 'normal',
             index: true
+        },
+        hostNumber: {
+            type: String,
+            index: true,
+            required: false // Optional for backward compatibility, but we will rely on it for filtering
         }
     },
     {

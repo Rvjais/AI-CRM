@@ -25,13 +25,14 @@ import { generateAIResponse, analyzeMessage } from '../services/ai.service.js';
  * @param {Object} msg - Baileys message object
  * @param {Object} io - Socket.io instance
  * @param {Function} sendResponse - Function to send response
+ * @param {String} hostNumber - [FIX] Connected WhatsApp number
  */
-export const handleIncomingMessage = async (userId, msg, io, sendResponse) => {
+export const handleIncomingMessage = async (userId, msg, io, sendResponse, hostNumber) => {
     try {
         // Fetch dynamic models for this user's database
         const { Contact, Chat, Message } = await getClientModels(userId);
 
-        console.log(`📩 [handleIncomingMessage] User ${userId}: Processing message`, {
+        console.log(`📩 [handleIncomingMessage] User ${userId} (Host: ${hostNumber}): Processing message`, {
             messageId: msg.key.id,
             from: msg.key.remoteJid,
             fromMe: msg.key.fromMe,
@@ -171,6 +172,7 @@ export const handleIncomingMessage = async (userId, msg, io, sendResponse) => {
             senderName: msg.pushName,
             senderPn: msg.key.senderPn ? msg.key.senderPn.split('@')[0] : undefined,
             participant: msg.key.participant, // Save participant JID for generic quoting support
+            hostNumber: hostNumber // [FIX] Save host number
         };
 
         console.log(`💾 [handleIncomingMessage] User ${userId}: Saving message`, {

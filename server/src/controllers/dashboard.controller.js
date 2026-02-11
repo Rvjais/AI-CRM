@@ -141,8 +141,7 @@ export const getDashboardStats = asyncHandler(async (req, res) => {
             const { analyzeEmail } = await import('../services/ai.service.js');
 
             let positive = 0, neutral = 0, negative = 0;
-            let highestScore = 0;
-            let mostImportantEmail = null;
+            let processedEmails = []; // Array to hold all analyzed emails for sorting
 
             // Analyze/Retrieve Analysis
             // Use Promise.all for parallelism
@@ -172,31 +171,35 @@ export const getDashboardStats = asyncHandler(async (req, res) => {
                         else if (analysis.sentiment === 'negative') negative++;
                         else neutral++;
 
-                        if (analysis.importanceScore > highestScore) {
-                            highestScore = analysis.importanceScore;
-                            mostImportantEmail = {
-                                subject: thread.subject,
-                                from: thread.from,
-                                summary: analysis.summary,
-                                reason: analysis.importanceReason,
-                                score: analysis.importanceScore,
-                                sentiment: analysis.sentiment,
-                                date: thread.date
-                            };
-                        }
+                        // Add to processed list for sorting later
+                        processedEmails.push({
+                            id: thread.id,
+                            subject: thread.subject,
+                            from: thread.from,
+                            snippet: thread.snippet,
+                            summary: analysis.summary,
+                            reason: analysis.importanceReason,
+                            score: analysis.importanceScore,
+                            sentiment: analysis.sentiment,
+                            date: thread.date
+                        });
                     }
                 } catch (err) {
                     console.error(`Error analyzing thread ${thread.id}:`, err);
                 }
             }));
 
+            // Sort by Importance Score (Desc)
+            const priorityList = processedEmails
+                .sort((a, b) => b.score - a.score)
+                .slice(0, 5); // Return top 5
 
             emailStats = {
                 connected: true,
                 unread: stats.messagesUnread,
                 total: stats.threadsTotal || 0,
                 sentiment: { positive, neutral, negative },
-                mostImportant: mostImportantEmail
+                priorityList // New list
             };
         }
     } catch (error) {

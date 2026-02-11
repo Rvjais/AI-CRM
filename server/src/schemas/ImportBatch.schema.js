@@ -36,7 +36,8 @@ const importBatchSchema = new mongoose.Schema(
         }],
         errorLog: [{
             row: Number,
-            error: String
+            error: String,
+            data: String
         }]
     },
     {

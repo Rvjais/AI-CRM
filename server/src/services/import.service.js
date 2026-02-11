@@ -135,7 +135,9 @@ export const processImport = async (userId, file, type = 'WHATSAPP', mappingStr 
 
             } catch (err) {
                 errorCount++;
-                errorLog.push({ row: i + 1, error: err.message });
+                const errorDetail = { row: i + 1, error: err.message, data: JSON.stringify(row) };
+                errorLog.push(errorDetail);
+                logger.error(`Import Error Row ${i + 1}:`, errorDetail);
             }
         }
 

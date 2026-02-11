@@ -12,19 +12,22 @@ export const ensureAdminUser = async () => {
         const email = 'admin@raincrm.com';
         const password = 'Password'; // In a real scenario, this should be an env var or complex default
 
+        console.log('DEBUG: ensureAdminUser - Finding user...');
         let adminUser = await User.findOne({ email });
+        console.log('DEBUG: ensureAdminUser - User found?', !!adminUser);
 
         if (adminUser) {
             // Optional: Update existing admin to ensure they have the role
             if (adminUser.role !== USER_ROLES.ADMIN) {
+                console.log('DEBUG: ensureAdminUser - Updating role...');
                 adminUser.role = USER_ROLES.ADMIN;
                 await adminUser.save();
-                logger.info('✅ Existing admin user role updated');
+                console.log('✅ Existing admin user role updated');
             } else {
-                logger.info('✅ Admin user already exists');
+                console.log('✅ Admin user already exists');
             }
         } else {
-            logger.info('Creating new admin user...');
+            console.log('Creating new admin user...');
             adminUser = await User.create({
                 name: 'Admin',
                 email,

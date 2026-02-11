@@ -80,8 +80,18 @@ function CampaignManager() {
         if (!formData.targetBatchId) return;
         try {
             const res = await api.get(`/api/imports/${formData.targetBatchId}/sample`);
-            if (res.success && res.data) {
-                const contact = res.data;
+            if (res.success) {
+                // Use sample contact or fallback dummy data if list is empty
+                const contact = res.data || {
+                    name: 'John Doe (Preview)',
+                    phoneNumber: '1234567890',
+                    email: 'preview@example.com',
+                    customAttributes: {
+                        Company: 'Example Corp',
+                        City: 'New York'
+                    }
+                };
+
                 let text = formData.template.body;
 
                 // Standard Substitutions

@@ -173,12 +173,8 @@ function Dashboard() {
                                         <span className="estat-label">Unread</span>
                                     </div>
                                     <div className="estat">
-                                        <span className="estat-val">{stats.email.sentiment?.positive || 0}</span>
-                                        <span className="estat-label">Pos</span>
-                                    </div>
-                                    <div className="estat">
-                                        <span className="estat-val">{stats.email.sentiment?.negative || 0}</span>
-                                        <span className="estat-label">Neg</span>
+                                        <span className="estat-val">{stats.email.total}</span>
+                                        <span className="estat-label">Total</span>
                                     </div>
                                 </div>
                             ) : (
@@ -189,16 +185,23 @@ function Dashboard() {
                         </div>
                     </div>
 
-                    {stats.email?.connected && stats.email?.mostImportant && (
+                    {stats.email?.connected && stats.email?.priorityList?.length > 0 && (
                         <div className="priority-inbox">
                             <div className="priority-header">
                                 <span className="priority-badge">⭐ Priority Inbox</span>
-                                <span className="priority-score">Score: {stats.email.mostImportant.score}/10</span>
                             </div>
-                            <div className="priority-item">
-                                <div className="pi-subject">{stats.email.mostImportant.subject}</div>
-                                <div className="pi-from">{stats.email.mostImportant.from}</div>
-                                <div className="pi-reason">AI Reason: {stats.email.mostImportant.reason}</div>
+                            <div className="priority-list">
+                                {stats.email.priorityList.map((email) => (
+                                    <div key={email.id} className="priority-item">
+                                        <div className="pi-top">
+                                            <span className="pi-score">{email.score}/10</span>
+                                            <span className="pi-date">{new Date(email.date).toLocaleDateString()}</span>
+                                        </div>
+                                        <div className="pi-subject">{email.subject}</div>
+                                        <div className="pi-from">{email.from}</div>
+                                        <div className="pi-reason">{email.reason}</div>
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     )}

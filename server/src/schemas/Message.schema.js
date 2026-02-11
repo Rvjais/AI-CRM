@@ -87,6 +87,10 @@ const messageSchema = new mongoose.Schema(
             default: false,
         },
         reactions: [reactionSchema],
+        hostNumber: {
+            type: String,
+            index: true
+        }
     },
     {
         timestamps: true,

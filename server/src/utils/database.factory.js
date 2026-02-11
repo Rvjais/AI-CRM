@@ -78,18 +78,17 @@ export const getClientModel = async (user, modelName, schema) => {
  * @param {String} userId 
  */
 export const getClientModels = async (userId) => {
-    const user = await User.findById(userId).select('+mongoURI');
-    if (!user) throw new Error('User not found');
-    if (!user.mongoURI) {
-        const err = new Error('User database not configured');
-        err.statusCode = 400; // Bad Request
-        throw err;
-    }
+    // In Single-DB Architecture, we reuse the static models.
+    // We keep this function signature for backward compatibility with controllers
+    // that expect { Message, Chat, ... } to be returned.
 
-    const Message = await getClientModel(user, 'Message', messageSchema);
-    const Chat = await getClientModel(user, 'Chat', chatSchema);
-    const Contact = await getClientModel(user, 'Contact', contactSchema);
-    const WhatsAppSession = await getClientModel(user, 'WhatsAppSession', whatsappSessionSchema);
+    const Message = (await import('../models/Message.js')).default;
+    const Chat = (await import('../models/Chat.js')).default;
+    const Contact = (await import('../models/Contact.js')).default;
+    const WhatsAppSession = (await import('../models/WhatsAppSession.js')).default;
+    const User = (await import('../models/User.js')).default;
+
+    const user = await User.findById(userId);
 
     return { Message, Chat, Contact, WhatsAppSession, user };
 };

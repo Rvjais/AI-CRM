@@ -9,6 +9,8 @@ import { startAIWorker } from './src/services/ai-worker.service.js';
 import { ensureAdminUser } from './src/utils/setup.util.js';
 import { startQueueProcessor } from './src/services/campaign.queue.js';
 
+logger.info('SERVER SCRIPT STARTED');
+
 /**
  * Server entry point
  * Initializes HTTP server, Socket.io, and database connection
@@ -27,16 +29,21 @@ app.set('io', io);
 const startServer = async () => {
     try {
         // Connect to database
+        logger.info('Attempting DB Connection...');
         await connectDB();
+        logger.info('DEBUG: DB Connected');
 
         // Configure Cloudinary
         configureCloudinary();
+        logger.info('DEBUG: Cloudinary Configured');
 
-        // Ensure admin user exists
-        await ensureAdminUser();
+        // Ensure admin user exists (Run in background to avoid startup block)
+        ensureAdminUser().catch(err => logger.error('Error ensuring admin user:', err));
+        logger.info('DEBUG: Admin User check started in background');
 
         // Restore active WhatsApp sessions
         try {
+            logger.info('DEBUG: Restoring WhatsApp Sessions...');
             const WhatsAppSession = (await import('./src/models/WhatsAppSession.js')).default;
             const { connectWhatsApp } = await import('./src/services/whatsapp.service.js');
 
@@ -49,19 +56,23 @@ const startServer = async () => {
                     logger.error(`Failed to restore session for user ${session.userId}:`, err);
                 });
             }
+            logger.info('DEBUG: Sessions Restored');
         } catch (error) {
             logger.error('Error restoring sessions:', error);
         }
 
         // Start AI Background Worker
         startAIWorker(io);
+        logger.info('DEBUG: AI Worker Started');
 
         // Start AI Cron Job (30-min scheduled tasks)
         const { startAiCron } = await import('./src/jobs/ai.cron.js');
         startAiCron();
+        logger.info('DEBUG: AI Cron Started');
 
         // Start Campaign Queue Processor
         startQueueProcessor();
+        logger.info('DEBUG: Queue Processor Started');
 
 
         // Start listening
