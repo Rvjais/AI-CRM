@@ -67,14 +67,9 @@ function EmailList({ threads, loading, onThreadSelect, selectedThreadId, onRefre
                                 </div>
                                 <div className="thread-subject">
                                     <div className="thread-badges">
-                                        {thread.sentiment && (
-                                            <span className={`sentiment-badge ${thread.sentiment}`}>
-                                                {thread.sentiment.charAt(0).toUpperCase() + thread.sentiment.slice(1)}
-                                            </span>
-                                        )}
                                         {thread.importanceScore && (
-                                            <span className="score-badge">
-                                                Score: {thread.importanceScore}/10
+                                            <span className={`score-badge ${thread.importanceScore >= 8 ? 'high' : thread.importanceScore >= 4 ? 'medium' : 'low'}`}>
+                                                Priority: {thread.importanceScore}/10
                                             </span>
                                         )}
                                     </div>

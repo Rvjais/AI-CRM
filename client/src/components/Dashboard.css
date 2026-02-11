@@ -803,19 +803,42 @@
     margin-bottom: 12px;
 }
 
-.priority-badge {
-    color: #b45309;
-    font-weight: 700;
-    font-size: 13px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
+align-items: center;
+gap: 6px;
 }
 
-.priority-list {
+.priority-section {
+    margin-top: 32px;
+}
+
+.priority-section h2 {
+    font-size: 20px;
+    color: #1f2937;
+    margin-bottom: 16px;
+}
+
+.priority-list-scroll {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
+    /* Remove fixed height to allow full list or keep it if desired. 
+       Let's keep it scrollable but taller since it has more space now */
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.priority-list-scroll::-webkit-scrollbar {
+    width: 6px;
+}
+
+.priority-list-scroll::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.priority-list-scroll::-webkit-scrollbar-thumb {
+    background-color: #fcd34d;
+    border-radius: 20px;
 }
 
 .priority-item {
@@ -843,10 +866,25 @@
 .pi-score {
     font-size: 11px;
     font-weight: 700;
-    color: #b45309;
-    background: #fef3c7;
     padding: 2px 8px;
     border-radius: 10px;
+    background: #fef3c7;
+    color: #b45309;
+}
+
+.pi-score.high {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.pi-score.medium {
+    background: #eff6ff;
+    color: #1e40af;
+}
+
+.pi-score.low {
+    background: #f3f4f6;
+    color: #4b5563;
 }
 
 .pi-date {

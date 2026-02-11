@@ -661,14 +661,17 @@ export const analyzeEmail = async (userId, emailText) => {
         You are an intelligent email assistant. Analyze the following email content.
         
         Task:
-        1. Determine the Sentiment (positive, neutral, negative).
-        2. Generate a very brief Summary (1 sentence).
-        3. Rate Importance (1-10) based on urgency, deal size, or support severity.
-        4. Give a short Reason for the importance score.
+        1. Generate a very brief Summary (1 sentence).
+        2. Rate Importance (1-10) based on urgency, deal size, or support severity.
+        3. Give a short Reason for the importance score.
+
+        STRICT PRIORITY RULES:
+        - 8-10 (High): Urgent, deal closings, severe support issues, direct leads, payment failures.
+        - 4-7 (Medium): Ongoing conversations, internal updates, meetings, questions.
+        - 1-3 (Low): Newsletters, cold outreach, automated notifications, spam, promotions.
 
         Output strictly JSON:
         {
-            "sentiment": "positive|neutral|negative",
             "summary": "...",
             "importanceScore": number,
             "importanceReason": "..."

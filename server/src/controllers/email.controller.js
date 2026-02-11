@@ -1,6 +1,7 @@
 import * as gmailService from '../services/gmail.service.js';
 import { successResponse } from '../utils/response.util.js';
 import { asyncHandler } from '../middleware/error.middleware.js';
+import * as whatsappService from '../services/whatsapp.service.js';
 
 /**
  * Email Controller
@@ -52,6 +53,19 @@ export const listThreads = asyncHandler(async (req, res) => {
                             importanceScore: aiResult.importanceScore || 5,
                             importanceReason: aiResult.importanceReason
                         });
+
+                        // Notification for High Priority
+                        if ((aiResult.importanceScore || 0) > 7) {
+                            try {
+                                const selfJid = whatsappService.getSelfJid(req.userId);
+                                if (selfJid) {
+                                    const msg = `🚨 *High Priority Email Detected*\n\n*Subject:* ${thread.subject}\n*Score:* ${aiResult.importanceScore}/10\n*Reason:* ${aiResult.importanceReason}\n\nCheck your dashboard for details.`;
+                                    await whatsappService.sendMessage(req.userId, selfJid, { text: msg });
+                                }
+                            } catch (notifyErr) {
+                                console.error('Failed to send email priority notification:', notifyErr);
+                            }
+                        }
                     }
                 } catch (err) {
                     console.error(`Failed to analyze thread ${thread.id}:`, err.message);

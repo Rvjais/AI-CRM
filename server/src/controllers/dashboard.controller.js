@@ -71,32 +71,16 @@ export const getDashboardStats = asyncHandler(async (req, res) => {
     }
 
     // 3. Forms Stats (Total inputs & last 5 submissions)
-    // We need to fetch forms created by user? 
-    // Assuming Form model has userId or we just fetch all for now (schema didn't show userId, might need to check how forms are associated)
-    // Checking Form schema... it doesn't seem to have userId in the previous view. 
-    // Wait, earlier I saw Form.schema.js and it didn't have userId. 
-    // If forms are global or not filtered by user, I'll just fetch all for now or check if there's a workaround.
-    // The previous FormBuilder fetchForms used `api.get('/api/forms')`. 
-    // I should check `form.controller.js` to see how it filters.
-    // For now, I will assume I can fetch all forms or I should add userId to criteria if applicable.
-    // I will fetch all forms for now.
-
-    // Actually, let's fetch forms and their submission counts
     try {
-        // Ideally we filter by userId if forms are user-specific. 
-        // Form schema check:
-        // fields: ...
-        // No userId visible in schema view.
-        // I will fetch all forms.
-        const importForm = (await import('../models/Form.js')).default;
-        const importSubmission = (await import('../models/FormSubmission.js')).default;
-
-        const forms = await importForm.find().lean();
+        // Fetch all forms (or filter by user if specific logic applies)
+        const forms = await import('../models/Form.js').then(m => m.default.find().lean());
+        const FormSubmission = (await import('../models/FormSubmission.js')).default;
 
         for (const form of forms) {
-            const submissionCount = await importSubmission.countDocuments({ formId: form._id });
+            const submissionCount = await FormSubmission.countDocuments({ formId: form._id });
+
             // Last 5 submissions for this form
-            const recentSubmissions = await importSubmission.find({ formId: form._id })
+            const recentSubmissions = await FormSubmission.find({ formId: form._id })
                 .sort({ submittedAt: -1 })
                 .limit(5)
                 .lean();
@@ -105,11 +89,27 @@ export const getDashboardStats = asyncHandler(async (req, res) => {
                 _id: form._id,
                 title: form.title,
                 totalSubmissions: submissionCount,
-                recentSubmissions: recentSubmissions.map(sub => ({
-                    _id: sub._id,
-                    email: sub.data.email || sub.data.Email || 'No Email', // Attempt to grab email field
-                    submittedAt: sub.submittedAt
-                }))
+                recentSubmissions: recentSubmissions.map(sub => {
+                    // Smart extraction of identifier
+                    const data = sub.data || {};
+                    // Case insensitive search for keys
+                    const getVal = (key) => {
+                        const k = Object.keys(data).find(k => k.toLowerCase() === key.toLowerCase());
+                        return k ? data[k] : null;
+                    };
+
+                    const email = getVal('email');
+                    const name = getVal('name') || getVal('fullname') || getVal('first name');
+                    const phone = getVal('phone') || getVal('number') || getVal('mobile');
+
+                    const displayValue = email || name || phone || 'Submission';
+
+                    return {
+                        _id: sub._id,
+                        email: displayValue, // Map to 'email' prop for frontend compatibility
+                        submittedAt: sub.submittedAt
+                    };
+                })
             });
         }
     } catch (error) {
@@ -162,6 +162,19 @@ export const getDashboardStats = asyncHandler(async (req, res) => {
                                 importanceScore: aiResult.importanceScore || 5, // Default mid
                                 importanceReason: aiResult.importanceReason
                             });
+
+                            // Notification for High Priority
+                            if ((aiResult.importanceScore || 0) > 7) {
+                                try {
+                                    const selfJid = whatsappService.getSelfJid(userId);
+                                    if (selfJid) {
+                                        const msg = `🚨 *High Priority Email Detected*\n\n*Subject:* ${thread.subject}\n*Score:* ${aiResult.importanceScore}/10\n*Reason:* ${aiResult.importanceReason}\n\nCheck your dashboard for details.`;
+                                        await whatsappService.sendMessage(userId, selfJid, { text: msg });
+                                    }
+                                } catch (notifyErr) {
+                                    console.error('Failed to send email priority notification:', notifyErr);
+                                }
+                            }
                         }
                     }
 

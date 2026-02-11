@@ -185,26 +185,6 @@ function Dashboard() {
                         </div>
                     </div>
 
-                    {stats.email?.connected && stats.email?.priorityList?.length > 0 && (
-                        <div className="priority-inbox">
-                            <div className="priority-header">
-                                <span className="priority-badge">⭐ Priority Inbox</span>
-                            </div>
-                            <div className="priority-list">
-                                {stats.email.priorityList.map((email) => (
-                                    <div key={email.id} className="priority-item">
-                                        <div className="pi-top">
-                                            <span className="pi-score">{email.score}/10</span>
-                                            <span className="pi-date">{new Date(email.date).toLocaleDateString()}</span>
-                                        </div>
-                                        <div className="pi-subject">{email.subject}</div>
-                                        <div className="pi-from">{email.from}</div>
-                                        <div className="pi-reason">{email.reason}</div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
                 </div>
 
                 {/* Dummy Voice Bot Section */}
@@ -239,6 +219,26 @@ function Dashboard() {
                     </div>
                 </div>
             </div>
+
+            {/* Priority Inbox Section */}
+            {stats.email?.connected && stats.email?.priorityList?.length > 0 && (
+                <div className="priority-section">
+                    <h2>Priority Email Inbox</h2>
+                    <div className="priority-list-scroll">
+                        {stats.email.priorityList.map((email) => (
+                            <div key={email.id} className="priority-item">
+                                <div className="pi-top">
+                                    <span className={`pi-score ${email.score >= 8 ? 'high' : email.score >= 4 ? 'medium' : 'low'}`}>{email.score}/10</span>
+                                    <span className="pi-date">{new Date(email.date).toLocaleDateString()}</span>
+                                </div>
+                                <div className="pi-subject">{email.subject}</div>
+                                <div className="pi-from">{email.from}</div>
+                                <div className="pi-reason">{email.reason}</div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {/* Forms Section */}
             <div className="forms-section">
