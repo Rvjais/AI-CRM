@@ -55,15 +55,23 @@ export const listThreads = asyncHandler(async (req, res) => {
                         });
 
                         // Notification for High Priority
-                        if ((aiResult.importanceScore || 0) > 7) {
+                        const score = Number(aiResult.importanceScore) || 0;
+                        console.log(`📧 [Email Controller] Subject: "${thread.subject}", Score: ${score}`);
+
+                        if (score > 7) {
                             try {
                                 const selfJid = whatsappService.getSelfJid(req.userId);
+                                console.log(`📱 [Notify] High Priority! Self JID: ${selfJid}`);
+
                                 if (selfJid) {
-                                    const msg = `🚨 *High Priority Email Detected*\n\n*Subject:* ${thread.subject}\n*Score:* ${aiResult.importanceScore}/10\n*Reason:* ${aiResult.importanceReason}\n\nCheck your dashboard for details.`;
+                                    const msg = `🚨 *High Priority Email Detected*\n\n*Subject:* ${thread.subject}\n*Score:* ${score}/10\n*Reason:* ${aiResult.importanceReason}\n\nCheck your dashboard for details.`;
                                     await whatsappService.sendMessage(req.userId, selfJid, { text: msg });
+                                    console.log(`✅ [Notify] Message sent to ${selfJid}`);
+                                } else {
+                                    console.warn(`⚠️ [Notify] Skipped - No Self JID found for user ${req.userId}`);
                                 }
                             } catch (notifyErr) {
-                                console.error('Failed to send email priority notification:', notifyErr);
+                                console.error('❌ [Notify] Failed to send email priority notification:', notifyErr);
                             }
                         }
                     }

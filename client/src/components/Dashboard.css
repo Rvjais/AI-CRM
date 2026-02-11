@@ -93,6 +93,62 @@
 }
 
 /* Activity List */
+.submission-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    /* Align to top for multi-line data */
+    padding: 12px 0;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.submission-item:last-child {
+    border-bottom: none;
+}
+
+.sub-info {
+    flex: 1;
+}
+
+.sub-data-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    /* Row gap 8px, Col gap 16px */
+}
+
+.sub-field {
+    display: flex;
+    gap: 4px;
+    font-size: 13px;
+    color: #374151;
+    align-items: center;
+}
+
+.sub-key {
+    font-weight: 600;
+    color: #111827;
+    text-transform: capitalize;
+}
+
+.sub-value {
+    color: #4b5563;
+}
+
+.sub-email {
+    font-weight: 500;
+    color: #111827;
+}
+
+.sub-date {
+    font-size: 12px;
+    color: #9ca3af;
+    white-space: nowrap;
+    margin-left: 12px;
+    padding-top: 2px;
+    /* Align with first line of text */
+}
+
 .activity-item {
     display: flex;
     align-items: flex-start;
@@ -803,9 +859,7 @@
     margin-bottom: 12px;
 }
 
-align-items: center;
-gap: 6px;
-}
+
 
 .priority-section {
     margin-top: 32px;

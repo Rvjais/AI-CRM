@@ -259,10 +259,23 @@ function Dashboard() {
                                     <div className="form-submissions-list">
                                         <h4>Last 5 Submissions</h4>
                                         {form.recentSubmissions && form.recentSubmissions.length > 0 ? (
-                                            <ul>
+                                            <ul className="submissions-list">
                                                 {form.recentSubmissions.map(sub => (
                                                     <li key={sub._id} onClick={() => handleSubmissionClick(sub)} className="submission-item">
-                                                        <span className="sub-email">{sub.email}</span>
+                                                        <div className="sub-info">
+                                                            {sub.data ? (
+                                                                <div className="sub-data-grid">
+                                                                    {Object.entries(sub.data).map(([key, value]) => (
+                                                                        <div key={key} className="sub-field">
+                                                                            <span className="sub-key">{key}:</span>
+                                                                            <span className="sub-value">{String(value)}</span>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            ) : (
+                                                                <span className="sub-email">{sub.email}</span>
+                                                            )}
+                                                        </div>
                                                         <span className="sub-date">{new Date(sub.submittedAt).toLocaleDateString()}</span>
                                                     </li>
                                                 ))}
