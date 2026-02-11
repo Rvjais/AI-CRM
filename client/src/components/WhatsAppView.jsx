@@ -126,16 +126,20 @@ function WhatsAppView({ token, onLogout }) {
 
             if (isMatch) {
                 setMessages(prev => {
-                    // Check if message already exists by _id or messageId
-                    const exists = prev.some(m =>
-                        (m._id === newMessage._id) ||
+                    // STRICT DEDUPLICATION: Check by ID
+                    const isDuplicate = prev.some(m =>
+                        m._id === newMessage._id ||
                         (m.messageId && m.messageId === newMessage.messageId)
                     );
 
-                    if (exists) return prev;
+                    if (isDuplicate) {
+                        console.log('🚫 [Frontend] Duplicate message blocked:', newMessage.messageId);
+                        return prev;
+                    }
 
                     const updated = [...prev, newMessage];
-                    // Update cache as well
+
+                    // Update cache
                     const chatId = newMessage.chatJid;
                     if (chatId) {
                         messagesCacheRef.current[chatId] = updated;
@@ -143,17 +147,16 @@ function WhatsAppView({ token, onLogout }) {
                     return updated;
                 });
             } else {
-                // Update cache even if not active
+                // Update cache for background chats
                 const chatId = newMessage.chatJid;
                 if (chatId) {
                     const cached = messagesCacheRef.current[chatId] || [];
-                    // Dedupe for cache too
-                    const exists = cached.some(m =>
-                        (m._id === newMessage._id) ||
+                    const isDuplicate = cached.some(m =>
+                        m._id === newMessage._id ||
                         (m.messageId && m.messageId === newMessage.messageId)
                     );
 
-                    if (!exists) {
+                    if (!isDuplicate) {
                         messagesCacheRef.current[chatId] = [...cached, newMessage];
                     }
                 }
@@ -348,7 +351,20 @@ function WhatsAppView({ token, onLogout }) {
         // Load from cache instantly
         const chatId = chat.jid || chat.phone;
         const cachedMessages = messagesCacheRef.current[chatId] || [];
-        setMessages(cachedMessages);
+
+        // Remove potential duplicates in cache just in case
+        const uniqueMessages = [];
+        const seenIds = new Set();
+
+        cachedMessages.forEach(msg => {
+            const id = msg.messageId || msg._id;
+            if (!seenIds.has(id)) {
+                seenIds.add(id);
+                uniqueMessages.push(msg);
+            }
+        });
+
+        setMessages(uniqueMessages);
     };
 
     const handleMessagesUpdate = (newMessages, chatId) => {
