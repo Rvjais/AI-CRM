@@ -277,7 +277,9 @@ function WhatsAppView({ token, onLogout }) {
                         aiEnabled: chat.aiEnabled || false,
                         sentiment: chat.sentiment || 'neutral',
                         summary: chat.summary || '',
-                        suggestions: chat.suggestions || []
+                        suggestions: chat.suggestions || [],
+                        extractedData: chat.extractedData || {},
+                        lastSummaryAt: chat.lastSummaryAt || null
                     };
                 });
 

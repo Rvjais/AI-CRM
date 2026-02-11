@@ -131,6 +131,14 @@ function AIInsights({ selectedChat, messages, aiEnabled, isCollapsed, setIsColla
                                 <FaSync />
                             </button>
                         </div>
+                        {selectedChat?.lastSummaryAt && (
+                            <p className="summary-timestamp" style={{ fontSize: '11px', color: '#888', marginBottom: '8px' }}>
+                                Last updated: {new Date(selectedChat.lastSummaryAt).toLocaleString('en-IN', {
+                                    dateStyle: 'medium',
+                                    timeStyle: 'short'
+                                })}
+                            </p>
+                        )}
                         <p className="summary-text">
                             {selectedChat?.summary || 'No summary available yet. Continue the conversation to generate insights.'}
                         </p>

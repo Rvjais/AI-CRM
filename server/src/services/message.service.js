@@ -254,7 +254,13 @@ export const getUserChats = async (userId, includeArchived = false) => {
                     aiEnabled: chatInfo?.aiEnabled || false,
                     isGroup: chatInfo?.isGroup || false,
                     phoneNumber: phoneNumber,
-                    contactName: contactName
+                    contactName: contactName,
+                    // AI Insights Fields
+                    sentiment: chatInfo?.sentiment || 'neutral',
+                    summary: chatInfo?.summary || '',
+                    suggestions: chatInfo?.suggestions || [],
+                    extractedData: chatInfo?.extractedData || {},
+                    lastSummaryAt: chatInfo?.lastSummaryAt || null
                 };
             })
         );
