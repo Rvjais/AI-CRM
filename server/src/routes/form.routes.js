@@ -1,4 +1,5 @@
 import express from 'express';
+import cors from 'cors';
 import { body } from 'express-validator';
 import { authenticate } from '../middleware/auth.middleware.js';
 import * as formController from '../controllers/form.controller.js';
@@ -19,7 +20,7 @@ router.delete('/:id', authenticate, formController.deleteForm);
 router.get('/:id/submissions', authenticate, formController.getSubmissions);
 
 // Public route for submission (no auth required)
-// Note: In a real app you might want some API key or CAPTCHA validation
-router.post('/:formId/submit', formController.submitForm);
+// Allow all origins for embedded forms to work anywhere
+router.post('/:formId/submit', cors({ origin: true, credentials: false }), formController.submitForm);
 
 export default router;

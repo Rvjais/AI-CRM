@@ -21,10 +21,10 @@ app.use(helmet());
 // CORS configuration - Allow file:// and localhost origins
 app.use(cors({
     origin: function (origin, callback) {
-        // Allow requests with no origin (like mobile apps, curl, or file://)
+        // Allow requests with no origin (like mobilapps, curl, or file://)
         if (!origin) return callback(null, true);
 
-        // Allow localhost
+        // Allow localhost for development
         if (origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1')) {
             return callback(null, true);
         }
