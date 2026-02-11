@@ -355,6 +355,17 @@ export const sendMediaMessage = async (userId, jid, mediaData) => {
     return sendMessage(userId, jid, message);
 };
 
+/**
+ * Get the JID of the connected user (the bot itself)
+ * @param {String} userId 
+ * @returns {String|null} jid or null if not connected
+ */
+export const getSelfJid = (userId) => {
+    const sock = getConnection(userId);
+    if (!sock || !sock.user) return null;
+    return sock.user.id;
+};
+
 // Helper functions
 
 async function updateSessionStatus(userId, status, phoneNumber = null) {
@@ -425,4 +436,5 @@ export default {
     sendMessage,
     sendTextMessage,
     sendMediaMessage,
+    getSelfJid,
 };

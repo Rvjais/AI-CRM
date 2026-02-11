@@ -127,6 +127,42 @@ export const submitForm = async (req, res, next) => {
 
         await submission.save();
 
+        // --- Notification Logic ---
+        try {
+            // lazy load service to avoid any circular dependency issues if they exist
+            const whatsappService = (await import('../services/whatsapp.service.js'));
+
+            const creatorId = form.createdBy;
+            const creatorJid = whatsappService.getSelfJid(creatorId);
+
+            if (creatorJid) {
+                // Format the message
+                let messageText = `📝 *New Submission: ${form.title}*\n\n`;
+
+                // Fields from schema or just keys from body?
+                // Using formData directly is safer as it contains actual submitted values
+                Object.entries(formData).forEach(([key, value]) => {
+                    // Try to find label if possible, otherwise use key
+                    const fieldConfig = form.fields.find(f => f.id === key || f.label === key);
+                    const label = fieldConfig ? fieldConfig.label : key;
+
+                    messageText += `*${label}:* ${value}\n`;
+                });
+
+                messageText += `\n_Received via RainCRM Form_`;
+
+                await whatsappService.sendTextMessage(creatorId, creatorJid, messageText);
+                console.log(`[Form] Notification sent to creator ${creatorId}`);
+            } else {
+                console.log(`[Form] Creator ${creatorId} not connected to WhatsApp. No notification sent.`);
+            }
+
+        } catch (notifyError) {
+            console.error('[Form] Notification failed:', notifyError);
+            // Don't fail the request, just log it
+        }
+        // --------------------------
+
         res.status(201).json({
             success: true,
             message: 'Form submitted successfully'
