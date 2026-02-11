@@ -258,8 +258,9 @@ export default function FormBuilder() {
 
     const generateEmbedCode = (format) => {
         if (!currentForm) return '';
-        const publicUrl = window.location.origin;
-        const apiUrl = `${publicUrl}/api/forms/${currentForm._id}/submit`;
+        // Use backend API URL instead of frontend origin
+        const apiBaseUrl = import.meta.env.VITE_API_URL || 'https://rain-crm-backend.onrender.com';
+        const apiUrl = `${apiBaseUrl}/api/forms/${currentForm._id}/submit`;
         const config = currentForm.designConfig || DEFAULT_DESIGN_CONFIG;
 
         const formHtml = currentForm.fields.map(field => {
