@@ -368,6 +368,18 @@
     border-color: #c7d2fe;
 }
 
+.mobile-ai-toggle {
+    display: none;
+    color: #8b5cf6;
+    border-color: #ddd6fe;
+}
+
+.mobile-ai-toggle.active {
+    background: #8b5cf6;
+    color: white;
+    border-color: #7c3aed;
+}
+
 /* Reply Preview Styling */
 .reply-preview {
     background: #f0f2f5;
@@ -508,6 +520,10 @@
     .action-btn {
         width: 32px;
         height: 32px;
+    }
+
+    .mobile-ai-toggle {
+        display: flex;
     }
 
     .ai-toggle-btn {

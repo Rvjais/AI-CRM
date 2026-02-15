@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
-import { FaPaperPlane, FaArchive, FaTable, FaSpinner, FaArrowLeft } from 'react-icons/fa';
+import { FaPaperPlane, FaArchive, FaTable, FaSpinner, FaArrowLeft, FaBrain } from 'react-icons/fa';
 import Message from './Message';
 import api from '../utils/apiClient';
 import './ChatWindow.css';
 import Loader from './Loader';
 
-function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat, onForward, onBack }) {
+function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat, onForward, onBack, onToggleMobileAI, isMobileAIViewOpen }) {
     const [newMessage, setNewMessage] = useState('');
     const [loading, setLoading] = useState(false);
     const [syncing, setSyncing] = useState(false); // New state for sync loading
@@ -309,6 +309,14 @@ function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat, 
                             <FaPaperPlane /> {/* Or other icon like FaInbox */}
                         </button>
                     )}
+                    {/* Mobile AI Toggle - Only visible on mobile via CSS */}
+                    <button
+                        className={`action-btn mobile-ai-toggle ${isMobileAIViewOpen ? 'active' : ''}`}
+                        onClick={onToggleMobileAI}
+                        title="Toggle AI Insights"
+                    >
+                        <FaBrain className="ai-icon-brain" />
+                    </button>
                     {/* AI Toggle Switch */}
                     <div className="ai-wrapper" onClick={toggleChatAI} title={selectedChat.aiEnabled ? "Disable AI" : "Enable AI"}>
                         <span className={`ai-status-text ${selectedChat.aiEnabled ? 'active' : ''}`}>

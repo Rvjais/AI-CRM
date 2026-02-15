@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { FaInfoCircle, FaSync, FaChevronLeft, FaChevronRight, FaBrain } from 'react-icons/fa';
+import { FaInfoCircle, FaSync, FaChevronLeft, FaChevronRight, FaBrain, FaUser, FaEnvelope, FaPhone, FaMoneyBillWave, FaMapMarkerAlt, FaTag, FaCalendarAlt } from 'react-icons/fa';
 import SentimentGauge from './SentimentGauge';
 import './AIInsights.css';
 
-function AIInsights({ selectedChat, messages, aiEnabled, isCollapsed, setIsCollapsed }) {
+function AIInsights({ selectedChat, messages, aiEnabled, isCollapsed, setIsCollapsed, onCloseMobile }) {
     const [note, setNote] = useState('');
 
     const [isRegenerating, setIsRegenerating] = useState(false);
@@ -79,6 +79,7 @@ function AIInsights({ selectedChat, messages, aiEnabled, isCollapsed, setIsColla
                 ) : (
                     <FaBrain className="ai-collapsed-icon" />
                 )}
+                <button className="mobile-close-btn" onClick={onCloseMobile}>×</button>
             </div>
 
             {!isCollapsed && (
@@ -87,12 +88,31 @@ function AIInsights({ selectedChat, messages, aiEnabled, isCollapsed, setIsColla
                         <h3>LEAD DATA</h3>
                         {selectedChat?.extractedData && Object.keys(selectedChat.extractedData).length > 0 ? (
                             <div className="extracted-data-grid">
-                                {Object.entries(selectedChat.extractedData).map(([key, value]) => (
-                                    <div key={key} className="data-item">
-                                        <span className="data-label">{key.replace(/_/g, ' ')}</span>
-                                        <span className="data-value">{value || '-'}</span>
-                                    </div>
-                                ))}
+                                {Object.entries(selectedChat.extractedData).map(([key, value]) => {
+                                    const getIcon = (k) => {
+                                        k = k.toLowerCase();
+                                        if (k.includes('name')) return <FaUser className="data-icon" />;
+                                        if (k.includes('email')) return <FaEnvelope className="data-icon" />;
+                                        if (k.includes('phone') || k.includes('contact')) return <FaPhone className="data-icon" />;
+                                        if (k.includes('budget') || k.includes('price') || k.includes('cost')) return <FaMoneyBillWave className="data-icon" />;
+                                        if (k.includes('location') || k.includes('address') || k.includes('city')) return <FaMapMarkerAlt className="data-icon" />;
+                                        if (k.includes('service') || k.includes('product')) return <FaTag className="data-icon" />;
+                                        if (k.includes('age')) return <FaCalendarAlt className="data-icon" />;
+                                        return <FaInfoCircle className="data-icon" />;
+                                    };
+
+                                    return (
+                                        <div key={key} className="data-item">
+                                            <div className="data-icon-wrapper">
+                                                {getIcon(key)}
+                                            </div>
+                                            <div className="data-content">
+                                                <span className="data-label">{key.replace(/_/g, ' ')}</span>
+                                                <span className="data-value">{value || '-'}</span>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
                             </div>
                         ) : (
                             <div className="no-data-placeholder">

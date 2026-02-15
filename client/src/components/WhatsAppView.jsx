@@ -18,6 +18,7 @@ function WhatsAppView({ token, onLogout }) {
     const [isForwardModalOpen, setIsForwardModalOpen] = useState(false);
     const [msgToForward, setMsgToForward] = useState(null);
     const [isAICollapsed, setIsAICollapsed] = useState(false);
+    const [isMobileAIViewOpen, setIsMobileAIViewOpen] = useState(false);
 
     // Ref to track selected chat without triggering effect re-runs
     const chatsRef = useRef(chats);
@@ -32,6 +33,10 @@ function WhatsAppView({ token, onLogout }) {
 
     useEffect(() => {
         selectedChatRef.current = selectedChat;
+    }, [selectedChat]);
+
+    useEffect(() => {
+        setIsMobileAIViewOpen(false);
     }, [selectedChat]);
 
     useEffect(() => {
@@ -440,7 +445,7 @@ function WhatsAppView({ token, onLogout }) {
     }
 
     return (
-        <div className={`whatsapp-view ${isAICollapsed ? 'ai-collapsed' : ''} ${selectedChat ? 'chat-active' : ''}`}>
+        <div className={`whatsapp-view ${isAICollapsed ? 'ai-collapsed' : ''} ${selectedChat ? 'chat-active' : ''} ${isMobileAIViewOpen ? 'mobile-ai-open' : ''}`}>
             <ChatList
                 chats={chats}
                 selectedChat={selectedChat}
@@ -457,6 +462,8 @@ function WhatsAppView({ token, onLogout }) {
                 onUpdateChat={handleChatUpdate}
                 onForward={handleForwardRequest}
                 onBack={() => setSelectedChat(null)}
+                onToggleMobileAI={() => setIsMobileAIViewOpen(!isMobileAIViewOpen)}
+                isMobileAIViewOpen={isMobileAIViewOpen}
             />
             <AIInsights
                 selectedChat={selectedChat}
@@ -464,6 +471,7 @@ function WhatsAppView({ token, onLogout }) {
                 aiEnabled={aiEnabled}
                 isCollapsed={isAICollapsed}
                 setIsCollapsed={setIsAICollapsed}
+                onCloseMobile={() => setIsMobileAIViewOpen(false)}
             />
 
             <ForwardModal
