@@ -88,6 +88,16 @@
     border: 1px solid rgba(0, 0, 0, 0.03);
 }
 
+.message-sender-name {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #e58e34;
+    /* Orange-ish color similar to WhatsApp pattern */
+    margin-bottom: 2px;
+    line-height: 1.2;
+    padding-right: 4px;
+}
+
 /* Quoted Message in Bubble */
 .quoted-message-preview {
     border-left: 4px solid #4A9FF5;

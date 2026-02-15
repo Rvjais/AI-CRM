@@ -1,7 +1,7 @@
 import './Message.css';
 import api from '../utils/apiClient';
 
-function Message({ message, onForward, onReply }) {
+function Message({ message, onForward, onReply, isGroup }) {
     const formatTime = (timestamp) => {
         if (!timestamp) return '';
         const date = new Date(timestamp);
@@ -18,6 +18,11 @@ function Message({ message, onForward, onReply }) {
         }
 
         const { type, content } = message;
+
+        // [DEBUG] Log image messages to check structure
+        if (type === 'image') {
+            console.log('🖼️ [Message] Image message:', { id: message._id, content });
+        }
 
         // Sticker
         if (type === 'sticker' || content.mimeType?.includes('webp')) {
@@ -145,6 +150,13 @@ function Message({ message, onForward, onReply }) {
 
             <div className="message-content-wrapper">
                 <div className={`message-bubble group ${message.fromMe ? 'sent-bubble' : 'received-bubble'}`}>
+                    {/* Show Sender Name in Group Chats */}
+                    {isGroup && !message.fromMe && message.senderName && (
+                        <div className="message-sender-name">
+                            {message.senderName}
+                        </div>
+                    )}
+
                     {/* Quoted Message Preview */}
                     {message.quotedMessage && (
                         <div className="quoted-message-preview">

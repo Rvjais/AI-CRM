@@ -9,6 +9,7 @@ import { ERROR_CODES } from '../config/constants.js';
 
 // Custom error handler for rate limit
 const rateLimitHandler = (req, res) => {
+    console.error(`⚠️ [RateLimit] IP ${req.ip} hit rate limit on ${req.originalUrl}`);
     return errorResponse(
         res,
         429,

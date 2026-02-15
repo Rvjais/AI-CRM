@@ -43,6 +43,7 @@ export const connectWhatsApp = async (userId, io) => {
 
         // Create logger
         const socketLogger = pino({ level: 'silent' }); // Set to 'debug' for detailed logs
+        console.log(`🔌 [connectWhatsApp] Initializing socket for user ${userId}...`);
 
         // Import contact handler dynamically
         const { handleContactsUpsert, handleContactsUpdate } = await import('../whatsapp/contact.handler.js');
@@ -54,9 +55,38 @@ export const connectWhatsApp = async (userId, io) => {
             printQRInTerminal: false,
             auth: state,
             browser: ['Chrome (Linux)', '', ''],
+            retryRequestDelayMs: 250, // Enable retries
             getMessage: async (key) => {
-                // Return undefined if message not found
-                return undefined;
+                try {
+                    // [FIX] Implement getMessage for retries/decryption
+                    const { Message } = await getClientModels(userId);
+                    const msg = await Message.findOne({ messageId: key.id }).select('+rawMessage');
+
+                    if (msg && msg.rawMessage) {
+                        return msg.rawMessage;
+                    }
+
+                    if (msg && msg.content) {
+                        // Fallback reconstruction
+                        console.log(`⚠️ [getMessage] rawMessage missing for ${key.id}, using fallback reconstruction.`);
+                        // Reconstruct Baileys message object from our DB schema
+                        // This is a simplified reconstruction, usually enough for session validation
+                        const content = {};
+                        if (msg.type === 'text') {
+                            content.conversation = msg.content.text;
+                        } else if (msg.type === 'image') {
+                            content.imageMessage = {
+                                url: msg.content.url,
+                                caption: msg.content.caption
+                            };
+                        }
+                        return { conversation: msg.content.text }; // Fallback minimal
+                    }
+                    return undefined;
+                } catch (e) {
+                    console.error('Error in getMessage:', e);
+                    return undefined;
+                }
             },
         });
 
@@ -129,6 +159,7 @@ export const connectWhatsApp = async (userId, io) => {
         sock.ev.on('creds.update', saveCreds);
 
         // Handle incoming messages
+        console.log(`👂 [connectWhatsApp] Attaching 'messages.upsert' listener for user ${userId}`);
         sock.ev.on('messages.upsert', async ({ messages, type }) => {
             console.log(`🔔 [messages.upsert] Event triggered! Type: ${type}, Messages:`, messages.length);
             if (type === 'notify') {
@@ -138,12 +169,34 @@ export const connectWhatsApp = async (userId, io) => {
                     const sendResponse = async (jid, text) => {
                         await sock.sendMessage(jid, { text });
                     };
+
+                    // [FIX] Robust way to get host number
                     let hostNumber = sock.user?.id?.split(':')[0];
+
+                    if (!hostNumber && sock.authState?.creds?.me?.id) {
+                        hostNumber = sock.authState.creds.me.id.split(':')[0];
+                        console.log(`⚠️ [messages.upsert] sock.user missing, recovered hostNumber ${hostNumber} from authState`);
+                    }
+
                     if (!hostNumber) {
-                        console.error('❌ [messages.upsert] sock.user is undefined! Cannot determine hostNumber. Message persistence might fail.');
-                        // Fallback?
-                    } else {
+                        console.error('❌ [messages.upsert] CRITICAL: Could not determine hostNumber from socket state. Fetching from DB as fallback...');
+                        // Fallback: Fetch from DB Session
+                        try {
+                            const { WhatsAppSession } = await getClientModels(userId);
+                            const session = await WhatsAppSession.findOne({ userId });
+                            if (session && session.phoneNumber) {
+                                hostNumber = session.phoneNumber;
+                                console.log(`✅ [messages.upsert] Recovered hostNumber ${hostNumber} from DB Session`);
+                            }
+                        } catch (err) {
+                            console.error('❌ [messages.upsert] DB Fallback failed:', err);
+                        }
+                    }
+
+                    if (hostNumber) {
                         // console.log(`[messages.upsert] Using hostNumber: ${hostNumber}`);
+                    } else {
+                        console.error('❌ [messages.upsert] FAILED to determine hostNumber. Message will save to default collection (User might not see it).');
                     }
 
                     await handleIncomingMessage(userId, msg, io, sendResponse, hostNumber);
@@ -266,7 +319,32 @@ export const sendMessage = async (userId, jid, content, options = {}) => {
 
     // Persist to Database
     try {
-        const senderPn = sock.user.id.split(':')[0]; // Extract phone number
+        // [FIX] Robust way to get host number
+        let senderPn = sock.user?.id?.split(':')[0];
+
+        if (!senderPn && sock.authState?.creds?.me?.id) {
+            senderPn = sock.authState.creds.me.id.split(':')[0];
+            console.log(`⚠️ [sendMessage] sock.user missing, recovered senderPn ${senderPn} from authState`);
+        }
+
+        if (!senderPn) {
+            // Fallback: Fetch from DB Session
+            try {
+                const { WhatsAppSession } = await getClientModels(userId);
+                const session = await WhatsAppSession.findOne({ userId });
+                if (session && session.phoneNumber) {
+                    senderPn = session.phoneNumber;
+                    console.log(`✅ [sendMessage] Recovered senderPn ${senderPn} from DB Session`);
+                }
+            } catch (err) {
+                console.error('❌ [sendMessage] DB Fallback failed:', err);
+            }
+        }
+
+        if (!senderPn) {
+            console.error('❌ [sendMessage] FAILED to determine senderPn. Message saving might fail or save to wrong collection.');
+        }
+
         const { Message, Chat } = await getClientModels(userId, senderPn);
 
         const messageType = Object.keys(content)[0]; // e.g., 'text' or 'image'
@@ -294,6 +372,8 @@ export const sendMessage = async (userId, jid, content, options = {}) => {
             msgData.content.caption = content.caption;
         }
 
+        console.log('💾 [sendMessage] Saving Message:', JSON.stringify(msgData, null, 2));
+
         await Message.create(msgData);
 
         // Update Chat
@@ -313,15 +393,13 @@ export const sendMessage = async (userId, jid, content, options = {}) => {
         };
 
         if (options.isCampaign) {
-            // If it's a campaign message, we try to set category to campaign ONLY ON INSERT.
-            // If chat exists, it keeps its category.
             // Logic handled by $setOnInsert above.
         } else {
             // Normal message. If chat doesn't exist, it defaults to normal.
         }
 
         await Chat.findOneAndUpdate(
-            { userId, jid },
+            { userId, chatJid: jid },
             updateOps,
             { upsert: true }
         );

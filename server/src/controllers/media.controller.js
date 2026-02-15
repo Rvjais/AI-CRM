@@ -12,7 +12,17 @@ import { asyncHandler } from '../middleware/error.middleware.js';
  * POST /api/media/upload
  */
 export const uploadMedia = asyncHandler(async (req, res) => {
+    console.log('📂 [uploadMedia] Request received', {
+        file: req.file ? {
+            originalname: req.file.originalname,
+            mimetype: req.file.mimetype,
+            size: req.file.size
+        } : 'MISSING',
+        body: req.body
+    });
+
     if (!req.file) {
+        console.error('❌ [uploadMedia] No file in request');
         throw new Error('No file uploaded');
     }
 

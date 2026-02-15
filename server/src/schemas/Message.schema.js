@@ -90,6 +90,10 @@ const messageSchema = new mongoose.Schema(
         hostNumber: {
             type: String,
             index: true
+        },
+        rawMessage: {
+            type: Object, // Store full Baileys message object for retries/decryption
+            select: false // Do not return by default to save bandwidth
         }
     },
     {

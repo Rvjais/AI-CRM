@@ -18,6 +18,9 @@ const storage = multer.memoryStorage();
 
 // File filter
 const fileFilter = (req, file, cb) => {
+    // [DEBUG] Log file details
+    console.log(`📂 [Multer] Filtering file: ${file.originalname} (${file.mimetype})`);
+
     const allowedTypes = [
         ...ALLOWED_IMAGE_TYPES,
         ...ALLOWED_VIDEO_TYPES,
@@ -28,6 +31,7 @@ const fileFilter = (req, file, cb) => {
     if (allowedTypes.includes(file.mimetype)) {
         cb(null, true);
     } else {
+        console.error(`❌ [Multer] Rejected file type: ${file.mimetype}`);
         cb(new Error(`Invalid file type: ${file.mimetype}. Only images, videos, audio, and documents are allowed.`), false);
     }
 };

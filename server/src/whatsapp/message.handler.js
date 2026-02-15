@@ -168,7 +168,9 @@ export const handleIncomingMessage = async (userId, msg, io, sendResponse, hostN
             senderName: msg.pushName,
             senderPn: msg.key.senderPn ? msg.key.senderPn.split('@')[0] : undefined,
             participant: msg.key.participant, // Save participant JID for generic quoting support
-            hostNumber: hostNumber // [FIX] Save host number
+            participant: msg.key.participant, // Save participant JID for generic quoting support
+            hostNumber: hostNumber, // [FIX] Save host number
+            rawMessage: val_1.rawMessage || msg.message // Save raw message for getMessage/retries
         };
 
         console.log(`💾 [handleIncomingMessage] User ${userId}: Saving message`, {
@@ -334,6 +336,13 @@ async function extractMessageContent(msg, messageType, userId) {
     const content = {};
 
     try {
+        // [FIX] Handle View Once messages - Do not display, show placeholder
+        if (messageType === 'viewOnceMessage' || messageType === 'viewOnceMessageV2') {
+            content.text = "Can't view this message here because of safety reason please view it in your mobile phone";
+            content.isViewOnce = true;
+            return content;
+        }
+
         switch (messageType) {
             case 'conversation':
                 content.text = msg.message.conversation;
@@ -483,25 +492,35 @@ function mapMessageType(baileysType) {
 export const downloadAndUploadMedia = async (msg, userId) => {
     try {
         // Download media buffer
+        // Baileys downloadMediaMessage expects the full message object. 
+        // If we unwrapped a ViewOnce message, we modified msg.message.
+        // This is fine as long as msg structure is valid.
         const buffer = await downloadMediaMessage(msg, 'buffer', {});
 
         // Determine filename and mime type
+        // Use the current messageType from the (potentially modified) msg object
         const messageType = Object.keys(msg.message)[0];
-        const mimeType = msg.message[messageType].mimetype;
-        const fileName = msg.message[messageType].fileName || `media_${Date.now()}`;
+        const mediaMsg = msg.message[messageType];
+
+        const mimeType = mediaMsg.mimetype;
+        const fileName = mediaMsg.fileName || `media_${Date.now()}`;
 
         // Check MIME type to decide storage
         if (mimeType.startsWith('image/') || mimeType.startsWith('video/')) {
+            console.log(`☁️ [downloadAndUploadMedia] Uploading ${mimeType} to Cloudinary...`);
             // Upload to Cloudinary
             const media = await uploadToCloudinary(buffer, fileName, mimeType, userId);
+            console.log(`✅ [downloadAndUploadMedia] Uploaded to Cloudinary: ${media.secureUrl}`);
             return media.secureUrl;
         } else {
+            console.log(`📦 [downloadAndUploadMedia] Uploading ${mimeType} to MongoDB GridFS...`);
             // Upload to MongoDB GridFS
             const result = await uploadToMongo(buffer, fileName, mimeType);
+            console.log(`✅ [downloadAndUploadMedia] Uploaded to Mongo: ${result.url}`);
             return result.url;
         }
     } catch (error) {
-        logger.error('Error downloading/uploading media:', error);
+        logger.error('❌ [downloadAndUploadMedia] Error:', error);
         throw error;
     }
 };

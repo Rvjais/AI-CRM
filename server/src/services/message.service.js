@@ -225,7 +225,11 @@ export const getUserChats = async (userId, includeArchived = false) => {
                 }
 
                 if (lastIncomingMsg) {
-                    if (lastIncomingMsg.senderName && !contactName) {
+                    // [FIX] For Group Chats, DO NOT use the sender's name as the Chat Name. 
+                    // Only use senderName for individual chats if we don't have a contact name.
+                    const isGroup = chatJid.includes('@g.us'); // Basic check
+
+                    if (lastIncomingMsg.senderName && !contactName && !isGroup) {
                         // Only use senderName if we don't have a better contact name
                         contactName = lastIncomingMsg.senderName;
                     }

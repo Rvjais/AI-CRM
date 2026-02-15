@@ -88,16 +88,18 @@ export const schemas = {
             chatJid: Joi.string(),
             type: Joi.string().valid('text', 'image', 'video', 'audio', 'document', 'sticker', 'location', 'contact'),
             content: Joi.object({
-                text: Joi.string(),
+                text: Joi.string().allow('', null), // Allow empty text for media captions
                 mediaUrl: Joi.string(),
-                caption: Joi.string(),
+                caption: Joi.string().allow('', null),
                 mimeType: Joi.string(),
+                mimetype: Joi.string(), // Allow lowercase
                 fileName: Joi.string(),
+                isViewOnce: Joi.boolean(), // Add isViewOnce
                 latitude: Joi.number(),
                 longitude: Joi.number(),
                 contactName: Joi.string(),
                 contactNumber: Joi.string(),
-            }),
+            }).unknown(true), // Allow other fields to avoid validation errors
             quotedMessageId: Joi.string(),
             quoted: Joi.object().unknown(true), // Allow full quoted message object
             mentions: Joi.array().items(Joi.string()),

@@ -49,6 +49,7 @@ app.use(cors({
             return callback(null, true);
         }
 
+        console.error(`❌ [CORS] Blocked origin: ${origin}`);
         callback(new Error('Not allowed by CORS'));
     },
     credentials: true,
@@ -66,6 +67,7 @@ app.use((req, res, next) => {
     logger.info(`${req.method} ${req.path}`, {
         ip: req.ip,
         userAgent: req.get('user-agent'),
+        headers: req.headers, // [DEBUG] Log headers
     });
     next();
 });

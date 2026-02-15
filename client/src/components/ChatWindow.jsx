@@ -168,9 +168,7 @@ function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat, 
                 const formData = new FormData();
                 formData.append('file', mediaFile);
 
-                const uploadRes = await api.post('/api/media/upload', formData, {
-                    headers: { 'Content-Type': 'multipart/form-data' } // axios/fetch handles this usually but good to be explicit or let generic handler do it
-                });
+                const uploadRes = await api.post('/api/media/upload', formData);
 
                 if (!uploadRes.success) throw new Error('Upload failed');
 
@@ -345,6 +343,7 @@ function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat, 
                             message={message}
                             onForward={onForward}
                             onReply={handleReply}
+                            isGroup={selectedChat.jid ? selectedChat.jid.endsWith('@g.us') : false}
                         />
                     ))
                 )}

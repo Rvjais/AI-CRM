@@ -9,13 +9,11 @@ import env from '../config/env.js';
 
 export const errorHandler = (err, req, res, next) => {
     // Log error
-    logger.error('Error:', {
+    logger.error('❌ [errorHandler]', {
         message: err.message,
+        name: err.name,
         stack: err.stack,
         url: req.originalUrl,
-        method: req.method,
-        ip: req.ip,
-        userId: req.userId,
     });
 
     // Mongoose validation error

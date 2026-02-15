@@ -13,6 +13,7 @@ export const authenticate = async (req, res, next) => {
         const authHeader = req.headers.authorization;
 
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            console.warn('⚠️ [authenticate] No token provided');
             return unauthorizedResponse(res, 'No token provided');
         }
 
@@ -25,6 +26,7 @@ export const authenticate = async (req, res, next) => {
         const user = await User.findById(decoded.userId).select('-password');
 
         if (!user) {
+            console.warn(`⚠️ [authenticate] User not found for ID ${decoded.userId}`);
             return unauthorizedResponse(res, 'User not found');
         }
 
@@ -36,9 +38,15 @@ export const authenticate = async (req, res, next) => {
         req.user = user;
         req.userId = user._id;
 
+        // [DEBUG]
+        console.log(`✅ [authenticate] User ${user._id} authenticated`);
+
         next();
     } catch (error) {
-        if (error.message.includes('token')) {
+        // [DEBUG] Log the error to debug why auth is failing
+        console.error('❌ [authenticate] Error:', error);
+
+        if (error.message && error.message.includes('token')) {
             return unauthorizedResponse(res, error.message);
         }
         return unauthorizedResponse(res, 'Authentication failed');
