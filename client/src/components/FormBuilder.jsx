@@ -258,8 +258,16 @@ export default function FormBuilder() {
 
     const generateEmbedCode = (format) => {
         if (!currentForm) return '';
-        // Use backend API URL instead of frontend origin
-        const apiBaseUrl = import.meta.env.VITE_API_URL || 'https://rain-crm-backend.onrender.com';
+
+        // Smart URL selection:
+        // If we are on localhost, generic the embed code with localhost API
+        // If we are on production, generate it with production API
+        let apiBaseUrl = 'https://rain-crm-backend.onrender.com';
+
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            apiBaseUrl = 'http://localhost:3000';
+        }
+
         const apiUrl = `${apiBaseUrl}/api/forms/${currentForm._id}/submit`;
         const config = currentForm.designConfig || DEFAULT_DESIGN_CONFIG;
 
