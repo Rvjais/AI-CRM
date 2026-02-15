@@ -90,7 +90,8 @@ export const getInfrastructure = asyncHandler(async (req, res) => {
     const infrastructure = {
         mongoURI: user.mongoURI, // In production, maybe mask this
         cloudinaryConfig: user.cloudinaryConfig,
-        infrastructureReady: user.infrastructureReady
+        // Calculate readiness dynamically to handle legacy data correctly
+        infrastructureReady: !!(user.mongoURI && user.cloudinaryConfig?.cloudName && user.cloudinaryConfig?.apiKey && user.cloudinaryConfig?.apiSecret)
     };
 
     return successResponse(res, 200, 'Infrastructure settings retrieved', infrastructure);

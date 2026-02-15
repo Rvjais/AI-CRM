@@ -1,5 +1,5 @@
-import Contact from '../models/Contact.js';
 import * as whatsappService from '../services/whatsapp.service.js';
+import { getClientModels } from '../utils/database.factory.js';
 import { successResponse, createdResponse } from '../utils/response.util.js';
 import { asyncHandler } from '../middleware/error.middleware.js';
 
@@ -13,6 +13,11 @@ import { asyncHandler } from '../middleware/error.middleware.js';
  * GET /api/contacts/
  */
 export const getAllContacts = asyncHandler(async (req, res) => {
+    const { WhatsAppSession } = await getClientModels(req.userId);
+    const session = await WhatsAppSession.findOne({ userId: req.userId });
+    const hostNumber = session?.status === 'connected' ? session.phoneNumber : null;
+    const { Contact } = await getClientModels(req.userId, hostNumber);
+
     const contacts = await Contact.find({ userId: req.userId }).sort({ name: 1 });
 
     return successResponse(res, 200, 'Contacts retrieved successfully', contacts);
@@ -24,6 +29,11 @@ export const getAllContacts = asyncHandler(async (req, res) => {
  */
 export const getContactDetails = asyncHandler(async (req, res) => {
     const { jid } = req.params;
+
+    const { WhatsAppSession } = await getClientModels(req.userId);
+    const session = await WhatsAppSession.findOne({ userId: req.userId });
+    const hostNumber = session?.status === 'connected' ? session.phoneNumber : null;
+    const { Contact } = await getClientModels(req.userId, hostNumber);
 
     const contact = await Contact.findOne({ userId: req.userId, jid });
 
@@ -48,6 +58,9 @@ export const syncContacts = asyncHandler(async (req, res) => {
     // Get contacts from WhatsApp
     const contacts = Object.values(sock.store?.contacts || {});
 
+    const hostNumber = sock.user.id.split(':')[0];
+    const { Contact } = await getClientModels(req.userId, hostNumber);
+
     // Save to database
     for (const contact of contacts) {
         await Contact.findOneAndUpdate(
@@ -71,6 +84,11 @@ export const updateContact = asyncHandler(async (req, res) => {
     const { jid } = req.params;
     const updates = req.body;
 
+    const { WhatsAppSession } = await getClientModels(req.userId);
+    const session = await WhatsAppSession.findOne({ userId: req.userId });
+    const hostNumber = session?.status === 'connected' ? session.phoneNumber : null;
+    const { Contact } = await getClientModels(req.userId, hostNumber);
+
     const contact = await Contact.findOneAndUpdate(
         { userId: req.userId, jid },
         updates,
@@ -86,6 +104,11 @@ export const updateContact = asyncHandler(async (req, res) => {
  */
 export const deleteContact = asyncHandler(async (req, res) => {
     const { jid } = req.params;
+
+    const { WhatsAppSession } = await getClientModels(req.userId);
+    const session = await WhatsAppSession.findOne({ userId: req.userId });
+    const hostNumber = session?.status === 'connected' ? session.phoneNumber : null;
+    const { Contact } = await getClientModels(req.userId, hostNumber);
 
     await Contact.findOneAndDelete({ userId: req.userId, jid });
 
@@ -103,6 +126,11 @@ export const blockContact = asyncHandler(async (req, res) => {
     if (sock) {
         await sock.updateBlockStatus(jid, 'block');
     }
+
+    const { WhatsAppSession } = await getClientModels(req.userId);
+    const session = await WhatsAppSession.findOne({ userId: req.userId });
+    const hostNumber = session?.status === 'connected' ? session.phoneNumber : null;
+    const { Contact } = await getClientModels(req.userId, hostNumber);
 
     await Contact.findOneAndUpdate(
         { userId: req.userId, jid },
@@ -124,6 +152,11 @@ export const unblockContact = asyncHandler(async (req, res) => {
     if (sock) {
         await sock.updateBlockStatus(jid, 'unblock');
     }
+
+    const { WhatsAppSession } = await getClientModels(req.userId);
+    const session = await WhatsAppSession.findOne({ userId: req.userId });
+    const hostNumber = session?.status === 'connected' ? session.phoneNumber : null;
+    const { Contact } = await getClientModels(req.userId, hostNumber);
 
     await Contact.findOneAndUpdate(
         { userId: req.userId, jid },

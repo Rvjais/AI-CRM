@@ -1,6 +1,7 @@
 import * as messageService from '../services/message.service.js';
 import * as whatsappService from '../services/whatsapp.service.js';
 import { uploadToCloudinary } from '../services/cloudinary.service.js';
+import { getClientModels } from '../utils/database.factory.js';
 import { successResponse, createdResponse, noContentResponse } from '../utils/response.util.js';
 import { asyncHandler } from '../middleware/error.middleware.js';
 import { MESSAGE_TYPES, MESSAGE_STATUS } from '../config/constants.js';
@@ -68,7 +69,8 @@ export const sendMessage = asyncHandler(async (req, res) => {
 
     if (quoted || quotedMessageId) {
         const quotedData = quoted || {};
-        const Message = (await import('../models/Message.js')).default;
+        const hostNumber = sock.user.id.split(':')[0];
+        const { Message } = await getClientModels(userId, hostNumber);
 
         // Search by stanza ID (messageId) if available, or _id
         const qId = quotedData.messageId || quotedMessageId;
@@ -118,7 +120,8 @@ export const sendMessage = asyncHandler(async (req, res) => {
     if (isLid) {
         try {
             // Check if we have a mapping for this LID
-            const Contact = (await import('../models/Contact.js')).default;
+            const hostNumber = sock.user.id.split(':')[0];
+            const { Contact } = await getClientModels(userId, hostNumber);
             const contact = await Contact.findOne({ userId, jid: chatJid });
 
             if (contact && contact.phoneNumber) {
@@ -226,7 +229,8 @@ export const reactToMessage = asyncHandler(async (req, res) => {
     }
 
     // 1. Fetch original message to get key
-    const Message = (await import('../models/Message.js')).default;
+    const hostNumber = sock.user.id.split(':')[0];
+    const { Message } = await getClientModels(req.userId, hostNumber);
     const originalMessage = await Message.findOne({ _id: messageId, userId: req.userId });
 
     if (!originalMessage) {
@@ -272,7 +276,8 @@ export const forwardMessage = asyncHandler(async (req, res) => {
     }
 
     // 1. Fetch original message
-    const Message = (await import('../models/Message.js')).default;
+    const hostNumber = sock.user.id.split(':')[0];
+    const { Message } = await getClientModels(req.userId, hostNumber);
     const originalMessage = await Message.findOne({ _id: messageId, userId: req.userId });
 
     if (!originalMessage) {
@@ -372,7 +377,11 @@ export const toggleAI = asyncHandler(async (req, res) => {
     const { enabled } = req.body;
 
     // Use Chat model directly or via service
-    const Chat = (await import('../models/Chat.js')).default;
+    // Use Chat model directly or via service
+    const { WhatsAppSession } = await getClientModels(req.userId);
+    const session = await WhatsAppSession.findOne({ userId: req.userId });
+    const hostNumber = session?.status === 'connected' ? session.phoneNumber : null;
+    const { Chat } = await getClientModels(req.userId, hostNumber);
 
     const chat = await Chat.findOneAndUpdate(
         { userId: req.userId, chatJid },
@@ -403,7 +412,11 @@ export const toggleArchive = asyncHandler(async (req, res) => {
     const { archived } = req.body;
 
     // Use Chat model directly or via service
-    const Chat = (await import('../models/Chat.js')).default;
+    // Use Chat model directly or via service
+    const { WhatsAppSession } = await getClientModels(req.userId);
+    const session = await WhatsAppSession.findOne({ userId: req.userId });
+    const hostNumber = session?.status === 'connected' ? session.phoneNumber : null;
+    const { Chat } = await getClientModels(req.userId, hostNumber);
 
     const chat = await Chat.findOneAndUpdate(
         { userId: req.userId, chatJid },
@@ -457,10 +470,15 @@ export const summarizeChat = asyncHandler(async (req, res) => {
         const { sentiment, summary, suggestions, extractedData } = await aiService.analyzeMessage(userId, decodedJid, "Regenerate insights based on full history.", schema);
 
         if (!summary) {
+            console.error(`❌ [summarizeChat] AI Analysis failed. Result:`, { sentiment, summary, suggestions });
             return successResponse(res, 400, 'Failed to generate summary or AI not configured');
         }
 
-        const Chat = (await import('../models/Chat.js')).default;
+        const { WhatsAppSession } = await getClientModels(userId);
+        const session = await WhatsAppSession.findOne({ userId });
+        // [FIX] Use phoneNumber even if disconnected to access history
+        const hostNumber = session?.phoneNumber;
+        const { Chat } = await getClientModels(userId, hostNumber);
 
         // Update chat with ALL new insights
         const updateData = {
@@ -511,7 +529,10 @@ export const bulkToggleAI = asyncHandler(async (req, res) => {
     const { enabled } = req.body;
     const userId = req.userId;
 
-    const Chat = (await import('../models/Chat.js')).default;
+    const { WhatsAppSession } = await getClientModels(userId);
+    const session = await WhatsAppSession.findOne({ userId });
+    const hostNumber = session?.status === 'connected' ? session.phoneNumber : null;
+    const { Chat } = await getClientModels(userId, hostNumber);
 
     // Update all chats
     await Chat.updateMany(

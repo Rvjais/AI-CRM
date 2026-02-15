@@ -217,9 +217,26 @@ function WhatsAppView({ token, onLogout }) {
         };
     }, [token]);
 
+    const [infrastructureReady, setInfrastructureReady] = useState(false);
+
     useEffect(() => {
-        checkConnectionStatus();
+        const init = async () => {
+            await checkInfrastructure();
+            await checkConnectionStatus();
+        };
+        init();
     }, []);
+
+    const checkInfrastructure = async () => {
+        try {
+            const data = await api.get('/api/user/infrastructure');
+            if (data.success && data.data) {
+                setInfrastructureReady(data.data.infrastructureReady);
+            }
+        } catch (error) {
+            console.error('Failed to check infrastructure:', error);
+        }
+    };
 
     const checkConnectionStatus = async () => {
         if (isCheckingRef.current) return;
@@ -406,6 +423,18 @@ function WhatsAppView({ token, onLogout }) {
             </div>
         );
     }
+    if (!infrastructureReady) {
+        return (
+            <div className="whatsapp-view empty-state">
+                <div className="status-card warning" style={{ maxWidth: '500px', margin: 'auto', textAlign: 'center', padding: '2rem' }}>
+                    <h2>⚠️ Infrastructure Not Ready</h2>
+                    <p>You need to configure your MongoDB and Cloudinary credentials before you can use WhatsApp.</p>
+                    <p>Please go to the <strong>Infrastructure</strong> tab in the sidebar.</p>
+                </div>
+            </div>
+        );
+    }
+
     if (!isConnected) {
         return <QRScanner token={token} onConnected={handleConnected} onLogout={onLogout} />;
     }

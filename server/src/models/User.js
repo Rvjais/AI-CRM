@@ -146,7 +146,7 @@ const userSchema = new mongoose.Schema(
         },
         infrastructureReady: {
             type: Boolean,
-            default: true // Always true in Single DB Arch
+            default: false // BYOD: False until configured
         }
     },
     {

@@ -14,7 +14,7 @@ import { getClientModels } from '../utils/database.factory.js';
  */
 export const saveMessage = async (messageData) => {
     try {
-        const { Message, Chat } = await getClientModels(messageData.userId);
+        const { Message, Chat, Contact } = await getClientModels(messageData.userId, messageData.hostNumber);
 
         // Use findOneAndUpdate with upsert to prevent duplicate key errors
         // Ensure chatJid is consistent if this is a LID but we have a phone number
@@ -81,7 +81,13 @@ export const saveMessage = async (messageData) => {
  */
 export const getChatMessages = async (userId, chatJid, page = 1, limit = 50) => {
     try {
-        const { Message, Contact } = await getClientModels(userId);
+        // 1. Get Session to resolve Host Number
+        const { WhatsAppSession } = await getClientModels(userId);
+        const session = await WhatsAppSession.findOne({ userId });
+        // [FIX] Use phoneNumber even if disconnected to retrieve history
+        const activeHostNumber = session?.phoneNumber;
+
+        const { Message, Contact } = await getClientModels(userId, activeHostNumber);
         const skip = (page - 1) * limit;
 
         // [FIX] merged view support
@@ -139,11 +145,14 @@ export const getChatMessages = async (userId, chatJid, page = 1, limit = 50) => 
  */
 export const getUserChats = async (userId, includeArchived = false) => {
     try {
-        const { Message, Chat, Contact, WhatsAppSession } = await getClientModels(userId);
-
-        // [FIX] Get currently connected Host Number
+        // 1. Get Session to find active Host Number
+        const { WhatsAppSession } = await getClientModels(userId);
         const session = await WhatsAppSession.findOne({ userId });
-        const activeHostNumber = session?.status === 'connected' ? session.phoneNumber : null;
+        // [FIX] Use phoneNumber even if disconnected to retrieve chats
+        const activeHostNumber = session?.phoneNumber;
+
+        // 2. Get Scoped Models
+        const { Message, Chat, Contact } = await getClientModels(userId, activeHostNumber);
 
         // If no active connection, maybe return empty? Or all?
         // User request: Isolation. So if connected, SHOW ONLY THAT HOST'S CHATS.

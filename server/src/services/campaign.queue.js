@@ -1,8 +1,7 @@
 import cron from 'node-cron';
-import Campaign from '../models/Campaign.js';
-import CampaignJob from '../models/CampaignJob.js';
+import User from '../models/User.js';
 import * as whatsappService from './whatsapp.service.js';
-import * as gmailService from './gmail.service.js'; // Assuming this exists or lines up with email controller
+import * as gmailService from './gmail.service.js';
 import logger from '../utils/logger.util.js';
 import { getClientModels } from '../utils/database.factory.js';
 
@@ -28,13 +27,28 @@ export const startQueueProcessor = () => {
 };
 
 const processQueue = async () => {
-    // 1. Find RUNNING campaigns
-    const runningCampaigns = await Campaign.find({ status: 'RUNNING' }).select('_id userId type template');
+    // 1. Find all users who are ready and have a valid URI
+    const users = await User.find({
+        infrastructureReady: true,
+        mongoURI: { $exists: true, $ne: '' }
+    }).select('_id');
+
+    for (const user of users) {
+        try {
+            await processUserQueue(user._id);
+        } catch (err) {
+            logger.error(`Failed to process queue for user ${user._id}:`, err);
+        }
+    }
+};
+
+const processUserQueue = async (userId) => {
+    const { Campaign, CampaignJob, Contact } = await getClientModels(userId);
+
+    // 1. Find RUNNING campaigns for this user
+    const runningCampaigns = await Campaign.find({ status: 'RUNNING' }).select('_id userId type template stats');
 
     if (runningCampaigns.length === 0) return;
-
-    // 2. Round-robin or parallel process? 
-    // For simplicity, process a small batch for EACH running campaign to ensure fairness.
 
     for (const campaign of runningCampaigns) {
         // Fetch pending jobs
@@ -50,30 +64,38 @@ const processQueue = async () => {
             const pendingCount = await CampaignJob.countDocuments({ campaignId: campaign._id, status: 'PENDING' });
             if (pendingCount === 0) {
                 // Mark campaign as COMPLETED
-                await Campaign.findByIdAndUpdate(campaign._id, { status: 'COMPLETED', completedAt: new Date() });
+                campaign.status = 'COMPLETED';
+                campaign.completedAt = new Date();
+                await campaign.save();
             }
             continue;
         }
 
         // Process this batch
-        await Promise.all(jobs.map(job => processJob(campaign, job)));
+        await Promise.all(jobs.map(job => processJob(userId, campaign, job, { Campaign, CampaignJob, Contact })));
     }
 };
 
-const processJob = async (campaign, job) => {
-    // Mark as PROCESSING immediately to prevent double pick-up (though we run sequentially per tick)
+const processJob = async (userId, campaign, job, models) => {
+    const { Campaign, CampaignJob, Contact } = models;
+
+    // Mark as PROCESSING immediately
     job.status = 'PROCESSING';
     await job.save();
 
-    // 0. Check and Deduct Credits (Atomic)
-    const User = (await import('../models/User.js')).default;
+    // 0. Check and Deduct Credits (Atomic) - User is Master DB
     const user = await User.findOneAndUpdate(
-        { _id: job.userId, credits: { $gte: 1 } },
+        { _id: userId, credits: { $gte: 1 } },
         { $inc: { credits: -1 } }
     );
 
     if (!user) {
-        throw new Error('Insufficient credits (Required: 1)');
+        // Fail job if no credits
+        job.status = 'FAILED';
+        job.error = 'Insufficient credits';
+        await job.save();
+        await Campaign.findByIdAndUpdate(campaign._id, { $inc: { 'stats.failed': 1 } });
+        return;
     }
 
     try {
@@ -81,7 +103,6 @@ const processJob = async (campaign, job) => {
 
         // --- WHATSAPP ---
         if (campaign.type === 'WHATSAPP') {
-            const { Contact } = await getClientModels(job.userId);
             // Note: job.toPhone might be just number. Need JID.
             // job.contactId is best reference.
             const contact = await Contact.findById(job.contactId);
@@ -96,23 +117,16 @@ const processJob = async (campaign, job) => {
 
             // Custom Attributes
             if (contact.customAttributes) {
-                // Regex to find all {{key}} patterns
                 text = text.replace(/{{([^}]+)}}/g, (match, key) => {
-                    // key might be 'Company', 'City' etc.
-                    // Check customAttributes (handle case sensitivity)
-                    // We stored keys lowercase in Import?
-                    // normalizeData lowercases headers. So we should look for key.toLowerCase()
                     const val = contact.customAttributes.get(key) || contact.customAttributes.get(key.toLowerCase());
-                    return val || match; // Return value or keep {{key}} if not found
+                    return val || match;
                 });
             }
 
-            // Random delay 1-5s to prevent burst (even within batch)
+            // Random delay 1-5s to prevent burst
             await new Promise(r => setTimeout(r, Math.random() * 5000));
 
-            const result = await whatsappService.sendTextMessage(job.userId, contact.jid, text, { isCampaign: true });
-            // TODO: Handle media if template.mediaUrl exists
-
+            const result = await whatsappService.sendTextMessage(userId, contact.jid, text, { isCampaign: true });
             sentId = result?.key?.id;
         }
 
@@ -123,8 +137,7 @@ const processJob = async (campaign, job) => {
             let body = campaign.template.body;
             body = body.replace(/{{name}}/g, job.toName || 'there');
 
-            // Gmail Service usage
-            const result = await gmailService.sendEmail(job.userId, {
+            const result = await gmailService.sendEmail(userId, {
                 to: job.toEmail,
                 subject: campaign.template.subject,
                 body: body
@@ -134,25 +147,23 @@ const processJob = async (campaign, job) => {
         }
 
         // Success
-        await CampaignJob.findByIdAndUpdate(job._id, {
-            status: 'SENT',
-            sentAt: new Date(),
-            messageId: sentId
-        });
+        job.status = 'SENT';
+        job.sentAt = new Date();
+        job.messageId = sentId;
+        await job.save();
 
         // Update stats (atomic increment)
         await Campaign.findByIdAndUpdate(campaign._id, { $inc: { 'stats.sent': 1 } });
 
     } catch (error) {
         // Refund credits on failure
-        await User.findByIdAndUpdate(job.userId, { $inc: { credits: 1 } });
+        await User.findByIdAndUpdate(userId, { $inc: { credits: 1 } });
 
         logger.error(`Job failed ${job._id}:`, error);
 
-        await CampaignJob.findByIdAndUpdate(job._id, {
-            status: 'FAILED',
-            error: error.message
-        });
+        job.status = 'FAILED';
+        job.error = error.message;
+        await job.save();
 
         await Campaign.findByIdAndUpdate(campaign._id, { $inc: { 'stats.failed': 1 } });
     }

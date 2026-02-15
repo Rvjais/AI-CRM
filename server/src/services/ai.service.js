@@ -182,7 +182,13 @@ export const generateAIResponse = async (userId, chatJid, userMessage) => {
             return `[AI Not Configured] Please add API Key for ${config.provider} in AI Settings.`;
         }
 
-        const Message = (await import('../models/Message.js')).default;
+        const { getClientModels } = await import('../utils/database.factory.js');
+        const { WhatsAppSession } = await getClientModels(userId);
+        const session = await WhatsAppSession.findOne({ userId });
+        const hostNumber = session?.status === 'connected' ? session.phoneNumber : null;
+
+        const { Message } = await getClientModels(userId, hostNumber);
+
         const recentMessages = await Message.find({ userId, chatJid })
             .sort({ timestamp: -1 })
             .limit(20)
@@ -363,7 +369,13 @@ export const generateSuggestions = async (userId, chatJid) => {
         const config = await getUserAIConfig(userId);
         if (!config.apiKey) return [];
 
-        const Message = (await import('../models/Message.js')).default;
+        const { getClientModels } = await import('../utils/database.factory.js');
+        const { WhatsAppSession } = await getClientModels(userId);
+        const session = await WhatsAppSession.findOne({ userId });
+        const hostNumber = session?.status === 'connected' ? session.phoneNumber : null;
+
+        const { Message } = await getClientModels(userId, hostNumber);
+
         const recentMessages = await Message.find({ userId, chatJid })
             .sort({ timestamp: -1 })
             .limit(10)
@@ -506,12 +518,37 @@ export const analyzeMessage = async (userId, chatJid, messageText, schema = []) 
         const config = await getUserAIConfig(userId);
         if (!config.apiKey) return { sentiment: 'neutral', summary: null, suggestions: [], extractedData: {} };
 
-        const Message = (await import('../models/Message.js')).default;
-        const recentMessages = await Message.find({ userId, chatJid })
+        // [BYOD] Get dynamic models
+        const { getClientModels } = await import('../utils/database.factory.js');
+        const { WhatsAppSession } = await getClientModels(userId);
+        const session = await WhatsAppSession.findOne({ userId });
+        // [FIX] Use phoneNumber even if disconnected to access history
+        const hostNumber = session?.phoneNumber;
+
+        const { Message, Contact } = await getClientModels(userId, hostNumber);
+
+        // [FIX] Resolve LID to Phone JID for message lookup
+        let searchJid = chatJid;
+        const isLid = !chatJid.includes('@g.us') && chatJid.includes('@lid');
+
+        if (isLid) {
+            const contact = await Contact.findOne({ userId, jid: chatJid });
+            if (contact && contact.phoneNumber) {
+                searchJid = `${contact.phoneNumber}@s.whatsapp.net`;
+            } else {
+                console.log(`⚠️ [analyzeMessage] Could not resolve LID ${chatJid} to Phone JID. Contact found: ${!!contact}`);
+            }
+        }
+
+        const recentMessages = await Message.find({ userId, chatJid: searchJid })
             .sort({ timestamp: -1 })
-            .limit(20)
+            .limit(50)
             .lean();
         recentMessages.reverse();
+
+        if (recentMessages.length === 0) {
+            return { sentiment: 'neutral', summary: null, suggestions: [], extractedData: {} };
+        }
 
         const conversation = recentMessages.map(m => `${m.fromMe ? 'Agent' : 'User'}: ${m.content.text || '[Media]'}`).join('\n');
 

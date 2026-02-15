@@ -15,6 +15,7 @@ import SheetsConfig from './components/SheetsConfig';
 import CampaignManager from './components/CampaignManager';
 import ImportManager from './components/ImportManager';
 import FormBuilder from './components/FormBuilder';
+import InfrastructureConfig from './components/InfrastructureConfig';
 import ComingSoon from './components/ComingSoon';
 import Login from './components/Login';
 import './App.css';
@@ -79,6 +80,9 @@ function App() {
         </div>
         <div className={activeView === 'sheets' ? 'view-active' : 'view-hidden'}>
           <SheetsConfig />
+        </div>
+        <div className={activeView === 'infrastructure' ? 'view-active' : 'view-hidden'}>
+          <InfrastructureConfig token={token} />
         </div>
       </ErrorBoundary>
     );

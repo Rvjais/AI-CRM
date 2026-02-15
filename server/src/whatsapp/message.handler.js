@@ -29,23 +29,19 @@ import { generateAIResponse, analyzeMessage } from '../services/ai.service.js';
  */
 export const handleIncomingMessage = async (userId, msg, io, sendResponse, hostNumber) => {
     try {
-        // Fetch dynamic models for this user's database
-        const { Contact, Chat, Message } = await getClientModels(userId);
+        // Fetch dynamic models for this user's database, scoped to the connected host number
+        const { Contact, Chat, Message } = await getClientModels(userId, hostNumber);
 
-        console.log(`📩 [handleIncomingMessage] User ${userId} (Host: ${hostNumber}): Processing message`, {
-            messageId: msg.key.id,
-            from: msg.key.remoteJid,
-            fromMe: msg.key.fromMe,
-            participant: msg.key.participant,
-            messageKeys: Object.keys(msg.message || {})
-        });
 
-        // --- TEMPORARY DEBUG LOGGING REMOVED ---
-        // --------------------------------
+        // --- IDEMPOTENCY CHECK ---
+        const existingMessage = await Message.findOne({ messageId: msg.key.id, userId });
+        if (existingMessage) {
+            console.log(`🔁 [handleIncomingMessage] Duplicate message detected (ID: ${msg.key.id}). Skipping processing.`);
+            return;
+        }
 
         // [FIX] Ignore status/broadcast messages
         if (msg.key.remoteJid === 'status@broadcast' || (msg.key.remoteJid && msg.key.remoteJid.includes('broadcast'))) {
-            console.log(`🚫 [handleIncomingMessage] User ${userId}: Ignoring status/broadcast message`);
             return;
         }
 
@@ -309,6 +305,7 @@ export const handleIncomingMessage = async (userId, msg, io, sendResponse, hostN
                             content: { text: aiResponse },
                             timestamp: new Date(),
                             status: MESSAGE_STATUS.DELIVERED,
+                            hostNumber: hostNumber // [FIX] Start saving to correct collection
                         };
 
                         const savedBotMessage = await saveMessage(botMessageData);

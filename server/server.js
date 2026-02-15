@@ -41,25 +41,52 @@ const startServer = async () => {
         ensureAdminUser().catch(err => logger.error('Error ensuring admin user:', err));
         logger.info('DEBUG: Admin User check started in background');
 
-        // Restore active WhatsApp sessions
-        try {
-            logger.info('DEBUG: Restoring WhatsApp Sessions...');
-            const WhatsAppSession = (await import('./src/models/WhatsAppSession.js')).default;
-            const { connectWhatsApp } = await import('./src/services/whatsapp.service.js');
+        // Restore active WhatsApp sessions (BYOD Aware) - Delayed to ensure DB/Socket stability
+        setTimeout(async () => {
+            try {
+                logger.info('🔄 [Restoration] Starting WhatsApp Session Restoration (5s delayed)...');
+                const { connectWhatsApp } = await import('./src/services/whatsapp.service.js');
+                const User = (await import('./src/models/User.js')).default;
+                const { getClientModels } = await import('./src/utils/database.factory.js');
 
-            const activeSessions = await WhatsAppSession.find({ status: 'connected' });
-            logger.info(`Found ${activeSessions.length} active sessions to restore`);
+                // Find all users with configured infrastructure
+                const users = await User.find({ infrastructureReady: true });
+                logger.info(`🔍 [Restoration] Found ${users.length} users with infrastructure configurations.`);
 
-            for (const session of activeSessions) {
-                logger.info(`Restoring session for user ${session.userId}`);
-                connectWhatsApp(session.userId, io).catch(err => {
-                    logger.error(`Failed to restore session for user ${session.userId}:`, err);
-                });
+                for (const user of users) {
+                    try {
+                        logger.info(`🔍 [Restoration] Checking user ${user._id} (${user.email})...`);
+                        const { WhatsAppSession } = await getClientModels(user._id);
+
+                        if (!WhatsAppSession) {
+                            logger.error(`❌ [Restoration] Failed to get WhatsAppSession model for ${user._id}`);
+                            continue;
+                        }
+
+                        const session = await WhatsAppSession.findOne({ userId: user._id });
+
+                        if (session) {
+                            logger.info(`📄 [Restoration] Session found for ${user._id}. Status: ${session.status}`);
+                            if (session.status === 'connected') {
+                                logger.info(`🚀 [Restoration] Restoring active session for user ${user._id}...`);
+                                connectWhatsApp(user._id, io).catch(err => {
+                                    logger.error(`❌ [Restoration] Failed to restore session for user ${user._id}:`, err);
+                                });
+                            } else {
+                                logger.info(`Thinking... Session exists but status is '${session.status}'. Skipping.`);
+                            }
+                        } else {
+                            logger.info(`⚠️ [Restoration] No session document found for user ${user._id}`);
+                        }
+                    } catch (userError) {
+                        logger.error(`❌ [Restoration] Error checking session for user ${user._id}:`, userError);
+                    }
+                }
+                logger.info('✅ [Restoration] Session check completed');
+            } catch (error) {
+                logger.error('❌ [Restoration] Critical error:', error);
             }
-            logger.info('DEBUG: Sessions Restored');
-        } catch (error) {
-            logger.error('Error restoring sessions:', error);
-        }
+        }, 5000);
 
         // Start AI Background Worker
         startAIWorker(io);
@@ -69,6 +96,11 @@ const startServer = async () => {
         const { startAiCron } = await import('./src/jobs/ai.cron.js');
         startAiCron();
         logger.info('DEBUG: AI Cron Started');
+
+        // Start Email Monitoring Cron
+        const { startEmailCron } = await import('./src/jobs/email.cron.js');
+        startEmailCron();
+        logger.info('DEBUG: Email Cron Started');
 
         // Start Campaign Queue Processor
         startQueueProcessor();

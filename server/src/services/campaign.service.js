@@ -1,6 +1,3 @@
-import Campaign from '../models/Campaign.js';
-import CampaignJob from '../models/CampaignJob.js';
-import ImportBatch from '../models/ImportBatch.js';
 import { getClientModels } from '../utils/database.factory.js';
 import logger from '../utils/logger.util.js';
 
@@ -14,7 +11,7 @@ export const createCampaign = async (userId, data) => {
         throw new Error('Must specify target audience (Batch or Tags)');
     }
 
-    const { Contact } = await getClientModels(userId);
+    const { Campaign, Contact } = await getClientModels(userId);
 
     // 2. Create Campaign
     const campaign = await Campaign.create({
@@ -43,10 +40,10 @@ export const createCampaign = async (userId, data) => {
 };
 
 export const generateJobs = async (userId, campaignId) => {
+    const { Campaign, Contact, CampaignJob } = await getClientModels(userId);
     const campaign = await Campaign.findById(campaignId);
     if (!campaign) throw new Error('Campaign not found');
 
-    const { Contact } = await getClientModels(userId);
     const query = { userId }; // Base query
 
     // Filter by Batch
@@ -54,7 +51,7 @@ export const generateJobs = async (userId, campaignId) => {
         query.importBatchId = campaign.targetBatchId;
     }
 
-    // Filter by Tags (OR logic if multiple? usually OR for tags, or AND. Let's do $in for 'any of these tags')
+    // Filter by Tags
     if (campaign.targetTags && campaign.targetTags.length > 0) {
         query.tags = { $in: campaign.targetTags };
     }
@@ -92,15 +89,18 @@ export const generateJobs = async (userId, campaignId) => {
 };
 
 export const getCampaigns = async (userId) => {
+    const { Campaign } = await getClientModels(userId);
     return await Campaign.find({ userId }).sort({ createdAt: -1 });
 };
 
 export const getCampaign = async (userId, id) => {
+    const { Campaign } = await getClientModels(userId);
     const campaign = await Campaign.findOne({ _id: id, userId });
     return campaign;
 };
 
 export const startCampaign = async (userId, id) => {
+    const { Campaign } = await getClientModels(userId);
     const campaign = await Campaign.findOne({ _id: id, userId });
     if (!campaign) throw new Error('Campaign not found');
 
@@ -115,6 +115,7 @@ export const startCampaign = async (userId, id) => {
 };
 
 export const pauseCampaign = async (userId, id) => {
+    const { Campaign } = await getClientModels(userId);
     const campaign = await Campaign.findOne({ _id: id, userId });
     if (!campaign) throw new Error('Campaign not found');
 
@@ -124,6 +125,7 @@ export const pauseCampaign = async (userId, id) => {
 };
 
 export const deleteCampaign = async (userId, id) => {
+    const { Campaign, CampaignJob } = await getClientModels(userId);
     await CampaignJob.deleteMany({ campaignId: id, userId });
     return await Campaign.findOneAndDelete({ _id: id, userId });
 };

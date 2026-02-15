@@ -63,32 +63,75 @@ export const getClientDB = async (user) => {
 };
 
 /**
- * Get a Model from the Client DB
+ * Get a Model from the Client DB with Dynamic Collection Name
  * @param {Object} user 
- * @param {String} modelName 
+ * @param {String} modelName - e.g., 'Message'
  * @param {Schema} schema 
+ * @param {String} [phoneNumber] - Connected WhatsApp phone number
  */
-export const getClientModel = async (user, modelName, schema) => {
+export const getClientModel = async (user, modelName, schema, phoneNumber) => {
     const conn = await getClientDB(user);
-    return conn.model(modelName, schema);
+
+    let collectionName = modelName;
+    if (phoneNumber) {
+        // Strict Isolation: Append phone number to model/collection name
+        // e.g., Message -> Message_919876543210
+        collectionName = `${modelName}_${phoneNumber}`;
+    }
+
+    return conn.model(collectionName, schema);
 };
 
 /**
- * Helper to get all core models for a user
+ * Helper to get all core models for a user, optionally scoped to a phone number
  * @param {String} userId 
+ * @param {String} [phoneNumber] - Scopes data to this phone number
  */
-export const getClientModels = async (userId) => {
-    // In Single-DB Architecture, we reuse the static models.
-    // We keep this function signature for backward compatibility with controllers
-    // that expect { Message, Chat, ... } to be returned.
-
-    const Message = (await import('../models/Message.js')).default;
-    const Chat = (await import('../models/Chat.js')).default;
-    const Contact = (await import('../models/Contact.js')).default;
-    const WhatsAppSession = (await import('../models/WhatsAppSession.js')).default;
+export const getClientModels = async (userId, phoneNumber) => {
     const User = (await import('../models/User.js')).default;
+    const user = await User.findById(userId).select('+mongoURI'); // Need mongoURI to connect
 
-    const user = await User.findById(userId);
+    if (!user) throw new Error('User not found');
 
-    return { Message, Chat, Contact, WhatsAppSession, user };
+    // Import Schemas
+    const messageSchema = (await import('../schemas/Message.schema.js')).default;
+    const chatSchema = (await import('../schemas/Chat.schema.js')).default;
+    const contactSchema = (await import('../schemas/Contact.schema.js')).default;
+    const groupSchema = (await import('../models/Group.js')).default.schema; // Group export might be model, get schema
+    const mediaSchema = (await import('../models/Media.js')).default.schema;
+    const campaignSchema = (await import('../schemas/Campaign.schema.js')).default;
+    const campaignJobSchema = (await import('../schemas/CampaignJob.schema.js')).default;
+    const whatsappSessionSchema = (await import('../schemas/WhatsAppSession.schema.js')).default;
+
+    // Core Data Models (Scoped by Phone Number if provided)
+    const Message = await getClientModel(user, 'Message', messageSchema, phoneNumber);
+    const Chat = await getClientModel(user, 'Chat', chatSchema, phoneNumber);
+    const Contact = await getClientModel(user, 'Contact', contactSchema, phoneNumber);
+
+    // Group and Media also likely need scoping
+    const Group = await getClientModel(user, 'Group', groupSchema, phoneNumber);
+    const Media = await getClientModel(user, 'Media', mediaSchema, phoneNumber);
+
+    // Campaigns might be cross-number? Usually campaigns are tied to a sender. 
+    // Let's scope them too for safety/strict isolation.
+    const Campaign = await getClientModel(user, 'Campaign', campaignSchema, phoneNumber);
+    const CampaignJob = await getClientModel(user, 'CampaignJob', campaignJobSchema, phoneNumber);
+
+    // Platform Models (Not scoped by phone number, but stored in User DB)
+    // WhatsAppSession stores the connection state. It shouldn't be suffixed because we need to find it 
+    // *before* we know the phone number (e.g. to check status).
+    const WhatsAppSession = await getClientModel(user, 'WhatsAppSession', whatsappSessionSchema);
+
+    // Return everything
+    return {
+        user,
+        Message,
+        Chat,
+        Contact,
+        Group,
+        Media,
+        Campaign,
+        CampaignJob,
+        WhatsAppSession
+    };
 };

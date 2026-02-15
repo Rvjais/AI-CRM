@@ -5,7 +5,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
-    <!-- Embeddable Form: Spiderman -->
     <!-- Embeddable Form: Ranveer -->
     <div id="rain-crm-form-698c718940788a62e7a9c6a4"
         style="font-family: system-ui, -apple-system, sans-serif; max-width: 42rem; min-height: auto; margin: 0 auto; padding: 2rem; background-color: #ffffff; border-radius: 0.75rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #e5e7eb;">
@@ -46,7 +45,7 @@
             btn.innerText = 'Submitting...';
 
             try {
-                const response = await fetch('http://localhost:3000/api/forms/698c718940788a62e7a9c6a4/submit', {
+                const response = await fetch('https://rain-crm-backend.onrender.com/api/forms/698c718940788a62e7a9c6a4/submit', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)

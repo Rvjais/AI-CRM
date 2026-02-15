@@ -32,6 +32,7 @@ function Sidebar({ activeView, onViewChange, onLogout, isCollapsed, setIsCollaps
         { id: 'audience', icon: FaUsers, label: 'Audience' },
         { id: 'forms', icon: FaWpforms, label: 'Forms' },
         { id: 'sheets', icon: FaTable, label: 'Sheets' },
+        { id: 'infrastructure', icon: FaDatabase, label: 'Infrastructure' },
         { id: 'voiceagent', icon: FaMicrophone, label: 'Voice Agent' },
         { id: 'aiconfig', icon: FaBrain, label: 'AI Config' },
     ];

@@ -30,11 +30,15 @@ export const loadAuthState = async (userId) => {
             const decrypted = decryptObject(session.sessionData);
             creds = decrypted.creds;
             keys = decrypted.keys || {};
-            logger.info(`Auth state loaded for user ${userId}`);
+            logger.info(`✅ [Auth] Auth state loaded for user ${userId}. Keys present: ${Object.keys(keys).length}`);
         } else {
             // Initialize with fresh credentials using Baileys function
+            if (session) {
+                logger.warn(`⚠️ [Auth] Session exists for ${userId} but has NO sessionData. Creating fresh.`);
+            } else {
+                logger.info(`ℹ️ [Auth] No WhatsAppSession document found for user ${userId}. Creating new session.`);
+            }
             creds = initAuthCreds();
-            logger.info(`No existing auth state for user ${userId}, creating new session`);
         }
     } catch (error) {
         logger.error(`Error loading auth state for user ${userId}:`, error);
@@ -46,6 +50,7 @@ export const loadAuthState = async (userId) => {
      * Save credentials to database
      */
     const saveCreds = async () => {
+        console.log(`[Auth] saveCreds called for user ${userId}`);
         try {
             if (!WhatsAppSession) {
                 // Try to get model again if it wasn't available during load
@@ -62,6 +67,8 @@ export const loadAuthState = async (userId) => {
             // Encrypt session data
             const encrypted = encryptObject(sessionData);
 
+            logger.info(`💾 [Auth] Saving auth state for user ${userId}. Data size: ${JSON.stringify(encrypted).length} bytes`);
+
             // Save to database
             await WhatsAppSession.findOneAndUpdate(
                 { userId },
@@ -69,9 +76,9 @@ export const loadAuthState = async (userId) => {
                 { upsert: true }
             );
 
-            logger.info(`Auth state saved for user ${userId}`);
+            logger.info(`✅ [Auth] Auth state saved successfully for user ${userId}`);
         } catch (error) {
-            logger.error(`Error saving auth state for user ${userId}:`, error);
+            logger.error(`❌ [Auth] Error saving auth state for user ${userId}:`, error);
         }
     };
 

@@ -138,7 +138,14 @@ export const connectWhatsApp = async (userId, io) => {
                     const sendResponse = async (jid, text) => {
                         await sock.sendMessage(jid, { text });
                     };
-                    const hostNumber = sock.user.id.split(':')[0]; // [FIX] Get host number
+                    let hostNumber = sock.user?.id?.split(':')[0];
+                    if (!hostNumber) {
+                        console.error('❌ [messages.upsert] sock.user is undefined! Cannot determine hostNumber. Message persistence might fail.');
+                        // Fallback?
+                    } else {
+                        // console.log(`[messages.upsert] Using hostNumber: ${hostNumber}`);
+                    }
+
                     await handleIncomingMessage(userId, msg, io, sendResponse, hostNumber);
                 }
             } else {
@@ -259,7 +266,8 @@ export const sendMessage = async (userId, jid, content, options = {}) => {
 
     // Persist to Database
     try {
-        const { Message, Chat } = await getClientModels(userId);
+        const senderPn = sock.user.id.split(':')[0]; // Extract phone number
+        const { Message, Chat } = await getClientModels(userId, senderPn);
 
         const messageType = Object.keys(content)[0]; // e.g., 'text' or 'image'
         const textContent = content.text || content.caption || '';
@@ -276,9 +284,8 @@ export const sendMessage = async (userId, jid, content, options = {}) => {
             },
             status: 'sent',
             timestamp: new Date(),
-            timestamp: new Date(),
-            senderPn: sock.user.id.split(':')[0],
-            hostNumber: sock.user.id.split(':')[0] // [FIX] Add hostNumber
+            senderPn: senderPn,
+            hostNumber: senderPn // [FIX] Add hostNumber
         };
 
         if (content.image) {
