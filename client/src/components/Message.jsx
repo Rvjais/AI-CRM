@@ -19,10 +19,6 @@ function Message({ message, onForward, onReply, isGroup }) {
 
         const { type, content } = message;
 
-        // [DEBUG] Log image messages to check structure
-        if (type === 'image') {
-            console.log('🖼️ [Message] Image message:', { id: message._id, content });
-        }
 
         // Sticker
         if (type === 'sticker' || content.mimeType?.includes('webp')) {

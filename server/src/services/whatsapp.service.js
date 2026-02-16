@@ -372,8 +372,6 @@ export const sendMessage = async (userId, jid, content, options = {}) => {
             msgData.content.caption = content.caption;
         }
 
-        console.log('💾 [sendMessage] Saving Message:', JSON.stringify(msgData, null, 2));
-
         await Message.create(msgData);
 
         // Update Chat

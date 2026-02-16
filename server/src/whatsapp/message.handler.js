@@ -507,20 +507,16 @@ export const downloadAndUploadMedia = async (msg, userId) => {
 
         // Check MIME type to decide storage
         if (mimeType.startsWith('image/') || mimeType.startsWith('video/')) {
-            console.log(`☁️ [downloadAndUploadMedia] Uploading ${mimeType} to Cloudinary...`);
             // Upload to Cloudinary
             const media = await uploadToCloudinary(buffer, fileName, mimeType, userId);
-            console.log(`✅ [downloadAndUploadMedia] Uploaded to Cloudinary: ${media.secureUrl}`);
             return media.secureUrl;
         } else {
-            console.log(`📦 [downloadAndUploadMedia] Uploading ${mimeType} to MongoDB GridFS...`);
             // Upload to MongoDB GridFS
             const result = await uploadToMongo(buffer, fileName, mimeType);
-            console.log(`✅ [downloadAndUploadMedia] Uploaded to Mongo: ${result.url}`);
             return result.url;
         }
     } catch (error) {
-        logger.error('❌ [downloadAndUploadMedia] Error:', error);
+        logger.error('Error downloading/uploading media:', error);
         throw error;
     }
 };
