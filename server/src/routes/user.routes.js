@@ -1,5 +1,5 @@
 import express from 'express';
-import * as userController from '../controllers/user.controller.js';
+import { updateInfrastructure, getInfrastructure, updateSettings, getSettings } from '../controllers/user.controller.js';
 import { authenticate } from '../middleware/auth.middleware.js';
 
 const router = express.Router();
@@ -7,8 +7,14 @@ const router = express.Router();
 // All routes require authentication
 router.use(authenticate);
 
+// Feature Settings
+router.route('/settings')
+    .put(updateSettings)
+    .get(getSettings);
+
 // Infrastructure Settings
-router.put('/infrastructure', userController.updateInfrastructure);
-router.get('/infrastructure', userController.getInfrastructure);
+router.route('/infrastructure')
+    .put(updateInfrastructure)
+    .get(getInfrastructure);
 
 export default router;

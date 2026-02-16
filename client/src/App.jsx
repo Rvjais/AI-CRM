@@ -18,6 +18,7 @@ import FormBuilder from './components/FormBuilder';
 import InfrastructureConfig from './components/InfrastructureConfig';
 import ComingSoon from './components/ComingSoon';
 import Login from './components/Login';
+import Settings from './components/Settings';
 import './App.css';
 
 import ErrorBoundary from './components/ErrorBoundary';
@@ -83,6 +84,9 @@ function App() {
         </div>
         <div className={activeView === 'infrastructure' ? 'view-active' : 'view-hidden'}>
           <InfrastructureConfig token={token} />
+        </div>
+        <div className={activeView === 'settings' ? 'view-active' : 'view-hidden'}>
+          <Settings onLogout={handleLogout} />
         </div>
       </ErrorBoundary>
     );

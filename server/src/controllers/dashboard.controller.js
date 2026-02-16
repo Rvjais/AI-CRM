@@ -33,7 +33,17 @@ export const getDashboardStats = asyncHandler(async (req, res) => {
     };
 
     if (isWhatsAppConnected) {
-        // 1. WhatsApp Chat Stats
+        // [FIX] Use dynamic models to fetch data from the correct isolated collection
+        // 1. Get Host Number from Session
+        const { getClientModels } = await import('../utils/database.factory.js');
+        const { WhatsAppSession } = await getClientModels(userId);
+        const session = await WhatsAppSession.findOne({ userId });
+        const hostNumber = session?.phoneNumber;
+
+        // 2. Get Scoped Chat/Message Models
+        const { Chat, Message } = await getClientModels(userId, hostNumber);
+
+        // 3. WhatsApp Chat Stats
         totalChats = await Chat.countDocuments({ userId });
 
         // Sentiment Breakdown for Leads (Positive/Negative)
@@ -64,6 +74,7 @@ export const getDashboardStats = asyncHandler(async (req, res) => {
             .lean();
 
         // 2. AI Interactions (Messages sent by AI/Bot)
+        // Use the same dynamic Message model fetched above
         aiInteractions = await Message.countDocuments({
             userId,
             fromMe: true
@@ -174,9 +185,14 @@ export const getDashboardStats = asyncHandler(async (req, res) => {
                                     console.log(`📱 [Notify] High Priority! Self JID: ${selfJid}`);
 
                                     if (selfJid) {
-                                        const msg = `🚨 *High Priority Email Detected*\n\n*Subject:* ${thread.subject}\n*Score:* ${score}/10\n*Reason:* ${aiResult.importanceReason}\n\nCheck your dashboard for details.`;
-                                        await whatsappService.sendMessage(userId, selfJid, { text: msg });
-                                        console.log(`✅ [Notify] Message sent to ${selfJid}`);
+                                        // [FEATURE FLAG CHECK]
+                                        if (user && user.featureFlags && user.featureFlags.emailNotifications === false) {
+                                            console.log(`📧 [Notify] Email notifications disabled for user ${userId}. Skipping.`);
+                                        } else {
+                                            const msg = `🚨 *High Priority Email Detected*\n\n*Subject:* ${thread.subject}\n*Score:* ${score}/10\n*Reason:* ${aiResult.importanceReason}\n\nCheck your dashboard for details.`;
+                                            await whatsappService.sendMessage(userId, selfJid, { text: msg });
+                                            console.log(`✅ [Notify] Message sent to ${selfJid}`);
+                                        }
                                     } else {
                                         console.warn(`⚠️ [Notify] Skipped - No Self JID found for user ${userId}`);
                                     }
@@ -216,10 +232,13 @@ export const getDashboardStats = asyncHandler(async (req, res) => {
                 .sort((a, b) => b.score - a.score)
                 .slice(0, 5); // Return top 5
 
+            // Count high priority unread (score > 7)
+            const highPriorityCount = processedEmails.filter(e => e.score > 7).length;
+
             emailStats = {
                 connected: true,
-                unread: stats.messagesUnread,
-                total: stats.threadsTotal || 0,
+                unread: highPriorityCount, // [USER REQUEST] Show High Priority count instead of total unread
+                total: stats.messagesUnread, // Show total unread as secondary info if needed, or just total threads
                 sentiment: { positive, neutral, negative },
                 priorityList // New list
             };

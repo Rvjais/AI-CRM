@@ -96,3 +96,35 @@ export const getInfrastructure = asyncHandler(async (req, res) => {
 
     return successResponse(res, 200, 'Infrastructure settings retrieved', infrastructure);
 });
+
+/**
+ * Update Feature Settings
+ * PUT /api/user/settings
+ */
+export const updateSettings = asyncHandler(async (req, res) => {
+    const userId = req.userId;
+    const { featureFlags } = req.body;
+
+    const user = await User.findById(userId);
+    if (!user) throw new Error('User not found');
+
+    if (featureFlags) {
+        // Merge with existing flags to allow partial updates
+        user.featureFlags = { ...user.featureFlags, ...featureFlags };
+    }
+
+    await user.save();
+
+    return successResponse(res, 200, 'Settings updated successfully', { featureFlags: user.featureFlags });
+});
+
+/**
+ * Get Feature Settings
+ * GET /api/user/settings
+ */
+export const getSettings = asyncHandler(async (req, res) => {
+    const userId = req.userId;
+    const user = await User.findById(userId).select('featureFlags');
+
+    return successResponse(res, 200, 'Settings retrieved', { featureFlags: user.featureFlags });
+});

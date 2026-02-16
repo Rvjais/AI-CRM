@@ -37,7 +37,7 @@ export const getClientDB = async (user) => {
         }
 
         // 3. Create New Connection
-        // logger.info(`Opening new DB connection for user ${userId}`);
+        console.log(`🔌 [Factory] Opening new DB connection for user ${userId} (URI length: ${user.mongoURI?.length})`);
 
         const conn = mongoose.createConnection(user.mongoURI, {
             serverSelectionTimeoutMS: 5000,
@@ -45,14 +45,18 @@ export const getClientDB = async (user) => {
         });
 
         // 4. Handle Connection Events
-        conn.on('connected', () => { /* logger.info(`DB Connected for user ${userId}`) */ });
-        conn.on('error', (err) => logger.error(`DB Error for user ${userId}:`, err));
+        conn.on('connected', () => console.log(`✅ [Factory] DB Connected for user ${userId}`));
+        conn.on('error', (err) => console.error(`❌ [Factory] DB Error for user ${userId}:`, err));
         conn.on('disconnected', () => {
+            console.log(`⚠️ [Factory] DB Disconnected for user ${userId}`);
             connectionCache.delete(userId);
         });
 
         // 5. Store in Cache
         connectionCache.set(userId, conn);
+
+        // Wait for connection to be ready? (Optional but safer for debugging)
+        // await conn.asPromise(); 
 
         return conn;
 

@@ -136,6 +136,13 @@ export const submitForm = async (req, res, next) => {
             const creatorJid = whatsappService.getSelfJid(creatorId);
 
             if (creatorJid) {
+                // [FEATURE FLAG CHECK]
+                const creator = await ((await import('../models/User.js')).default).findById(creatorId);
+                if (creator && creator.featureFlags && creator.featureFlags.formNotifications === false) {
+                    console.log(`[Form] WhatsApp notifications disabled for user ${creatorId}. Skipping.`);
+                    return successResponse(res, 201, 'Form submitted successfully');
+                }
+
                 // Format the message
                 let messageText = `📝 *New Submission: ${form.title}*\n\n`;
 

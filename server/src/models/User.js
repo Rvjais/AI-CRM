@@ -147,6 +147,13 @@ const userSchema = new mongoose.Schema(
         infrastructureReady: {
             type: Boolean,
             default: false // BYOD: False until configured
+        },
+        // Feature Toggles
+        featureFlags: {
+            aiBot: { type: Boolean, default: true },
+            sheetAutomation: { type: Boolean, default: true },
+            formNotifications: { type: Boolean, default: true },
+            emailNotifications: { type: Boolean, default: true }
         }
     },
     {

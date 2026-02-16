@@ -168,9 +168,8 @@ export const handleIncomingMessage = async (userId, msg, io, sendResponse, hostN
             senderName: msg.pushName,
             senderPn: msg.key.senderPn ? msg.key.senderPn.split('@')[0] : undefined,
             participant: msg.key.participant, // Save participant JID for generic quoting support
-            participant: msg.key.participant, // Save participant JID for generic quoting support
             hostNumber: hostNumber, // [FIX] Save host number
-            rawMessage: val_1.rawMessage || msg.message // Save raw message for getMessage/retries
+            rawMessage: msg.message // Save raw message for getMessage/retries
         };
 
         console.log(`💾 [handleIncomingMessage] User ${userId}: Saving message`, {
@@ -277,6 +276,33 @@ export const handleIncomingMessage = async (userId, msg, io, sendResponse, hostN
 
         logger.info(`Message processed for user ${userId}: ${msg.key.id}`);
 
+        // --- AI Analysis (Sentiment, Summary, etc.) ---
+        // Verify we have text to analyze or it's a media message
+        if (!fromMe && (content.text || messageData.type !== MESSAGE_TYPES.TEXT)) {
+            try {
+                const analysisText = content.text || (content.caption ? `${content.caption} [Media]` : '[Media Message]');
+                const analysisResult = await analyzeMessage(userId, chatJid, analysisText);
+
+                if (analysisResult) {
+                    console.log(`🧠 [handleIncomingMessage] AI Analysis: Sentiment=${analysisResult.sentiment}`);
+
+                    // Update Chat with analysis results
+                    await Chat.findOneAndUpdate(
+                        { userId, chatJid },
+                        {
+                            sentiment: analysisResult.sentiment,
+                            summary: analysisResult.summary || undefined,
+                            suggestions: analysisResult.suggestions || [],
+                            extractedData: analysisResult.extractedData || {},
+                            lastSummaryAt: new Date()
+                        }
+                    );
+                }
+            } catch (analysisError) {
+                logger.error('Error in AI analysis:', analysisError);
+            }
+        }
+
         // --- AI Auto-Response Logic ---
         if (!fromMe && content.text && sendResponse) {
             try {
@@ -284,6 +310,13 @@ export const handleIncomingMessage = async (userId, msg, io, sendResponse, hostN
                 const chat = await Chat.findOne({ userId, chatJid });
 
                 if (chat && chat.aiEnabled) {
+                    // [FEATURE FLAG CHECK]
+                    const user = await ((await import('../models/User.js')).default).findById(userId);
+                    if (user && user.featureFlags && user.featureFlags.aiBot === false) {
+                        logger.info(`AI Bot disabled globally for user ${userId}. Skipping response.`);
+                        return;
+                    }
+
                     logger.info(`AI enabled for chat ${chatJid}, generating response...`);
 
                     // Simulate reading delay based on length (optional but nice)

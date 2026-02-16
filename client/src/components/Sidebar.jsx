@@ -81,30 +81,30 @@ function Sidebar({ activeView, onViewChange, onLogout, isCollapsed, setIsCollaps
                             onClick={() => onViewChange(item.id)}
                         >
                             <Icon className="nav-icon" />
-                            {!isCollapsed && <span className="nav-label">{item.label}</span>}
+                            <span className="nav-label">{item.label}</span>
                         </button>
                     );
                 })}
             </nav>
 
             <div className="sidebar-footer">
-                {!isCollapsed && credits !== null && (
+                {credits !== null && (
                     <div className="credits-display" title="AI Credits Remaining">
                         <FaCoins className="credits-icon" />
-                        <span>{credits} Credits</span>
+                        <span className="credits-text">{credits} Credits</span>
                     </div>
                 )}
 
-                <button className="nav-item settings">
+                <button className={`nav-item settings ${activeView === 'settings' ? 'active' : ''}`} onClick={() => onViewChange('settings')}>
                     <FaCog className="nav-icon" />
-                    {!isCollapsed && <span className="nav-label">Settings</span>}
+                    <span className="nav-label">Settings</span>
                 </button>
                 <button className="nav-item logout" onClick={onLogout}>
                     <FaSignOutAlt className="nav-icon" />
-                    {!isCollapsed && <span className="nav-label">Logout</span>}
+                    <span className="nav-label">Logout</span>
                 </button>
             </div>
-        </div>
+        </div >
     );
 }
 

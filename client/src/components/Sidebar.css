@@ -228,6 +228,8 @@
         width: calc(100% - 24px);
         height: 64px;
         flex-direction: row;
+        align-items: center;
+        /* Ensure vertical centering */
         border-right: none;
         border: 1px solid rgba(255, 255, 255, 0.3);
         border-radius: 20px;
@@ -339,11 +341,68 @@
         text-align: center;
     }
 
+    /* Sidebar Footer on Mobile */
     .sidebar-footer {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        /* Force full height */
+        padding: 0;
+        gap: 0;
+        border: none;
+        flex-shrink: 0;
+    }
+
+    /* Hide Credits and Logout on Mobile */
+    .sidebar-footer .credits-display,
+    .sidebar-footer .nav-item.logout {
+        display: none !important;
+    }
+
+    /* Only show Settings icon in footer on mobile */
+    .sidebar-footer .nav-item.settings {
+        width: 50px;
+        flex: 0 0 50px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+    }
+
+    .sidebar-footer .nav-item.settings .nav-label {
+        display: block;
+    }
+
+    /* Force show labels on mobile even if collapsed class is present */
+    .sidebar.collapsed .nav-label {
+        display: block;
+    }
+
+    /* Toggle button hidden on mobile */
+    .sidebar-toggle {
+        display: none;
+    }
+}
+
+/* Desktop Collapsed State Logic */
+@media (min-width: 769px) {
+
+    .sidebar.collapsed .nav-label,
+    .sidebar.collapsed .logo-text,
+    .sidebar.collapsed .credits-text {
         display: none;
     }
 
-    .sidebar-toggle {
-        display: none;
+    .sidebar.collapsed .credits-display {
+        padding: 10px 0;
+        justify-content: center;
+        background: transparent;
+        box-shadow: none;
+    }
+
+    .sidebar.collapsed .credits-icon {
+        font-size: 22px;
     }
 }

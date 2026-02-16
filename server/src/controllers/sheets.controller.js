@@ -78,6 +78,12 @@ export const syncChat = asyncHandler(async (req, res) => {
     // 1. Extract Data using AI
     const extractedData = await aiService.extractData(userId, chatJid, user.sheetsConfig.columns);
 
+    // [FEATURE FLAG CHECK]
+    if (user.featureFlags && user.featureFlags.sheetAutomation === false) {
+        console.log(`📊 [Sheets] Automation disabled for user ${userId}. Skipping sync.`);
+        return successResponse(res, 200, 'Data extracted but sync skipped (feature disabled)', { extractedData });
+    }
+
     // 2. Append to Sheet
     const appendResult = await sheetsService.appendRow(userId, extractedData);
 
