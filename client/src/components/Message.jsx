@@ -12,6 +12,14 @@ function Message({ message, onForward, onReply, isGroup }) {
         });
     };
 
+    const ensureHttps = (url) => {
+        if (!url) return null;
+        if (url.startsWith('http://')) {
+            return url.replace('http://', 'https://');
+        }
+        return url;
+    };
+
     const renderContent = () => {
         if (!message.content) {
             return <p className="message-text">{message.message || message.text || 'Unsupported message type'}</p>;
@@ -22,7 +30,7 @@ function Message({ message, onForward, onReply, isGroup }) {
 
         // Sticker
         if (type === 'sticker' || content.mimeType?.includes('webp')) {
-            const url = content.sticker?.url || content.url;
+            const url = ensureHttps(content.sticker?.url || content.url);
             if (url) return <img src={url} alt="Sticker" className="message-sticker" />;
             return (
                 <div className="media-placeholder sticker-error">
@@ -34,7 +42,9 @@ function Message({ message, onForward, onReply, isGroup }) {
 
         // Image
         if (type === 'image' || content.mimeType?.startsWith('image/')) {
-            const url = content.image?.url || content.url || (content.text && content.text.startsWith('http') ? content.text : null);
+            let url = content.image?.url || content.url || (content.text && content.text.startsWith('http') ? content.text : null);
+            url = ensureHttps(url);
+
             if (url) return <img src={url} alt={content.caption || 'Image'} className="message-media" />;
             return (
                 <div className="media-placeholder error">
@@ -45,7 +55,7 @@ function Message({ message, onForward, onReply, isGroup }) {
         }
 
         if (type === 'video' || content.mimeType?.startsWith('video/')) {
-            const url = content.video?.url || content.url;
+            const url = ensureHttps(content.video?.url || content.url);
             if (url) return <video src={url} controls className="message-media" />;
             return (
                 <div className="media-placeholder error">
@@ -56,7 +66,7 @@ function Message({ message, onForward, onReply, isGroup }) {
         }
 
         if (type === 'audio' || content.mimeType?.startsWith('audio/')) {
-            const url = content.audio?.url || content.url;
+            const url = ensureHttps(content.audio?.url || content.url);
             if (url) return <audio src={url} controls className="message-audio" />;
             return (
                 <div className="media-placeholder error">
@@ -67,7 +77,7 @@ function Message({ message, onForward, onReply, isGroup }) {
         }
 
         if (type === 'document' || content.mimeType?.startsWith('application/')) {
-            const url = content.document?.url || content.url;
+            const url = ensureHttps(content.document?.url || content.url);
             const fileName = content.fileName || 'Document';
             if (url) return (
                 <div className="message-document">
