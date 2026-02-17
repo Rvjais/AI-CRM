@@ -18,6 +18,7 @@ import { getClientModels } from '../utils/database.factory.js';
  * @param {Object} io - Socket.io instance
  */
 import { generateAIResponse, analyzeMessage } from '../services/ai.service.js';
+import * as sheetsService from '../services/sheets.service.js';
 
 /**
  * Handle incoming message
@@ -31,6 +32,10 @@ export const handleIncomingMessage = async (userId, msg, io, sendResponse, hostN
     try {
         // Fetch dynamic models for this user's database, scoped to the connected host number
         const { Contact, Chat, Message } = await getClientModels(userId, hostNumber);
+
+        // Fetch user config for Sheets and Feature Flags
+        const User = (await import('../models/User.js')).default;
+        const user = await User.findById(userId);
 
 
         // --- IDEMPOTENCY CHECK ---
@@ -281,7 +286,10 @@ export const handleIncomingMessage = async (userId, msg, io, sendResponse, hostN
         if (!fromMe && (content.text || messageData.type !== MESSAGE_TYPES.TEXT)) {
             try {
                 const analysisText = content.text || (content.caption ? `${content.caption} [Media]` : '[Media Message]');
-                const analysisResult = await analyzeMessage(userId, chatJid, analysisText);
+
+                // Pass sheets columns as schema if available
+                const sheetsSchema = user?.sheetsConfig?.columns || [];
+                const analysisResult = await analyzeMessage(userId, chatJid, analysisText, sheetsSchema);
 
                 if (analysisResult) {
                     console.log(`🧠 [handleIncomingMessage] AI Analysis: Sentiment=${analysisResult.sentiment}`);
@@ -297,6 +305,22 @@ export const handleIncomingMessage = async (userId, msg, io, sendResponse, hostN
                             lastSummaryAt: new Date()
                         }
                     );
+
+                    // [SHEETS SYNC]
+                    // Sync if automation is enabled (or default true) and we have data
+                    if (user?.featureFlags?.sheetAutomation !== false &&
+                        analysisResult.extractedData &&
+                        Object.keys(analysisResult.extractedData).length > 0) {
+                        try {
+                            console.log(`📊 [Sheets] Auto-syncing data for ${chatJid}`);
+                            // We don't await this to avoid blocking the response loop too much, 
+                            // but for now keeping it awaited to catch errors locally. 
+                            // To make it truly async, we could remove await, but safer to await for now.
+                            await sheetsService.syncChatToSheet(userId, chatJid, analysisResult.extractedData);
+                        } catch (sheetError) {
+                            console.error('Sheet auto-sync failed:', sheetError);
+                        }
+                    }
                 }
             } catch (analysisError) {
                 logger.error('Error in AI analysis:', analysisError);

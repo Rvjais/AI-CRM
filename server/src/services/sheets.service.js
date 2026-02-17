@@ -87,14 +87,34 @@ export const syncChatToSheet = async (userId, chatJid, extractedData) => {
             return true;
         }
 
+
         // Search for existing row
         const phoneValue = enrichedData[columns[phoneColIndex].key] || enrichedData.phone;
         const rowIndex = await findRowIndex(userId, phoneColIndex, phoneValue);
 
         if (rowIndex !== -1) {
             // Update existing row
-            console.log(`[Sync] Updating existing row ${rowIndex} for ${phoneValue}`);
-            await updateRow(userId, rowIndex, enrichedData);
+            console.log(`[Sync] Found existing row ${rowIndex} for ${phoneValue}. Merging data...`);
+
+            // Fetch existing row data to merge
+            const existingRow = await getRow(userId, rowIndex);
+            const mergedData = { ...enrichedData };
+
+            // Merge logic: If new data is empty but existing data is present, keep existing.
+            // columns order matches existingRow array order
+            columns.forEach((col, index) => {
+                const key = col.key.trim();
+                const existingValue = existingRow[index] || '';
+                const newValue = mergedData[key];
+
+                // If new value is empty/null/undefined, but we have an existing value, preserve it
+                // Unless we explicitly want to clear it? (For now, favor preservation)
+                if ((newValue === null || newValue === undefined || newValue === '') && existingValue) {
+                    mergedData[key] = existingValue;
+                }
+            });
+
+            await updateRow(userId, rowIndex, mergedData);
         } else {
             // Append new row
             console.log(`[Sync] Creating new row for ${phoneValue}`);
@@ -110,6 +130,25 @@ export const syncChatToSheet = async (userId, chatJid, extractedData) => {
 };
 
 /**
+ * Get data for a specific row
+ */
+const getRow = async (userId, rowIndex) => {
+    const user = await User.findById(userId);
+    const sheets = await getSheetsClient(userId);
+    const { spreadsheetId, sheetName } = user.sheetsConfig;
+
+    // rowIndex is 0-indexed (array index), Sheet is 1-indexed.
+    const rowNum = rowIndex + 1;
+
+    const result = await sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range: `${sheetName}!A${rowNum}:${rowNum}`, // Get entire row (unbounded end column, or reasonably large)
+    });
+
+    return result.data.values ? result.data.values[0] : [];
+};
+
+/**
  * Find the row index of a specific value in a column
  */
 const findRowIndex = async (userId, colIndex, valueToFind) => {
@@ -121,6 +160,8 @@ const findRowIndex = async (userId, colIndex, valueToFind) => {
 
     // Fetch the specific column data
     // Converting colIndex 0 -> A, 1 -> B, etc.
+    // Note: This simple conversion works for A-Z. For AA+, it needs better logic.
+    // Assuming columns < 26 for now.
     const colLetter = String.fromCharCode(65 + colIndex);
 
     const result = await sheets.spreadsheets.values.get({
