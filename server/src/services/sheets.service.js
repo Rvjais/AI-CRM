@@ -83,43 +83,14 @@ export const syncChatToSheet = async (userId, chatJid, extractedData) => {
         if (phoneColIndex === -1) {
             // No unique identifier column? Fallback to append, but warn
             console.warn('[Sync] No phone/number column found to dedup. Appending.');
-            await appendRow(userId, enrichedData);
-            return true;
-        }
-
-
-        // Search for existing row
-        const phoneValue = enrichedData[columns[phoneColIndex].key] || enrichedData.phone;
-        const rowIndex = await findRowIndex(userId, phoneColIndex, phoneValue);
-
-        if (rowIndex !== -1) {
-            // Update existing row
-            console.log(`[Sync] Found existing row ${rowIndex} for ${phoneValue}. Merging data...`);
-
-            // Fetch existing row data to merge
-            const existingRow = await getRow(userId, rowIndex);
-            const mergedData = { ...enrichedData };
-
-            // Merge logic: If new data is empty but existing data is present, keep existing.
-            // columns order matches existingRow array order
-            columns.forEach((col, index) => {
-                const key = col.key.trim();
-                const existingValue = existingRow[index] || '';
-                const newValue = mergedData[key];
-
-                // If new value is empty/null/undefined, but we have an existing value, preserve it
-                // Unless we explicitly want to clear it? (For now, favor preservation)
-                if ((newValue === null || newValue === undefined || newValue === '') && existingValue) {
-                    mergedData[key] = existingValue;
-                }
-            });
-
-            await updateRow(userId, rowIndex, mergedData);
         } else {
-            // Append new row
-            console.log(`[Sync] Creating new row for ${phoneValue}`);
-            await appendRow(userId, enrichedData);
+            // We found a phone column. We no longer deduplicate here as per user request
+            // We just append a new row for every new extraction.
+            console.log(`[Sync] Appending new row for ${enrichedData.phone}`);
         }
+
+        // Always append new row based on user request instead of updating the existing one
+        await appendRow(userId, enrichedData);
 
         return true;
 

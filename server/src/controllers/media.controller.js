@@ -69,7 +69,7 @@ export const deleteMedia = asyncHandler(async (req, res) => {
     }
 
     // Delete from Cloudinary
-    await deleteFromCloudinary(media.cloudinaryId, media.type);
+    await deleteFromCloudinary(media.cloudinaryId, media.type, req.userId);
 
     // Delete from database
     await media.deleteOne();

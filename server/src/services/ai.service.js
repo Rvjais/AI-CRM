@@ -598,6 +598,11 @@ export const analyzeMessage = async (userId, chatJid, messageText, schema = []) 
         - If not found, use null or empty string.
         - Output strictly valid JSON.
 
+        SENTIMENT RULES (VERY IMPORTANT):
+        - "positive": The user is actively inquiring about a product/service, showing interest, or wanting to buy.
+        - "negative": The user is complaining, frustrated, or explicitly rejecting an offer.
+        - "neutral": General questions without clear purchase intent, simple greetings, or informational exchanges.
+
         Output Format:
         {
             "sentiment": "positive|neutral|negative",

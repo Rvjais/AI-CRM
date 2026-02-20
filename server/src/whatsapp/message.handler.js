@@ -555,8 +555,14 @@ export const downloadAndUploadMedia = async (msg, userId) => {
         const buffer = await downloadMediaMessage(msg, 'buffer', {});
 
         // Determine filename and mime type
-        // Use the current messageType from the (potentially modified) msg object
-        const messageType = Object.keys(msg.message)[0];
+        const messageKeys = Object.keys(msg.message || {});
+        let messageType = messageKeys.find(key =>
+            key !== 'messageContextInfo' &&
+            key !== 'deviceListMetadata' &&
+            key !== 'senderKeyDistributionMessage'
+        );
+        if (!messageType) messageType = messageKeys[0];
+
         const mediaMsg = msg.message[messageType];
 
         const mimeType = mediaMsg.mimetype;
