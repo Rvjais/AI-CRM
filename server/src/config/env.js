@@ -43,6 +43,10 @@ const env = {
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
   GOOGLE_REDIRECT_URI: process.env.REDIRECT_URI || process.env.GOOGLE_REDIRECT_URI,
 
+  // Bolna AI
+  BOLNA_API_KEY: process.env.BOLNA_API_KEY,
+  BOLNA_AGENT_ID: process.env.BOLNA_AGENT_ID,
+
   // Computed
   isDevelopment: process.env.NODE_ENV !== 'production',
   isProduction: process.env.NODE_ENV === 'production',

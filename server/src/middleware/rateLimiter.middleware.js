@@ -29,7 +29,7 @@ export const apiLimiter = rateLimit({
     handler: rateLimitHandler,
     standardHeaders: true,
     legacyHeaders: false,
-    skip: () => env.NODE_ENV === 'development', // Skip rate limiting in development
+    skip: (req) => req.ip === '::1' || req.ip === '127.0.0.1' || env.NODE_ENV === 'development', // Skip local testing
 });
 
 /**
@@ -41,6 +41,7 @@ export const authLimiter = rateLimit({
     max: 50, // Increased from 5 to 50 for easier login during development
     message: 'Too many authentication attempts, please try again later',
     handler: rateLimitHandler,
+    skip: (req) => req.ip === '::1' || req.ip === '127.0.0.1' || env.NODE_ENV === 'development',
     skipSuccessfulRequests: true, // Don't count successful logins
 });
 

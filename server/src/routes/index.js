@@ -16,6 +16,9 @@ import webhookRoutes from './webhook.routes.js';
 import importRoutes from './import.routes.js';
 import campaignRoutes from './campaign.routes.js';
 import formRoutes from './form.routes.js';
+import bolnaRoutes from './bolna.routes.js';
+import agentRoutes from './agent.routes.js';
+import executionRoutes from './execution.routes.js';
 
 const router = express.Router();
 
@@ -41,6 +44,9 @@ router.use('/admin', adminRoutes);
 router.use('/user', userRoutes);
 router.use('/webhooks', webhookRoutes);
 router.use('/forms', formRoutes);
+router.use('/bolna', bolnaRoutes);
+router.use('/agents', agentRoutes);
+router.use('/executions', executionRoutes);
 
 // Health check endpoint
 router.get('/health', (req, res) => {

@@ -43,22 +43,12 @@ function Sidebar({ activeView, onViewChange, onLogout, isCollapsed, setIsCollaps
                 <div className="logo">
                     {/* Keep existing logo SVG */}
                     <div className="logo-icon">
-                        <svg width="48" height="48" viewBox="0 0 60 60" fill="none">
-                            <rect width="60" height="60" rx="14" fill="url(#gradient)" />
-                            <path d="M30 15L45 22.5V37.5L30 45L15 37.5V22.5L30 15Z" stroke="white" strokeWidth="2.5" strokeLinejoin="round" />
-                            <circle cx="30" cy="30" r="6" fill="white" />
-                            <defs>
-                                <linearGradient id="gradient" x1="0" y1="0" x2="60" y2="60">
-                                    <stop stopColor="#667eea" />
-                                    <stop offset="1" stopColor="#764ba2" />
-                                </linearGradient>
-                            </defs>
-                        </svg>
+                        <img src="/aicrmz-transparent.webp" alt="AI CRM Logo" style={{ width: 'auto', height: '60px', borderRadius: '4px', objectFit: 'contain' }} />
                     </div>
                     {!isCollapsed && (
                         <div className="logo-text">
-                            <h1>RainCRM</h1>
-                            <p>AI-Powered</p>
+                            <h1>AI Powered</h1>
+                            <p>CRM</p>
                         </div>
                     )}
                 </div>

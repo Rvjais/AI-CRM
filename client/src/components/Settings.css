@@ -12,7 +12,7 @@
 .settings-header h2 {
     font-size: 2rem;
     margin-bottom: 0.5rem;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #2B5EA7 0%, #00A79D 100%);
     background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -127,11 +127,11 @@
 }
 
 input:checked+.slider {
-    background-color: #667eea;
+    background-color: #2B5EA7;
 }
 
 input:focus+.slider {
-    box-shadow: 0 0 1px #667eea;
+    box-shadow: 0 0 1px #2B5EA7;
 }
 
 input:checked+.slider:before {
@@ -158,7 +158,7 @@ input:checked+.slider:before {
 }
 
 .save-btn {
-    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(90deg, #2B5EA7 0%, #00A79D 100%);
     color: white;
     padding: 0.75rem 2rem;
     border: none;

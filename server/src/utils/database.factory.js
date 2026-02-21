@@ -106,7 +106,7 @@ export const getClientModels = async (userId, phoneNumber) => {
     const campaignSchema = (await import('../schemas/Campaign.schema.js')).default;
     const campaignJobSchema = (await import('../schemas/CampaignJob.schema.js')).default;
     const whatsappSessionSchema = (await import('../schemas/WhatsAppSession.schema.js')).default;
-
+    const voiceAgentSchema = (await import('../schemas/VoiceAgent.schema.js')).default;
     // Core Data Models (Scoped by Phone Number if provided)
     const Message = await getClientModel(user, 'Message', messageSchema, phoneNumber);
     const Chat = await getClientModel(user, 'Chat', chatSchema, phoneNumber);
@@ -125,6 +125,7 @@ export const getClientModels = async (userId, phoneNumber) => {
     // WhatsAppSession stores the connection state. It shouldn't be suffixed because we need to find it 
     // *before* we know the phone number (e.g. to check status).
     const WhatsAppSession = await getClientModel(user, 'WhatsAppSession', whatsappSessionSchema);
+    const VoiceAgent = await getClientModel(user, 'VoiceAgent', voiceAgentSchema);
 
     // Return everything
     return {
@@ -136,6 +137,7 @@ export const getClientModels = async (userId, phoneNumber) => {
         Media,
         Campaign,
         CampaignJob,
-        WhatsAppSession
+        WhatsAppSession,
+        VoiceAgent
     };
 };

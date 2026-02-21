@@ -17,6 +17,7 @@ import ImportManager from './components/ImportManager';
 import FormBuilder from './components/FormBuilder';
 import InfrastructureConfig from './components/InfrastructureConfig';
 import ComingSoon from './components/ComingSoon';
+import VoiceAgent from './components/VoiceAgent';
 import Login from './components/Login';
 import Settings from './components/Settings';
 import './App.css';
@@ -74,7 +75,7 @@ function App() {
         </div>
 
         <div className={activeView === 'voiceagent' ? 'view-active' : 'view-hidden'}>
-          <ComingSoon title="Voice Agent" icon="🎤" />
+          <VoiceAgent token={token} />
         </div>
         <div className={activeView === 'aiconfig' ? 'view-active' : 'view-hidden'}>
           <AIConfig token={token} />

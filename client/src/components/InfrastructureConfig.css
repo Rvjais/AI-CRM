@@ -17,7 +17,7 @@
     font-size: 2.5rem;
     /* Larger title */
     margin-bottom: 0.5rem;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #2B5EA7 0%, #00A79D 100%);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -95,7 +95,7 @@
 }
 
 .section-icon {
-    color: #667eea;
+    color: #2B5EA7;
     font-size: 1.5rem;
     background: rgba(102, 126, 234, 0.1);
     padding: 10px;
@@ -154,7 +154,7 @@
 
 .input-field:focus {
     outline: none;
-    border-color: #667eea;
+    border-color: #2B5EA7;
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
 }
 
@@ -215,7 +215,7 @@
 }
 
 .btn-save {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #2B5EA7 0%, #00A79D 100%);
     color: white;
     border: none;
     padding: 1rem 3rem;

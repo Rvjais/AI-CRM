@@ -59,7 +59,7 @@
 
 .ai-collapsed-icon {
     font-size: 24px;
-    color: #764ba2;
+    color: #00A79D;
     margin-top: 10px;
 }
 
@@ -179,7 +179,7 @@
 }
 
 .notes-input:focus {
-    border-color: #667eea;
+    border-color: #2B5EA7;
 }
 
 .ai-disabled-notice {
@@ -304,7 +304,7 @@
     justify-content: center;
     width: 36px;
     height: 36px;
-    background: #eff6ff;
+    background: #F0F6FF;
     border-radius: 8px;
     color: #4A9FF5;
     flex-shrink: 0;

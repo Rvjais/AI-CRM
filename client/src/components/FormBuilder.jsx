@@ -14,7 +14,7 @@ const THEMES = {
     blue: {
         name: 'Classic Blue',
         primary: '#4f46e5', // indigo-600
-        bg: '#eff6ff', // blue-50
+        bg: '#F0F6FF', // blue-50
         border: '#e0e7ff', // blue-100
         text: '#1e1b4b' // indigo-950
     },
@@ -949,8 +949,8 @@ ${formHtml}
                                         onClick={() => updateField(selectedField.id, { width: 'full' })}
                                         style={{
                                             flex: 1, padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid',
-                                            backgroundColor: selectedField.width === 'full' ? '#eff6ff' : '#ffffff',
-                                            borderColor: selectedField.width === 'full' ? '#3b82f6' : '#d1d5db',
+                                            backgroundColor: selectedField.width === 'full' ? '#F0F6FF' : '#ffffff',
+                                            borderColor: selectedField.width === 'full' ? '#2B5EA7' : '#d1d5db',
                                             color: selectedField.width === 'full' ? '#1d4ed8' : '#374151',
                                             cursor: 'pointer', fontSize: '0.875rem'
                                         }}
@@ -961,8 +961,8 @@ ${formHtml}
                                         onClick={() => updateField(selectedField.id, { width: 'half' })}
                                         style={{
                                             flex: 1, padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid',
-                                            backgroundColor: selectedField.width === 'half' ? '#eff6ff' : '#ffffff',
-                                            borderColor: selectedField.width === 'half' ? '#3b82f6' : '#d1d5db',
+                                            backgroundColor: selectedField.width === 'half' ? '#F0F6FF' : '#ffffff',
+                                            borderColor: selectedField.width === 'half' ? '#2B5EA7' : '#d1d5db',
                                             color: selectedField.width === 'half' ? '#1d4ed8' : '#374151',
                                             cursor: 'pointer', fontSize: '0.875rem'
                                         }}

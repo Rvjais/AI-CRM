@@ -17,11 +17,12 @@
 }
 
 .sidebar-header {
-    padding: 24px 20px;
+    padding: 24px 20px 16px;
     border-bottom: 1px solid #f3f4f6;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: space-between;
+    position: relative;
 }
 
 .sidebar.collapsed .sidebar-header {
@@ -50,7 +51,7 @@
     border-color: #d1d5db;
 }
 
-.sidebar.collapsed .sidebar-toggle {
+.sidebar .sidebar-toggle {
     position: absolute;
     right: -14px;
     top: 32px;
@@ -61,19 +62,32 @@
 
 .logo {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 12px;
+    justify-content: center;
+    text-align: center;
+    gap: 4px;
 }
 
 .logo-icon {
     flex-shrink: 0;
 }
 
+.logo-icon img {
+    max-width: 100%;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar.collapsed .logo-icon img {
+    height: 36px !important;
+    width: auto !important;
+    margin-right: -4px;
+}
+
 .logo-text h1 {
-    font-size: 26px;
+    font-size: 20px;
     font-weight: 800;
     color: #111827;
-    /* Dark text */
     margin: 0;
     letter-spacing: -0.5px;
 }
@@ -122,7 +136,7 @@
 }
 
 .nav-item.active {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #2B5EA7 0%, #00A79D 100%);
     color: white;
     /* Keep white text on gradient */
     box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
@@ -172,8 +186,8 @@
 }
 
 .nav-item.settings:hover {
-    background: #eff6ff;
-    color: #3b82f6;
+    background: #F0F6FF;
+    color: #2B5EA7;
     transform: translateX(5px);
 }
 
@@ -300,12 +314,12 @@
     }
 
     .nav-item.active .nav-icon {
-        color: #667eea;
+        color: #2B5EA7;
         transform: scale(1.1);
     }
 
     .nav-item.active .nav-label {
-        color: #667eea;
+        color: #2B5EA7;
         font-weight: 600;
     }
 
@@ -317,7 +331,7 @@
         transform: translateX(-50%);
         width: 24px;
         height: 3px;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #2B5EA7 0%, #00A79D 100%);
         border-radius: 0 0 3px 3px;
     }
 

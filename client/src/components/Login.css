@@ -4,7 +4,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #2B5EA7 0%, #00A79D 100%);
     padding: 20px;
 }
 
@@ -80,7 +80,7 @@
 }
 
 .form-group input:focus {
-    border-color: #667eea;
+    border-color: #2B5EA7;
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
@@ -94,7 +94,7 @@
 }
 
 .login-button {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #2B5EA7 0%, #00A79D 100%);
     color: white;
     border: none;
     padding: 14px;
@@ -147,7 +147,7 @@
 .toggle-button {
     background: none;
     border: none;
-    color: #667eea;
+    color: #2B5EA7;
     font-weight: 600;
     cursor: pointer;
     font-size: 14px;
@@ -157,5 +157,5 @@
 
 .toggle-button:hover {
     text-decoration: underline;
-    color: #764ba2;
+    color: #00A79D;
 }

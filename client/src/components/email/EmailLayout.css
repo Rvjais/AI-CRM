@@ -322,7 +322,7 @@
 }
 
 .score-badge.medium {
-    background-color: #eff6ff;
+    background-color: #F0F6FF;
     color: #1e40af;
     border: 1px solid #dbeafe;
 }
@@ -421,7 +421,7 @@
 .sender-avatar {
     width: 40px;
     height: 40px;
-    background: #667eea;
+    background: #2B5EA7;
     color: white;
     border-radius: 50%;
     display: flex;
@@ -786,7 +786,7 @@
     }
 
     .email-sidebar .nav-item.active .nav-icon {
-        color: #667eea;
+        color: #2B5EA7;
     }
 
     /* Labels section */

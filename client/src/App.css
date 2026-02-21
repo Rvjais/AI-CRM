@@ -17,7 +17,7 @@ body {
   width: 100vw;
   height: 100vh;
   display: flex;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #2B5EA7 0%, #00A79D 100%);
   padding: 0;
 }
 
@@ -277,7 +277,7 @@ body {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #2B5EA7 0%, #00A79D 100%);
   color: white;
   border: none;
   padding: 0.875rem 2rem;
