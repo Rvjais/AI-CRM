@@ -3,7 +3,7 @@ import { FaSearch, FaSignOutAlt } from 'react-icons/fa';
 import ChatItem from './ChatItem';
 import './ChatList.css';
 
-function ChatList({ chats, selectedChat, onSelectChat, aiEnabled, onToggleAI, onLogout }) {
+function ChatList({ chats, selectedChat, onSelectChat, aiEnabled, onToggleAI, onLogout, globalAiEnabled }) {
     const [activeTab, setActiveTab] = useState('CHAT');
     const [searchQuery, setSearchQuery] = useState('');
 
@@ -72,17 +72,19 @@ function ChatList({ chats, selectedChat, onSelectChat, aiEnabled, onToggleAI, on
                 </button>
             </div>
 
-            <div className="ai-toggle">
-                <span>AI enabled chat</span>
-                <label className="toggle-switch">
-                    <input
-                        type="checkbox"
-                        checked={aiEnabled}
-                        onChange={(e) => onToggleAI(e.target.checked)}
-                    />
-                    <span className="slider"></span>
-                </label>
-            </div>
+            {globalAiEnabled && (
+                <div className="ai-toggle">
+                    <span>AI enabled chat</span>
+                    <label className="toggle-switch">
+                        <input
+                            type="checkbox"
+                            checked={aiEnabled}
+                            onChange={(e) => onToggleAI(e.target.checked)}
+                        />
+                        <span className="slider"></span>
+                    </label>
+                </div>
+            )}
 
             <div className="search-container">
                 <FaSearch className="search-icon" />

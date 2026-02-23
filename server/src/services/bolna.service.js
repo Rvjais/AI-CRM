@@ -60,22 +60,18 @@ export const processBolnaWebhook = async (payload) => {
         const { default: User } = await import('../models/User.js');
         const { getClientModels } = await import('../utils/database.factory.js');
 
-        const users = await User.find({ mongoURI: { $exists: true, $ne: null } });
+        // Fast O(1) query using the mapped array in the Master schema
+        const checkAgentId = payload.agent_id || (payload.agent && payload.agent.id);
 
-        for (const user of users) {
-            try {
-                const { VoiceAgent } = await getClientModels(user.id);
-                const checkAgentId = payload.agent_id || (payload.agent && payload.agent.id);
-
-                if (checkAgentId) {
-                    const agentExists = await VoiceAgent.findOne({ bolna_agent_id: checkAgentId });
-                    if (agentExists) {
-                        logger.info(`Received Bolna webhook event for agent ${checkAgentId} (User: ${user.email}). No action taken as data is fetched live.`);
-                        break;
-                    }
-                }
-            } catch (dbError) {
-                logger.error(`Webhook Check Error for user ${user.id}:`, dbError);
+        if (checkAgentId) {
+            const user = await User.findOne({ bolnaAgentIds: checkAgentId });
+            if (user) {
+                logger.info(`Received Bolna webhook event for agent ${checkAgentId} (User: ${user.email}). No action taken as data is fetched live.`);
+                // If we needed to save something to the User's dynamic DB:
+                // const { VoiceAgent } = await getClientModels(user.id);
+                // await VoiceAgent.updateOne({ bolna_agent_id: checkAgentId }, ...);
+            } else {
+                logger.warn(`Received Bolna webhook event for agent ${checkAgentId}, but no matching User was found in the CRM master index.`);
             }
         }
 

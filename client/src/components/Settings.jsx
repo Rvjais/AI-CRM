@@ -44,23 +44,25 @@ function Settings({ onLogout }) {
         }
     };
 
-    const handleToggle = (key) => {
-        setSettings(prev => ({
-            ...prev,
-            [key]: !prev[key]
-        }));
-    };
+    const handleToggle = async (key) => {
+        const newValue = !settings[key];
+        const newSettings = { ...settings, [key]: newValue };
 
-    const saveSettings = async () => {
+        // Optimistically update UI
+        setSettings(newSettings);
+
+        // Auto-save to backend instantly
         setSaving(true);
-        setMessage('');
         try {
-            await api.put('/api/user/settings', { featureFlags: settings });
-            setMessage('Settings saved successfully!');
-            setTimeout(() => setMessage(''), 3000);
+            await api.put('/api/user/settings', { featureFlags: newSettings });
+            setMessage('Saved!');
+            setTimeout(() => setMessage(''), 2000);
         } catch (error) {
-            console.error('Failed to save settings:', error);
-            setMessage('Failed to save settings.');
+            console.error('Failed to auto-save settings:', error);
+            setMessage('Failed to save settings. Reverting...');
+            // Revert on failure
+            setSettings(settings);
+            setTimeout(() => setMessage(''), 3000);
         } finally {
             setSaving(false);
         }
@@ -168,11 +170,8 @@ function Settings({ onLogout }) {
                 </div>
             </div>
 
-            <div className="settings-actions">
+            <div className="settings-actions" style={{ justifyContent: 'flex-end', borderTop: 'none', paddingTop: 0 }}>
                 {message && <span className="settings-message">{message}</span>}
-                <button className="save-btn" onClick={saveSettings} disabled={saving}>
-                    <FaSave /> {saving ? 'Saving...' : 'Save Changes'}
-                </button>
             </div>
 
             <div className="settings-danger-zone">

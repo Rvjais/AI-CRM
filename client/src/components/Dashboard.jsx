@@ -187,25 +187,31 @@ function Dashboard() {
 
                 </div>
 
-                {/* Dummy Voice Bot Section */}
+                {/* Voice AI Agent Section */}
                 <div className="stat-card">
                     <div className="stat-icon voice">🎙️</div>
                     <div className="stat-info">
                         <h3>Voice AI Agent</h3>
-                        <div className="voice-stats">
-                            <div className="voice-row">
-                                <span className="v-label">Total Calls:</span>
-                                <span className="v-value">{stats.voiceBot?.totalCalls || 0}</span>
+                        {stats.voiceBot?.connected ? (
+                            <div className="voice-stats">
+                                <div className="voice-row">
+                                    <span className="v-label">Total Executions:</span>
+                                    <span className="v-value">{stats.voiceBot?.totalCalls || 0}</span>
+                                </div>
+                                <div className="voice-row">
+                                    <span className="v-label">Time Talked:</span>
+                                    <span className="v-value">{stats.voiceBot?.totalDurationFormatted || '0m 0s'}</span>
+                                </div>
+                                <div className="voice-row">
+                                    <span className="v-label">Total Cost:</span>
+                                    <span className="v-value highlight-red">{stats.voiceBot?.cost || '$0.00'}</span>
+                                </div>
                             </div>
-                            <div className="voice-row">
-                                <span className="v-label">Avg Duration:</span>
-                                <span className="v-value">{stats.voiceBot?.avgDuration || '0m'}</span>
+                        ) : (
+                            <div className="connect-prompt">
+                                <p>Agent isn't connected</p>
                             </div>
-                            <div className="voice-row">
-                                <span className="v-label">Sentiment:</span>
-                                <span className="v-value good">{stats.voiceBot?.sentiment || 'N/A'}</span>
-                            </div>
-                        </div>
+                        )}
                     </div>
                 </div>
 
@@ -227,13 +233,19 @@ function Dashboard() {
                     <div className="priority-list-scroll">
                         {stats.email.priorityList.map((email) => (
                             <div key={email.id} className="priority-item">
-                                <div className="pi-top">
-                                    <span className={`pi-score ${email.score >= 8 ? 'high' : email.score >= 4 ? 'medium' : 'low'}`}>{email.score}/10</span>
-                                    <span className="pi-date">{new Date(email.date).toLocaleDateString()}</span>
+                                <div className="pi-left">
+                                    <div className={`pi-score-circle ${email.score >= 8 ? 'high' : email.score >= 4 ? 'medium' : 'low'}`}>
+                                        {email.score}
+                                    </div>
                                 </div>
-                                <div className="pi-subject">{email.subject}</div>
-                                <div className="pi-from">{email.from}</div>
-                                <div className="pi-reason">{email.reason}</div>
+                                <div className="pi-content">
+                                    <div className="pi-header">
+                                        <span className="pi-subject">{email.subject}</span>
+                                        <span className="pi-date">{new Date(email.date).toLocaleDateString()}</span>
+                                    </div>
+                                    <div className="pi-from">{email.from}</div>
+                                    <div className="pi-reason"><strong>AI Analysis:</strong> {email.reason}</div>
+                                </div>
                             </div>
                         ))}
                     </div>

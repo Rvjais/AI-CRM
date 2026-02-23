@@ -71,8 +71,10 @@ const processUserQueue = async (userId) => {
             continue;
         }
 
-        // Process this batch
-        await Promise.all(jobs.map(job => processJob(userId, campaign, job, { Campaign, CampaignJob, Contact })));
+        // Process this batch sequentially to respect the random delays
+        for (const job of jobs) {
+            await processJob(userId, campaign, job, { Campaign, CampaignJob, Contact });
+        }
     }
 };
 

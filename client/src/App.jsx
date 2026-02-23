@@ -55,7 +55,7 @@ function App() {
         </div>
 
         <div className={activeView === 'whatsapp' ? 'view-active' : 'view-hidden'}>
-          <WhatsAppView token={token} onLogout={handleLogout} />
+          <WhatsAppView token={token} onLogout={handleLogout} isActive={activeView === 'whatsapp'} />
         </div>
 
         <div className={activeView === 'email' ? 'view-active' : 'view-hidden'}>

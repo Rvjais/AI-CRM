@@ -15,28 +15,27 @@ import { SOCKET_EVENTS } from '../config/constants.js';
  * @returns {Object} Socket.io server
  */
 export const initializeSocket = (httpServer) => {
+    const SOCKET_ALLOWED_ORIGINS = [
+        'https://in.aicrmz.com',
+        'https://ai-crm-vert.vercel.app',
+        'https://ai-crm-lz5h.vercel.app',
+        env.FRONTEND_URL,
+    ].filter(Boolean);
+
     const io = new Server(httpServer, {
         cors: {
             origin: (origin, callback) => {
-                // Allow requests with no origin
+                // If no origin, allow unconditionally
                 if (!origin) return callback(null, true);
 
-                // Allow localhost
-                if (origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1')) {
-                    return callback(null, true);
+                // LiteSpeed sometimes doubles Origin: "https://in.aicrmz.com, https://in.aicrmz.com"
+                let cleanOrigin = origin;
+                if (typeof origin === 'string' && origin.includes(',')) {
+                    cleanOrigin = origin.split(',')[0].trim();
                 }
 
-                // Allow configured frontend URL
-                if (origin === env.FRONTEND_URL) {
-                    return callback(null, true);
-                }
-
-                // In development, allow all
-                if (env.NODE_ENV === 'development') {
-                    return callback(null, true);
-                }
-
-                callback(new Error('Not allowed by CORS'));
+                // Forcefully reflect the cleaned origin back, completely bypassing any Engine.IO 400 errors
+                callback(null, cleanOrigin);
             },
             credentials: true,
         },

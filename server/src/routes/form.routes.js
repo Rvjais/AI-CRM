@@ -20,7 +20,7 @@ router.delete('/:id', authenticate, formController.deleteForm);
 router.get('/:id/submissions', authenticate, formController.getSubmissions);
 
 // Public route for submission (no auth required)
-// Allow all origins for embedded forms to work anywhere
-router.post('/:formId/submit', cors({ origin: true, credentials: false }), formController.submitForm);
+// Handled by global custom CORS in app.js to work embedded anywhere
+router.post('/:formId/submit', formController.submitForm);
 
 export default router;

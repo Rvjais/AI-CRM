@@ -84,11 +84,18 @@ const userSchema = new mongoose.Schema(
                 type: Number,
                 default: 500,
             },
+            temperature: {
+                type: Number,
+                default: 0.7,
+            },
             autoReply: {
                 type: Boolean,
                 default: false,
             },
         },
+        bolnaAgentIds: [{
+            type: String
+        }],
         // Google/Gmail OAuth integration
         googleId: {
             type: String,

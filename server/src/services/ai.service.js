@@ -31,11 +31,11 @@ const getUserAIConfig = async (userId) => {
         model: settings.model || 'gpt-3.5-turbo',
         systemPrompt: settings.systemPrompt || "You are a helpful customer support assistant.",
         maxTokens: settings.maxTokens || 150,
-        temperature: 0.7 // Could also be configurable
+        temperature: settings.temperature !== undefined ? settings.temperature : 0.7
     };
 };
 
-const generateOpenAIResponse = async (apiKey, model, messages, maxTokens, baseURL = undefined, defaultHeaders = undefined) => {
+const generateOpenAIResponse = async (apiKey, model, messages, maxTokens, temperature = 0.7, baseURL = undefined, defaultHeaders = undefined) => {
     const openai = new OpenAI({
         apiKey,
         baseURL,
@@ -46,13 +46,13 @@ const generateOpenAIResponse = async (apiKey, model, messages, maxTokens, baseUR
         messages,
         model,
         max_tokens: maxTokens,
-        temperature: 0.7,
+        temperature: temperature,
     });
 
     return completion.choices[0].message.content;
 };
 
-const generateGeminiResponse = async (apiKey, model, messages, maxTokens) => {
+const generateGeminiResponse = async (apiKey, model, messages, maxTokens, temperature = 0.7) => {
     // Convert messages to Gemini format
     // System instruction is supported in v1beta models, or prepended to first user message
     // messages: [{role: "system", content: "..."} , {role: "user", ...}]
@@ -100,7 +100,7 @@ const generateGeminiResponse = async (apiKey, model, messages, maxTokens) => {
                 contents: effectiveMessages,
                 generationConfig: {
                     maxOutputTokens: maxTokens,
-                    temperature: 0.7
+                    temperature: temperature
                 }
             })
         });
@@ -118,7 +118,7 @@ const generateGeminiResponse = async (apiKey, model, messages, maxTokens) => {
     }
 };
 
-const generateClaudeResponse = async (apiKey, model, messages, maxTokens) => {
+const generateClaudeResponse = async (apiKey, model, messages, maxTokens, temperature = 0.7) => {
     // Convert messages for Anthropic
     // System prompt is top level parameter
     let system = "";
@@ -148,7 +148,7 @@ const generateClaudeResponse = async (apiKey, model, messages, maxTokens) => {
                 max_tokens: maxTokens,
                 system,
                 messages: anthropicMessages,
-                temperature: 0.7
+                temperature: temperature
             })
         });
 
@@ -216,13 +216,13 @@ export const generateAIResponse = async (userId, chatJid, userMessage) => {
                 if (!model || model.includes('gpt')) {
                     model = 'gemini-2.5-flash';
                 }
-                responseText = await generateGeminiResponse(config.apiKey, model, messages, config.maxTokens);
+                responseText = await generateGeminiResponse(config.apiKey, model, messages, config.maxTokens, config.temperature);
                 break;
             case 'anthropic':
                 if (!model || model.includes('gpt')) {
                     model = 'claude-3-haiku-20240307';
                 }
-                responseText = await generateClaudeResponse(config.apiKey, model, messages, config.maxTokens);
+                responseText = await generateClaudeResponse(config.apiKey, model, messages, config.maxTokens, config.temperature);
                 break;
             case 'openrouter':
                 // OpenRouter might use gpt, so we trust config or default
@@ -231,6 +231,7 @@ export const generateAIResponse = async (userId, chatJid, userMessage) => {
                     model || 'openai/gpt-3.5-turbo',
                     messages,
                     config.maxTokens,
+                    config.temperature,
                     'https://openrouter.ai/api/v1',
                     {
                         "HTTP-Referer": process.env.FRONTEND_URL || "https://localhost",
@@ -240,7 +241,7 @@ export const generateAIResponse = async (userId, chatJid, userMessage) => {
                 break;
             case 'openai':
             default:
-                responseText = await generateOpenAIResponse(config.apiKey, model || 'gpt-3.5-turbo', messages, config.maxTokens);
+                responseText = await generateOpenAIResponse(config.apiKey, model || 'gpt-3.5-turbo', messages, config.maxTokens, config.temperature);
                 break;
         }
 
@@ -434,19 +435,19 @@ export const extractData = async (userId, chatJid, schema) => {
         if (!config.apiKey) return {};
 
         const Message = (await import('../models/Message.js')).default;
-        const recentMessages = await Message.find({ userId, chatJid })
+        const rawMessages = await Message.find({ userId, chatJid })
             .sort({ timestamp: -1 })
-            .limit(25) // Reduced from 50 to save tokens
+            .limit(100)
             .lean();
-        recentMessages.reverse();
 
-        // Optimized: Filter out noise (short messages < 3 chars, captionless media)
-        const relevantMessages = recentMessages.filter(m => {
+        // Optimized: Filter out noise to prevent AI Token exhaustion, taking only the 15 most recent valid nodes
+        const relevantMessages = rawMessages.filter(m => {
             const text = m.content.text || '';
             const isMedia = !text && (m.type === 'image' || m.type === 'video' || m.type === 'document');
-            // Keep if text length > 3 OR it's media with caption OR system message
             return (text.length > 3) || (isMedia && m.content.caption);
-        });
+        }).slice(0, 15);
+
+        relevantMessages.reverse();
 
         const conversation = relevantMessages.map(m => `${m.fromMe ? 'Agent' : 'User'}: ${m.content.text || m.content.caption || '[Media]'}`).join('\n');
 
@@ -540,17 +541,25 @@ export const analyzeMessage = async (userId, chatJid, messageText, schema = []) 
             }
         }
 
-        const recentMessages = await Message.find({ userId, chatJid: searchJid })
+        const rawMessages = await Message.find({ userId, chatJid: searchJid })
             .sort({ timestamp: -1 })
-            .limit(50)
+            .limit(100)
             .lean();
+
+        // Strictly optimize token bounds: Filter noise and take only the 15 most recent text-heavy nodes
+        let recentMessages = rawMessages.filter(m => {
+            const text = m.content.text || '';
+            const isMedia = !text && (m.type === 'image' || m.type === 'video' || m.type === 'document');
+            return (text.length > 3) || (isMedia && m.content.caption) || text.includes('?'); // Keep questions even if short
+        }).slice(0, 15);
+
         recentMessages.reverse();
 
         if (recentMessages.length === 0) {
             return { sentiment: 'neutral', summary: null, suggestions: [], extractedData: {} };
         }
 
-        const conversation = recentMessages.map(m => `${m.fromMe ? 'Agent' : 'User'}: ${m.content.text || '[Media]'}`).join('\n');
+        const conversation = recentMessages.map(m => `${m.fromMe ? 'Agent' : 'User'}: ${m.content.text || m.content.caption || '[Media]'}`).join('\n');
 
         // Dynamic Schema for Extraction
         let schemaDescription = "";

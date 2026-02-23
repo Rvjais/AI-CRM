@@ -8,7 +8,7 @@ import api from '../utils/apiClient';
 import ForwardModal from './ForwardModal';
 import Loader from './Loader';
 
-function WhatsAppView({ token, onLogout }) {
+function WhatsAppView({ token, onLogout, isActive }) {
     const [selectedChat, setSelectedChat] = useState(null);
     const [chats, setChats] = useState([]);
     const [messages, setMessages] = useState([]);
@@ -19,6 +19,7 @@ function WhatsAppView({ token, onLogout }) {
     const [msgToForward, setMsgToForward] = useState(null);
     const [isAICollapsed, setIsAICollapsed] = useState(false);
     const [isMobileAIViewOpen, setIsMobileAIViewOpen] = useState(false);
+    const [globalAiEnabled, setGlobalAiEnabled] = useState(true);
 
     // Ref to track selected chat without triggering effect re-runs
     const chatsRef = useRef(chats);
@@ -232,14 +233,27 @@ function WhatsAppView({ token, onLogout }) {
         init();
     }, []);
 
+    // Re-fetch global settings when the view becomes active
+    useEffect(() => {
+        if (isActive) {
+            checkInfrastructure();
+        }
+    }, [isActive]);
+
     const checkInfrastructure = async () => {
         try {
             const data = await api.get('/api/user/infrastructure');
             if (data.success && data.data) {
                 setInfrastructureReady(data.data.infrastructureReady);
             }
+
+            // Fetch global AI feature flag
+            const settingsData = await api.get('/api/user/settings');
+            if (settingsData.success && settingsData.data && settingsData.data.featureFlags) {
+                setGlobalAiEnabled(settingsData.data.featureFlags.aiBot !== false);
+            }
         } catch (error) {
-            console.error('Failed to check infrastructure:', error);
+            console.error('Failed to check infrastructure or settings:', error);
         }
     };
 
@@ -453,6 +467,7 @@ function WhatsAppView({ token, onLogout }) {
                 aiEnabled={aiEnabled}
                 onToggleAI={setAiEnabled}
                 onLogout={onLogout}
+                globalAiEnabled={globalAiEnabled}
             />
             <ChatWindow
                 selectedChat={selectedChat}
@@ -464,6 +479,7 @@ function WhatsAppView({ token, onLogout }) {
                 onBack={() => setSelectedChat(null)}
                 onToggleMobileAI={() => setIsMobileAIViewOpen(!isMobileAIViewOpen)}
                 isMobileAIViewOpen={isMobileAIViewOpen}
+                globalAiEnabled={globalAiEnabled}
             />
             <AIInsights
                 selectedChat={selectedChat}

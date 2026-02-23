@@ -262,10 +262,10 @@ export default function FormBuilder() {
         // Smart URL selection:
         // If we are on localhost, generic the embed code with localhost API
         // If we are on production, generate it with production API
-        let apiBaseUrl = 'https://rain-crm-backend.onrender.com';
+        let apiBaseUrl = 'https://api.aicrmz.com';
 
         if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-            apiBaseUrl = 'http://localhost:3000';
+            apiBaseUrl = 'http://localhost:5000';
         }
 
         const apiUrl = `${apiBaseUrl}/api/forms/${currentForm._id}/submit`;

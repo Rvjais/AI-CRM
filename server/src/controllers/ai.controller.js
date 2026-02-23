@@ -53,6 +53,7 @@ export const updateAIConfig = async (req, res) => {
         if (enabled !== undefined) updateOps['aiSettings.enabled'] = enabled;
         if (autoReply !== undefined) updateOps['aiSettings.autoReply'] = autoReply;
         if (maxTokens !== undefined) updateOps['aiSettings.maxTokens'] = maxTokens;
+        if (temperature !== undefined) updateOps['aiSettings.temperature'] = temperature;
 
         if (provider) updateOps['aiSettings.provider'] = provider;
         if (req.body.model) updateOps['aiSettings.model'] = req.body.model;

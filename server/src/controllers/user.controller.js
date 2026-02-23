@@ -109,11 +109,20 @@ export const updateSettings = asyncHandler(async (req, res) => {
     if (!user) throw new Error('User not found');
 
     if (featureFlags) {
-        // Merge with existing flags to allow partial updates
-        user.featureFlags = { ...user.featureFlags, ...featureFlags };
-    }
+        // Use native MongoDB $set operator with dot notation for perfect subdocument updates
+        const setQuery = {};
+        for (const [key, value] of Object.entries(featureFlags)) {
+            setQuery[`featureFlags.${key}`] = value;
+        }
 
-    await user.save();
+        const updatedUser = await User.findByIdAndUpdate(
+            userId,
+            { $set: setQuery },
+            { new: true }
+        );
+
+        return successResponse(res, 200, 'Settings updated successfully', { featureFlags: updatedUser.featureFlags });
+    }
 
     return successResponse(res, 200, 'Settings updated successfully', { featureFlags: user.featureFlags });
 });

@@ -3,7 +3,7 @@
  * Handles all HTTP requests to the backend API
  */
 
-const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/$/, '');
+const API_BASE_URL = (import.meta.env.VITE_API_URL || 'https://api.aicrmz.com').replace(/\/$/, '');
 
 /**
  * Get authorization header

@@ -202,7 +202,7 @@ export const googleCallbackGet = asyncHandler(async (req, res) => {
     await user.save();
 
     // Redirect user back to frontend
-    const frontendUrl = process.env.FRONTEND_URL || 'https://ai-crm-vert.vercel.app';
+    const frontendUrl = process.env.FRONTEND_URL || 'https://in.aicrmz.com';
     return res.redirect(`${frontendUrl}?gmailConnected=true`);
 });
 /**

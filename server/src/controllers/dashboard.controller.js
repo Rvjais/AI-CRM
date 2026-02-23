@@ -24,13 +24,50 @@ export const getDashboardStats = asyncHandler(async (req, res) => {
     // Forms Stats
     let formsStats = [];
 
-    // Dummy Voice Bot Stats
-    const voiceBotStats = {
-        totalCalls: 124,
-        avgDuration: '2m 15s',
-        sentiment: 'Positive',
-        cost: '$12.50'
+    const userCentral = await User.findById(userId);
+
+    // Dynamic Voice Bot Stats
+    let voiceBotStats = {
+        totalCalls: 0,
+        totalDurationFormatted: '0m 0s',
+        cost: '$0.00',
+        connected: false
     };
+
+    if (userCentral && userCentral.bolnaAgentIds && userCentral.bolnaAgentIds.length > 0) {
+        voiceBotStats.connected = true;
+        try {
+            const { fetchAgentExecutions } = await import('../services/bolna.service.js');
+
+            let totalCalls = 0;
+            let totalDurationSec = 0;
+            let totalCost = 0;
+
+            // Fetch live API executions for each connected agent map
+            for (const agentId of userCentral.bolnaAgentIds) {
+                const response = await fetchAgentExecutions(agentId);
+                const executions = response.data || [];
+
+                totalCalls += executions.length;
+                for (const ex of executions) {
+                    totalDurationSec += (Number(ex.execution_time) || 0);
+                    totalCost += (Number(ex.cost) || 0);
+                }
+            }
+
+            // Format duration mm:ss
+            const minutes = Math.floor(totalDurationSec / 60);
+            const seconds = Math.floor(totalDurationSec % 60);
+            voiceBotStats.totalDurationFormatted = `${minutes}m ${seconds}s`;
+
+            // Format cost (Bolna typically returns exact decimal dollars/cents)
+            voiceBotStats.cost = `$${totalCost.toFixed(3)}`;
+            voiceBotStats.totalCalls = totalCalls;
+
+        } catch (err) {
+            console.error('Error fetching Bolna aggregate telemetry:', err);
+        }
+    }
 
     if (isWhatsAppConnected) {
         // [FIX] Use dynamic models to fetch data from the correct isolated collection
@@ -139,7 +176,7 @@ export const getDashboardStats = asyncHandler(async (req, res) => {
     };
 
     try {
-        const user = await User.findById(userId).select('gmailConnected');
+        const user = userCentral; // Re-use the user payload from the top level
         if (user && user.gmailConnected) {
             const stats = await gmailService.getUnreadStats(userId);
 

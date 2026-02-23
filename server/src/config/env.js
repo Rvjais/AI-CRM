@@ -11,8 +11,8 @@ const env = {
   // Server
   NODE_ENV: process.env.NODE_ENV || 'development',
   PORT: parseInt(process.env.PORT || '5000', 10),
-  FRONTEND_URL: process.env.FRONTEND_URL || 'https://ai-crm-vert.vercel.app',
-  ALLOWED_ORIGINS: (process.env.CORS_ORIGIN || process.env.FRONTEND_URL || 'https://ai-crm-vert.vercel.app').split(',').map(origin => origin.trim()),
+  FRONTEND_URL: process.env.FRONTEND_URL || 'https://in.aicrmz.com',
+  ALLOWED_ORIGINS: (process.env.CORS_ORIGIN || process.env.FRONTEND_URL || 'https://in.aicrmz.com').split(',').map(origin => origin.trim()),
 
   // Database
   MONGODB_URI: process.env.MONGODB_URI || 'mongodb://localhost:27017/whatsapp-platform',
@@ -20,7 +20,7 @@ const env = {
   // JWT
   JWT_SECRET: process.env.JWT_SECRET,
   JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET,
-  JWT_ACCESS_EXPIRY: process.env.JWT_ACCESS_EXPIRY || '15m',
+  JWT_ACCESS_EXPIRY: process.env.JWT_ACCESS_EXPIRY || '7d',
   JWT_REFRESH_EXPIRY: process.env.JWT_REFRESH_EXPIRY || '7d',
 
   // Encryption

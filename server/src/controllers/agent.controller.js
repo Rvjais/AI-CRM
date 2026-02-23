@@ -1,5 +1,6 @@
 import { getClientModels } from '../utils/database.factory.js';
 import logger from '../utils/logger.util.js';
+import User from '../models/User.js';
 
 // Get all agents
 export const getAgents = async (req, res) => {
@@ -32,6 +33,11 @@ export const createAgent = async (req, res) => {
         const { name, bolna_agent_id, prompt } = req.body;
         const { VoiceAgent } = await getClientModels(req.user.id);
         const newAgent = await VoiceAgent.create({ name, bolna_agent_id, prompt });
+
+        if (bolna_agent_id) {
+            await User.findByIdAndUpdate(req.user.id, { $addToSet: { bolnaAgentIds: bolna_agent_id } });
+        }
+
         res.status(201).json({ success: true, data: newAgent });
     } catch (error) {
         logger.error('Error creating agent:', error);
@@ -45,6 +51,10 @@ export const updateAgent = async (req, res) => {
         const { VoiceAgent } = await getClientModels(req.user.id);
         const agent = await VoiceAgent.findByIdAndUpdate(req.params.agentId, req.body, { new: true, runValidators: true });
         if (!agent) return res.status(404).json({ success: false, message: 'Agent not found' });
+
+        if (req.body.bolna_agent_id) {
+            await User.findByIdAndUpdate(req.user.id, { $addToSet: { bolnaAgentIds: req.body.bolna_agent_id } });
+        }
         res.json({ success: true, data: agent });
     } catch (error) {
         logger.error('Error updating agent:', error);
@@ -58,6 +68,10 @@ export const deleteAgent = async (req, res) => {
         const { VoiceAgent } = await getClientModels(req.user.id);
         const agent = await VoiceAgent.findByIdAndDelete(req.params.agentId);
         if (!agent) return res.status(404).json({ success: false, message: 'Agent not found' });
+
+        if (agent.bolna_agent_id) {
+            await User.findByIdAndUpdate(req.user.id, { $pull: { bolnaAgentIds: agent.bolna_agent_id } });
+        }
         res.json({ success: true, data: {} });
     } catch (error) {
         logger.error('Error deleting agent:', error);

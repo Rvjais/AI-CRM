@@ -5,7 +5,7 @@ import api from '../utils/apiClient';
 import './ChatWindow.css';
 import Loader from './Loader';
 
-function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat, onForward, onBack, onToggleMobileAI, isMobileAIViewOpen }) {
+function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat, onForward, onBack, onToggleMobileAI, isMobileAIViewOpen, globalAiEnabled }) {
     const [newMessage, setNewMessage] = useState('');
     const [loading, setLoading] = useState(false);
     const [syncing, setSyncing] = useState(false); // New state for sync loading
@@ -316,23 +316,23 @@ function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat, 
                         <FaBrain className="ai-icon-brain" />
                     </button>
                     {/* AI Toggle Switch */}
-                    <div className="ai-wrapper" onClick={toggleChatAI} title={selectedChat.aiEnabled ? "Disable AI" : "Enable AI"}>
-                        <span className={`ai-status-text ${selectedChat.aiEnabled ? 'active' : ''}`}>
-                            {selectedChat.aiEnabled ? 'AI Active' : 'AI Offline'}
-                        </span>
-                        <div className={`ai-switch ${selectedChat.aiEnabled ? 'active' : ''}`}>
-                            <div className="ai-knob">
-                                {selectedChat.aiEnabled && <span className="ai-sparkle">✨</span>}
+                    {globalAiEnabled && (
+                        <div className="ai-wrapper" onClick={toggleChatAI} title={selectedChat.aiEnabled ? "Disable AI" : "Enable AI"}>
+                            <span className={`ai-status-text ${selectedChat.aiEnabled ? 'active' : ''}`}>
+                                {selectedChat.aiEnabled ? 'AI Active' : 'AI Offline'}
+                            </span>
+                            <div className={`ai-switch ${selectedChat.aiEnabled ? 'active' : ''}`}>
+                                <div className="ai-knob">
+                                    {selectedChat.aiEnabled && <span className="ai-sparkle">✨</span>}
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    )}
                 </div>
             </div>
 
             <div className="messages-container">
-                {loading ? (
-                    <Loader />
-                ) : messages.length === 0 ? (
+                {messages.length === 0 && !loading ? (
                     <div className="no-messages">
                         <p>No messages yet. Start the conversation!</p>
                     </div>

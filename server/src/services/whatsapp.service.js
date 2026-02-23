@@ -132,6 +132,33 @@ export const connectWhatsApp = async (userId, io) => {
                     await updateSessionStatus(userId, CONNECTION_STATUS.DISCONNECTED);
                     await updateUserWhatsAppStatus(userId, false);
 
+                    // Send Email Alert for Fatal Disconnect
+                    try {
+                        const { default: UserModel } = await import('../models/User.js');
+                        const userRec = await UserModel.findById(userId);
+                        if (userRec && userRec.gmailConnected && userRec.googleEmail) {
+                            const { sendEmail } = await import('./gmail.service.js');
+                            await sendEmail(userId, {
+                                to: userRec.googleEmail,
+                                subject: '⚠️ Action Required: RainCRM WhatsApp Disconnected',
+                                body: `
+                                    <div style="font-family: Arial, sans-serif; max-width: 600px; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
+                                        <h2 style="color: #e74c3c;">WhatsApp Connection Lost</h2>
+                                        <p>Hello,</p>
+                                        <p>Your WhatsApp Bot on <strong>RainCRM</strong> has been forcibly disconnected due to a manual logout from your phone or linked device expiration.</p>
+                                        <p style="background: #fff3f3; padding: 10px; border-left: 4px solid #e74c3c;">Your AI Bot, Lead Extraction, and Campaigns will <strong>not</strong> work until you reconnect.</p>
+                                        <p>Please log in to your dashboard immediately to re-scan the QR code and restore service.</p>
+                                        <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+                                        <p style="font-size: 12px; color: #888;">This is an automated system alert from RainCRM.</p>
+                                    </div>
+                                `
+                            });
+                            logger.info(`Fatal disconnect alert email sent to ${userRec.googleEmail}`);
+                        }
+                    } catch (emailErr) {
+                        logger.error('Failed to send disconnect email alert:', emailErr);
+                    }
+
                     io.to(userId.toString()).emit('whatsapp:disconnected', {
                         reason: 'Logged out'
                     });
