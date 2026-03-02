@@ -43,7 +43,7 @@ function App() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
+    localStorage.clear(); // Clear ALL cached data so next user sees a clean state
     setToken(null);
   };
 
@@ -100,7 +100,9 @@ function App() {
 
   return (
     <div className="app">
-      <div className={`app-container with-sidebar ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+      {/* key={token} forces ALL child components to fully remount when the user changes,
+          preventing stale data from a previous session from showing to a new user */}
+      <div key={token} className={`app-container with-sidebar ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
         <Sidebar
           activeView={activeView}
           onViewChange={setActiveView}

@@ -94,21 +94,9 @@ export const getFileExtension = (filename) => {
  * @returns {Object} { isValid, message }
  */
 export const validatePasswordStrength = (password) => {
-    if (!password || password.length < 8) {
-        return { isValid: false, message: 'Password must be at least 8 characters long' };
+    if (!password || password.length < 6) {
+        return { isValid: false, message: 'Password must be at least 6 characters long' };
     }
 
-    if (!/[a-z]/.test(password)) {
-        return { isValid: false, message: 'Password must contain at least one lowercase letter' };
-    }
-
-    if (!/[A-Z]/.test(password)) {
-        return { isValid: false, message: 'Password must contain at least one uppercase letter' };
-    }
-
-    if (!/[0-9]/.test(password)) {
-        return { isValid: false, message: 'Password must contain at least one number' };
-    }
-
-    return { isValid: true, message: 'Password is strong' };
+    return { isValid: true, message: 'Password is valid' };
 };

@@ -311,16 +311,13 @@ function Dashboard() {
             {activeChat && (
                 <div className="modal-overlay" onClick={handleCloseChat}>
                     <div className="quick-chat-modal" onClick={(e) => e.stopPropagation()}>
-                        <button className="close-modal-btn" onClick={handleCloseChat}>
-                            <IoClose />
-                        </button>
                         <ChatWindow
                             selectedChat={activeChat}
                             messages={chatMessages}
                             setMessages={handleMessagesUpdate}
                             onUpdateChat={handleChatUpdate}
-                            // No token needed, API client handles it
-                            onForward={() => { }} // Forwarding disabled in quick chat for now
+                            onForward={() => { }}
+                            onBack={handleCloseChat}
                         />
                     </div>
                 </div>

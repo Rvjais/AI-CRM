@@ -120,8 +120,8 @@ export const getDashboardStats = asyncHandler(async (req, res) => {
 
     // 3. Forms Stats (Total inputs & last 5 submissions)
     try {
-        // Fetch all forms (or filter by user if specific logic applies)
-        const forms = await import('../models/Form.js').then(m => m.default.find().lean());
+        // Fetch only forms belonging to this user
+        const forms = await import('../models/Form.js').then(m => m.default.find({ createdBy: userId }).lean());
         const FormSubmission = (await import('../models/FormSubmission.js')).default;
 
         for (const form of forms) {

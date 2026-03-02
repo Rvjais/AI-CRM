@@ -252,18 +252,33 @@
     background: white;
     border-radius: 12px;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-    position: relative;
     overflow: hidden;
     display: flex;
     flex-direction: column;
     z-index: 2001;
 }
 
+/* Dedicated close bar — sits above ChatWindow so it's never hidden */
+.modal-close-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: #1f2937;
+    flex-shrink: 0;
+}
+
+.modal-chat-name {
+    color: #f9fafb;
+    font-size: 14px;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .close-modal-btn {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    background: rgba(0, 0, 0, 0.6);
+    background: rgba(255, 255, 255, 0.15);
     color: white;
     border: none;
     width: 30px;
@@ -273,12 +288,21 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    z-index: 10;
     font-size: 1.2rem;
+    flex-shrink: 0;
+    transition: background 0.2s;
 }
 
 .close-modal-btn:hover {
-    background: black;
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* ChatWindow body fills the remaining height */
+.modal-chat-body {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
 /* Adjust ChatWindow inside modal */
@@ -688,11 +712,14 @@
 
 .leads-lists-container {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    /* Switch to single column when card is narrow (sidebar open) */
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
     gap: 16px;
     width: 100%;
+    min-width: 0; /* Prevent grid blowout */
     border-top: 1px solid #f3f4f6;
     padding-top: 16px;
+    overflow: hidden;
 }
 
 .lead-column h4 {
@@ -760,6 +787,7 @@
     flex: 1;
     display: flex;
     flex-direction: column;
+    min-width: 0; /* Allow flex child to shrink below content size */
 }
 
 .lead-name {
@@ -769,7 +797,7 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 90px;
+    max-width: 100%; /* Shrink with parent instead of fixed 90px */
 }
 
 .lead-time {
