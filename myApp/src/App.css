@@ -1,0 +1,396 @@
+/* ============================================================
+   APP.CSS — Core Layout (Mobile-First)
+   ============================================================ */
+
+.app {
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  background: var(--ion-background-color, #f8f9fb);
+  padding: 0;
+}
+
+/* App Container — Sidebar + Main */
+.app-container {
+  display: flex;
+  height: 100vh;
+  height: 100dvh;
+  width: 100vw;
+  overflow: hidden;
+  background-color: var(--ion-background-color, #f8f9fb);
+}
+
+.view-hidden {
+  display: none;
+}
+
+.view-active {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  display: block;
+}
+
+.main-content {
+  flex: 1;
+  height: 100%;
+  overflow: hidden;
+  background: var(--ion-background-color, #f8f9fb);
+  position: relative;
+  min-width: 0;
+}
+
+/* ============================================================
+   WHATSAPP VIEW — 3-panel desktop grid
+   ============================================================ */
+.whatsapp-view {
+  display: grid;
+  grid-template-columns: 300px 1fr 360px;
+  grid-template-rows: 100%;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  min-height: 0;
+  transition: grid-template-columns 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.whatsapp-view.ai-collapsed {
+  grid-template-columns: 300px 1fr 56px;
+}
+
+/* ============================================================
+   TABLET
+   ============================================================ */
+@media (max-width: 1024px) {
+  .whatsapp-view {
+    grid-template-columns: 280px 1fr;
+  }
+
+  .ai-insights {
+    display: none;
+  }
+}
+
+/* ============================================================
+   MOBILE (≤ 768px)
+   ============================================================ */
+@media (max-width: 768px) {
+  .app {
+    padding: 0;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .app-container {
+    flex-direction: column;
+    height: 100dvh;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .main-content {
+    flex: 1;
+    /* Full height minus the mobile top bar and safe area */
+    height: calc(100dvh - 56px - env(safe-area-inset-bottom, 0px));
+    margin-top: 56px;
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+    padding-bottom: 0;
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+  }
+
+  .view-active {
+    height: 100%;
+    width: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+
+  /* WhatsApp — full-screen panels on mobile */
+  .whatsapp-view {
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+  }
+
+  .whatsapp-view .chat-list {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    display: flex;
+  }
+
+  .whatsapp-view.chat-active .chat-list {
+    display: none;
+  }
+
+  .whatsapp-view .chat-window {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+  }
+
+  .whatsapp-view:not(.chat-active) .chat-window {
+    display: none;
+  }
+
+  .whatsapp-view .ai-insights {
+    display: none !important;
+  }
+
+  /* Mobile AI Drawer */
+  .whatsapp-view.mobile-ai-open .ai-insights {
+    display: flex !important;
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 85%;
+    max-width: 320px;
+    z-index: 50;
+    box-shadow: -4px 0 25px rgba(0, 0, 0, 0.2);
+    animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .whatsapp-view.mobile-ai-open::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 40;
+    backdrop-filter: blur(2px);
+    animation: fadeIn 0.2s ease-out;
+  }
+}
+
+/* ============================================================
+   ANIMATIONS
+   ============================================================ */
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+/* ============================================================
+   SCROLLBARS — Desktop only
+   ============================================================ */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+@media (max-width: 768px) {
+  * {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  *::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* ============================================================
+   BLOCKED VIEW / ERROR STATES
+   ============================================================ */
+.view-blocked {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  padding: 2rem;
+  background: white;
+}
+
+.view-blocked h2 {
+  font-size: 1.5rem;
+  color: #1f2937;
+  margin-bottom: 1rem;
+}
+
+.view-blocked p {
+  color: #6b7280;
+  margin-bottom: 2rem;
+  font-size: 1rem;
+}
+
+/* ============================================================
+   GLOBAL BUTTON UTILITIES
+   ============================================================ */
+.btn-primary {
+  background: linear-gradient(135deg, #2B5EA7 0%, #00A79D 100%);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 14px rgba(43, 94, 167, 0.3);
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(43, 94, 167, 0.4);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+/* ============================================================
+   MOBILE TOP BAR
+   ============================================================ */
+.mobile-topbar {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .mobile-topbar {
+    display: flex;
+    align-items: center;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-left: env(safe-area-inset-left, 16px);
+    padding-right: env(safe-area-inset-right, 16px);
+    padding-bottom: 0;
+    height: calc(56px + env(safe-area-inset-top, 0px));
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid #f0f0f0;
+    box-shadow: 0 1px 8px rgba(0, 0, 0, 0.08);
+    z-index: 1000;
+    gap: 12px;
+  }
+
+  .mobile-topbar-title {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+  }
+
+  .hamburger-btn {
+    background: none;
+    border: none;
+    color: #374151;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s;
+    min-width: 48px;
+    min-height: 48px;
+    touch-action: manipulation;
+  }
+
+  .hamburger-btn:active {
+    background: #f3f4f6;
+  }
+
+  .mobile-credits-badge {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    color: #78350f;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 6px 12px;
+    border-radius: 20px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    height: 32px;
+  }
+
+  /* Close button inside the drawer */
+  .drawer-close-btn {
+    position: absolute;
+    top: calc(14px + env(safe-area-inset-top, 0px));
+    right: 14px;
+    background: #f3f4f6;
+    border: none;
+    color: #374151;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background 0.15s;
+    z-index: 10;
+    touch-action: manipulation;
+  }
+
+  .drawer-close-btn:active {
+    background: #e5e7eb;
+  }
+}
+
+/* Hide close button on desktop */
+@media (min-width: 769px) {
+  .drawer-close-btn {
+    display: none;
+  }
+
+  .mobile-topbar {
+    display: none !important;
+  }
+}

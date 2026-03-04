@@ -27,6 +27,11 @@ export const connect = asyncHandler(async (req, res) => {
  */
 export const getQRCode = asyncHandler(async (req, res) => {
     logger.info(`Getting QR code for user: ${req.userId}`);
+
+    // [FIX] Use dynamic client database to get correct multi-tenant session
+    const { getClientModels } = await import('../utils/database.factory.js');
+    const { WhatsAppSession } = await getClientModels(req.userId);
+
     const session = await WhatsAppSession.findOne({ userId: req.userId });
 
     logger.info(`Session found:`, {
@@ -70,6 +75,10 @@ export const disconnect = asyncHandler(async (req, res) => {
  * GET /api/whatsapp/status
  */
 export const getStatus = asyncHandler(async (req, res) => {
+    // [FIX] Use dynamic client database to get correct multi-tenant session
+    const { getClientModels } = await import('../utils/database.factory.js');
+    const { WhatsAppSession } = await getClientModels(req.userId);
+
     const session = await WhatsAppSession.findOne({ userId: req.userId });
 
     // Check real connection status from session

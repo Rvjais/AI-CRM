@@ -1,0 +1,52 @@
+html,
+body,
+#root {
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    /* Prevent body scroll, let app handle it */
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+        'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+        sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+/* ============================================================
+   BASELINE MOBILE IMPROVEMENTS
+   ============================================================ */
+
+@media (max-width: 768px) {
+    /* Prevent zoom on input focus */
+    input, textarea, select {
+        font-size: 16px !important;
+    }
+
+    /* Smooth scrolling on mobile */
+    .scrollable, [class*="scroll"] {
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Remove tap highlight */
+    * {
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Ensure proper stacking context */
+    body {
+        position: fixed;
+        width: 100%;
+        height: 100%;
+    }
+}

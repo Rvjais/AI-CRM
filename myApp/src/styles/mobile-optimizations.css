@@ -1,0 +1,99 @@
+/* ============================================================
+   MOBILE OPTIMIZATIONS — Global mobile enhancements
+   ============================================================ */
+
+@media (max-width: 768px) {
+    /* ---- Body & Root ---- */
+    html, body, #root {
+        overflow-x: hidden;
+        overscroll-behavior: contain;
+    }
+
+    body {
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* ---- Input Fields ---- */
+    input, textarea, select {
+        font-size: 16px; /* Prevents zoom on iOS */
+        border-radius: 10px;
+        padding: 12px;
+        min-height: 44px;
+        -webkit-appearance: none;
+        appearance: none;
+    }
+
+    input::placeholder, textarea::placeholder {
+        font-size: 14px;
+        color: #9ca3af;
+    }
+
+    /* ---- Buttons — Touch-friendly ---- */
+    button, [role="button"], a[role="button"] {
+        min-height: 48px;
+        min-width: 48px;
+        padding: 10px 16px;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+    }
+
+    button:active {
+        opacity: 0.8;
+    }
+
+    /* ---- Lists & Scroll ---- */
+    ul, ol, .list {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    .scrollable {
+        -webkit-overflow-scrolling: touch;
+        scroll-behavior: smooth;
+    }
+
+    /* ---- Modal Scroll Prevention ---- */
+    .modal-open body,
+    .modal-open html {
+        overflow: hidden;
+    }
+
+    /* ---- Safe Area Padding ---- */
+    .safe-area-top {
+        padding-top: env(safe-area-inset-top, 0px);
+    }
+
+    .safe-area-bottom {
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    .safe-area-left {
+        padding-left: env(safe-area-inset-left, 0px);
+    }
+
+    .safe-area-right {
+        padding-right: env(safe-area-inset-right, 0px);
+    }
+
+    /* ---- Text Selection ---- */
+    .no-select {
+        user-select: none;
+        -webkit-user-select: none;
+    }
+
+    /* ---- Prevent Double-tap Zoom ---- */
+    input[type="button"],
+    input[type="submit"],
+    button {
+        touch-action: manipulation;
+    }
+
+    /* ---- Remove Border on Focus ---- */
+    input:focus, textarea:focus, button:focus {
+        outline: none;
+    }
+}

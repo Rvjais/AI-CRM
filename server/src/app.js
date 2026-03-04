@@ -27,6 +27,9 @@ const ALLOWED_ORIGINS_LIST = [
     'https://in.aicrmz.com',
     'https://ai-crm-vert.vercel.app',
     'https://ai-crm-lz5h.vercel.app',
+    'http://localhost',
+    'https://localhost',
+    'capacitor://localhost',
 ];
 
 app.use((req, res, next) => {

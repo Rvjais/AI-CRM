@@ -1,0 +1,278 @@
+.sheets-config {
+    padding: 30px;
+    max-width: 900px;
+    margin: 0 auto;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    height: 100%;
+}
+
+.sheets-config h2 {
+    margin-top: 0;
+    color: #333;
+}
+
+.sheets-config .subtitle {
+    color: #666;
+    margin-bottom: 30px;
+}
+
+.config-section {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.form-group {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-group input {
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.form-group small {
+    color: #888;
+    font-size: 12px;
+}
+
+.columns-section {
+    margin-bottom: 30px;
+    background: #f9f9f9;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #eee;
+}
+
+.columns-header {
+    display: grid;
+    grid-template-columns: 1fr 1fr 2fr 50px;
+    gap: 15px;
+    margin-bottom: 10px;
+    font-weight: 600;
+    color: #555;
+    font-size: 13px;
+}
+
+.column-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 2fr 50px;
+    gap: 15px;
+    margin-bottom: 10px;
+}
+
+.column-row input {
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.remove-btn {
+    background: #ffebee;
+    color: #d32f2f;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.add-btn {
+    background: #e3f2fd;
+    color: #1976d2;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 15px;
+    font-weight: 500;
+}
+
+.actions {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.save-btn {
+    background: #4caf50;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: background 0.2s;
+}
+
+.save-btn:hover {
+    background: #43a047;
+}
+
+.save-btn:disabled {
+    background: #a5d6a7;
+    cursor: not-allowed;
+}
+
+.message {
+    font-size: 14px;
+}
+
+.message.success {
+    color: #2e7d32;
+}
+
+.info-box {
+    margin-top: 20px;
+    padding: 15px;
+    background: #fff3cd;
+    border: 1px solid #ffeeba;
+    border-radius: 6px;
+    color: #856404;
+    font-size: 13px;
+}
+
+/* ============================================
+   MOBILE RESPONSIVE STYLES
+   ============================================ */
+
+@media (max-width: 768px) {
+    .sheets-config {
+        padding: 16px;
+        margin: 0;
+        border-radius: 0;
+        box-shadow: none;
+        max-width: 100%;
+        padding-bottom: 80px;
+        overscroll-behavior-y: contain;
+    }
+
+    .sheets-config h2 {
+        font-size: 20px;
+    }
+
+    .sheets-config .subtitle {
+        font-size: 14px;
+        margin-bottom: 20px;
+    }
+
+    /* Header section with button */
+    .sheets-header {
+        flex-direction: column;
+        gap: 12px;
+        align-items: flex-start;
+    }
+
+    .sheets-header button {
+        width: 100%;
+    }
+
+    /* Config section - stack vertically */
+    .config-section {
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .form-group {
+        width: 100%;
+    }
+
+    .form-group input {
+        font-size: 16px;
+        /* Prevents zoom on iOS */
+    }
+
+    /* Columns section */
+    .columns-section {
+        padding: 12px;
+    }
+
+    .columns-section h3 {
+        font-size: 16px;
+    }
+
+    .columns-section>p {
+        font-size: 13px;
+    }
+
+    /* Hide column headers on mobile - use labels instead */
+    .columns-header {
+        display: none;
+    }
+
+    /* Column row - stack vertically */
+    .column-row {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 16px;
+        padding: 12px;
+        background: white;
+        border-radius: 8px;
+        border: 1px solid #e5e7eb;
+        position: relative;
+    }
+
+    .column-row input {
+        padding: 10px;
+        font-size: 16px;
+    }
+
+    /* Add labels before inputs on mobile */
+    .column-row input::placeholder {
+        color: #9ca3af;
+    }
+
+    .remove-btn {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        width: 28px;
+        height: 28px;
+        padding: 0;
+    }
+
+    /* Add button */
+    .add-btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    /* Actions */
+    .actions {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .save-btn {
+        width: 100%;
+        justify-content: center;
+        padding: 14px;
+    }
+
+    .message {
+        text-align: center;
+    }
+
+    /* Info box */
+    .info-box {
+        font-size: 12px;
+        padding: 12px;
+    }
+}

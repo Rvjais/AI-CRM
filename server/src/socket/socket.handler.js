@@ -114,21 +114,11 @@ export const initializeSocket = (httpServer) => {
                     socket.emit('whatsapp:connected', {
                         phoneNumber,
                         deviceInfo: {
-                            browser: 'Chrome (Linux)',
-                            version: ''
+                            browser: 'RainCRM (Chrome)',
+                            version: '1.0.0'
                         }
                     });
                     logger.info(`🔄 Sent existing WhatsApp connection status to user ${userId}`);
-                } else {
-                    // Check if there is a pending QR code
-                    const { getClientModels } = await import('../utils/database.factory.js');
-                    const { WhatsAppSession } = await getClientModels(userId);
-                    const session = await WhatsAppSession.findOne({ userId });
-
-                    if (session?.qrCode) {
-                        socket.emit('whatsapp:qr', { qr: session.qrCode });
-                        logger.info(`🔄 Sent existing QR code to user ${userId}`);
-                    }
                 }
             } catch (err) {
                 logger.error(`Error sending initial stats to user ${userId}:`, err);

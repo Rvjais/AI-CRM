@@ -1,0 +1,402 @@
+/* ============================================================
+   SIDEBAR — Desktop left-rail, Mobile slide-in drawer
+   ============================================================ */
+
+/* ---- Base (Desktop) ---- */
+.sidebar {
+    width: 240px;
+    height: 100%;
+    background: #ffffff;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid #f0f0f0;
+    box-shadow: 2px 0 12px rgba(0, 0, 0, 0.04);
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    z-index: 100;
+    flex-shrink: 0;
+}
+
+.sidebar.collapsed {
+    width: 68px;
+}
+
+/* ---- Header ---- */
+.sidebar-header {
+    padding: 20px 16px 14px;
+    border-bottom: 1px solid #f5f5f5;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    gap: 4px;
+}
+
+.sidebar.collapsed .sidebar-header {
+    padding: 20px 0;
+    justify-content: center;
+}
+
+.sidebar-toggle {
+    background: white;
+    border: 1px solid #e5e7eb;
+    color: #6b7280;
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 11px;
+    position: absolute;
+    right: -13px;
+    top: 28px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    z-index: 10;
+}
+
+.sidebar-toggle:hover {
+    background: #f3f4f6;
+    color: #111827;
+}
+
+/* ---- Logo ---- */
+.logo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 4px;
+}
+
+.logo-icon {
+    flex-shrink: 0;
+}
+
+.logo-icon img {
+    max-width: 100%;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar.collapsed .logo-icon img {
+    height: 36px !important;
+    width: auto !important;
+}
+
+.logo-text h1 {
+    font-size: 17px;
+    font-weight: 800;
+    color: #111827;
+    margin: 0;
+    letter-spacing: -0.5px;
+}
+
+.logo-text p {
+    font-size: 10px;
+    color: #6b7280;
+    margin: 0;
+    letter-spacing: 1.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+/* ---- Nav ---- */
+.sidebar-nav {
+    flex: 1;
+    padding: 12px 10px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 14px;
+    background: transparent;
+    border: none;
+    border-radius: 10px;
+    color: #6b7280;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    text-align: left;
+    width: 100%;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.nav-item:hover {
+    background: #f3f4f6;
+    color: #111827;
+    transform: translateX(2px);
+}
+
+.nav-item.active {
+    background: linear-gradient(135deg, #2B5EA7 0%, #00A79D 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(43, 94, 167, 0.28);
+    font-weight: 600;
+    transform: none;
+}
+
+.nav-icon {
+    font-size: 17px;
+    flex-shrink: 0;
+}
+
+.nav-label {
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+/* ---- Footer ---- */
+.sidebar-footer {
+    padding: 12px 10px;
+    border-top: 1px solid #f5f5f5;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.credits-display {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    padding: 9px 12px;
+    border-radius: 8px;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #78350f;
+    font-weight: 700;
+    font-size: 13px;
+    box-shadow: 0 2px 6px rgba(248, 181, 0, 0.15);
+}
+
+.credits-icon {
+    font-size: 15px;
+}
+
+.nav-item.settings:hover {
+    background: #eff6ff;
+    color: #2B5EA7;
+}
+
+.nav-item.logout:hover {
+    background: #fef2f2;
+    color: #ef4444;
+}
+
+/* Scrollbar */
+.sidebar-nav::-webkit-scrollbar {
+    width: 3px;
+}
+
+.sidebar-nav::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb {
+    background: #e5e7eb;
+    border-radius: 10px;
+}
+
+/* ============================================================
+   TABLET — Icons only
+   ============================================================ */
+@media (max-width: 1024px) and (min-width: 769px) {
+    .sidebar {
+        width: 68px;
+    }
+
+    .logo-text,
+    .nav-label,
+    .credits-text {
+        display: none;
+    }
+
+    .nav-item {
+        justify-content: center;
+        padding: 12px;
+    }
+
+    .credits-display {
+        padding: 10px 0;
+        justify-content: center;
+        background: transparent;
+        box-shadow: none;
+    }
+}
+
+/* ============================================================
+   MOBILE — Slide-in drawer
+   ============================================================ */
+@media (max-width: 768px) {
+
+    /* The drawer slides in from the left, off-screen by default */
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100dvh;
+        width: 280px;
+        max-width: 85vw;
+        z-index: 1100;
+        transform: translateX(-100%);
+        transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+            box-shadow 0.28s ease;
+        border-right: 1px solid #f0f0f0;
+        box-shadow: none;
+        border-radius: 0 20px 20px 0;
+        background: #ffffff;
+        flex-direction: column;
+        padding-top: env(safe-area-inset-top, 0px);
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    /* Open state — toggled by JS via .drawer-open class on sidebar */
+    .sidebar.drawer-open {
+        transform: translateX(0);
+        box-shadow: 4px 0 32px rgba(0, 0, 0, 0.18);
+    }
+
+    /* Desktop toggle button — hidden on mobile */
+    .sidebar-toggle {
+        display: none;
+    }
+
+    /* Normal desktop layout for header / nav / footer restored inside drawer */
+    .sidebar-header {
+        padding: calc(48px + env(safe-area-inset-top, 0px)) 20px 16px;
+        /* extra top padding clears status bar */
+        border-bottom: 1px solid #f5f5f5;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .sidebar-nav {
+        flex-direction: column !important;
+        padding: 8px 8px;
+        overflow-y: auto;
+        gap: 0;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .nav-item {
+        flex-direction: row !important;
+        justify-content: flex-start;
+        padding: 14px 16px;
+        height: auto;
+        min-height: 52px;
+        font-size: 15px;
+        border-radius: 10px;
+        margin: 2px 0;
+        touch-action: manipulation;
+    }
+
+    .nav-item:active {
+        background: #f3f4f6;
+        transform: none;
+    }
+
+    .nav-icon {
+        font-size: 20px;
+        flex-shrink: 0;
+    }
+
+    .nav-label {
+        display: block !important;
+        font-size: 15px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .sidebar-footer {
+        flex-direction: column;
+        padding: 12px 8px 12px;
+        border-top: 1px solid #f5f5f5;
+        gap: 0;
+        margin-top: auto;
+    }
+
+    .sidebar-footer .credits-display {
+        display: flex !important;
+        min-height: 52px;
+        border-radius: 10px;
+        padding: 12px 16px;
+    }
+
+    .sidebar-footer .nav-item.logout {
+        display: flex !important;
+        min-height: 52px;
+        padding: 14px 16px;
+    }
+
+    .sidebar-footer .nav-item.settings {
+        display: flex !important;
+        width: 100%;
+        min-height: 52px;
+        padding: 14px 16px;
+    }
+
+    .sidebar-footer .nav-item.settings .nav-label {
+        display: block !important;
+    }
+
+    /* Drawer backdrop */
+    .sidebar-backdrop {
+        display: block !important;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.4);
+        backdrop-filter: blur(2px);
+        -webkit-backdrop-filter: blur(2px);
+        z-index: 1050;
+        animation: fadeIn 0.2s ease-out;
+    }
+}
+
+/* Backdrop hidden on desktop */
+.sidebar-backdrop {
+    display: none;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+/* ============================================================
+   DESKTOP COLLAPSED STATE
+   ============================================================ */
+@media (min-width: 769px) {
+
+    .sidebar.collapsed .nav-label,
+    .sidebar.collapsed .logo-text,
+    .sidebar.collapsed .credits-text {
+        display: none;
+    }
+
+    .sidebar.collapsed .nav-item {
+        justify-content: center;
+        padding: 12px;
+    }
+
+    .sidebar.collapsed .credits-display {
+        padding: 10px 0;
+        justify-content: center;
+        background: transparent;
+        box-shadow: none;
+    }
+}

@@ -1,0 +1,375 @@
+/* ============================================================
+   IONIC THEME VARIABLES — Mobile-First CRM App
+   ============================================================ */
+
+:root {
+    /* Brand Colors */
+    --brand-blue: #2B5EA7;
+    --brand-teal: #00A79D;
+    --brand-gradient: linear-gradient(135deg, #2B5EA7 0%, #00A79D 100%);
+
+    /* Ionic Color Overrides */
+    --ion-color-primary: #2B5EA7;
+    --ion-color-primary-rgb: 43, 94, 167;
+    --ion-color-primary-contrast: #ffffff;
+    --ion-color-primary-contrast-rgb: 255, 255, 255;
+    --ion-color-primary-shade: #265293;
+    --ion-color-primary-tint: #406eb0;
+
+    --ion-color-secondary: #00A79D;
+    --ion-color-secondary-rgb: 0, 167, 157;
+    --ion-color-secondary-contrast: #ffffff;
+    --ion-color-secondary-contrast-rgb: 255, 255, 255;
+    --ion-color-secondary-shade: #00938a;
+    --ion-color-secondary-tint: #1ab0a7;
+
+    --ion-color-success: #10b981;
+    --ion-color-warning: #f59e0b;
+    --ion-color-danger: #ef4444;
+
+    /* Background */
+    --ion-background-color: #f8f9fb;
+    --ion-background-color-rgb: 248, 249, 251;
+    --ion-item-background: #ffffff;
+
+    /* Text */
+    --ion-text-color: #1f2937;
+    --ion-text-color-rgb: 31, 41, 55;
+    /* Fonts */
+    --ion-font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+    --ion-default-font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+
+    /* Typography Scale */
+    --text-xs: 11px;
+    --text-sm: 13px;
+    --text-base: 15px;
+    --text-md: 17px;
+    --text-lg: 20px;
+    --text-xl: 24px;
+    --text-2xl: 28px;
+    --text-3xl: 32px;
+
+    /* Line heights */
+    --leading-tight: 1.25;
+    --leading-normal: 1.5;
+    --leading-loose: 1.75;
+
+    /* Font weights */
+    --fw-normal: 400;
+    --fw-medium: 500;
+    --fw-semibold: 600;
+    --fw-bold: 700;
+    --fw-extrabold: 800;
+    --ion-card-background: #ffffff;
+    --ion-border-color: #e5e7eb;
+
+    /* Safe Area helpers */
+    --safe-area-top: env(safe-area-inset-top, 0px);
+    --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+
+    /* Bottom nav bar height (mobile tab bar) */
+    --bottom-nav-height: 0px;
+
+    /* Mobile top bar height */
+    --mobile-topbar-height: 56px;
+
+    /* Spacing scale */
+    --space-xs: 4px;
+    --space-sm: 8px;
+    --space-md: 16px;
+    --space-lg: 24px;
+    --space-xl: 32px;
+
+    /* Border radius */
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 20px;
+    --radius-xl: 28px;
+
+    /* Shadows */
+    --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.08);
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.10);
+    --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.14);
+}
+
+/* ============================================================
+   GLOBAL RESETS & BASE MOBILE STYLES
+   ============================================================ */
+
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body,
+#root {
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    font-family: var(--ion-font-family);
+    -webkit-font-smoothing: antialiased;
+    background: var(--ion-background-color);
+}
+
+/* Scrollbar styling – minimal on desktop, hidden on mobile */
+::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af;
+}
+
+@media (max-width: 768px) {
+    * {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+
+    *::-webkit-scrollbar {
+        display: none;
+    }
+}
+
+/* ============================================================
+   IONIC LAYOUT OVERRIDES
+   ============================================================ */
+
+ion-app {
+    font-family: var(--ion-font-family);
+}
+
+/* Make IonContent respect the bottom tab bar on mobile */
+@media (max-width: 768px) {
+    .ion-page ion-content {
+        --padding-bottom: calc(var(--bottom-nav-height) + 8px);
+    }
+}
+
+/* IonContent inner scroll area */
+ion-content::part(scroll) {
+    overflow-y: auto;
+    padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* ============================================================
+   APP LAYOUT
+   ============================================================ */
+
+.app {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    background: var(--ion-background-color);
+    padding: 0;
+}
+
+.app-container {
+    display: flex;
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+    background-color: var(--ion-background-color);
+}
+
+.main-content {
+    flex: 1;
+    height: 100%;
+    overflow: hidden;
+    background: var(--ion-background-color);
+    position: relative;
+    min-width: 0;
+}
+
+@media (max-width: 768px) {
+    .app-container {
+        flex-direction: column;
+        height: 100dvh;
+    }
+
+    .main-content {
+        flex: 1;
+        height: calc(100dvh - var(--bottom-nav-height) - 12px);
+        width: 100%;
+        overflow: hidden;
+    }
+}
+
+/* ============================================================
+   CARDS — Shared card utility
+   ============================================================ */
+
+.mobile-card {
+    background: #fff;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    padding: var(--space-md);
+    border: 1px solid #f0f0f0;
+}
+
+/* ============================================================
+   BUTTONS — Shared button utilities
+   ============================================================ */
+
+.btn-primary {
+    background: var(--brand-gradient);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 14px rgba(43, 94, 167, 0.3);
+    min-height: 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(43, 94, 167, 0.4);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
+}
+
+.btn-secondary {
+    background: #f3f4f6;
+    color: #374151;
+    border: 1px solid #e5e7eb;
+    padding: 10px 20px;
+    border-radius: var(--radius-md);
+    font-weight: 500;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.btn-secondary:hover {
+    background: #e5e7eb;
+}
+
+/* ============================================================
+   FORM INPUTS — Global touch-friendly defaults
+   ============================================================ */
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="tel"],
+select,
+textarea {
+    font-size: 16px;
+    /* Prevents zoom on iOS */
+    font-family: var(--ion-font-family);
+    border-radius: var(--radius-sm);
+    border: 1.5px solid #e5e7eb;
+    padding: 12px 14px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    width: 100%;
+    min-height: 44px;
+    background: #fff;
+    color: var(--ion-text-color);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    border-color: var(--brand-blue);
+    box-shadow: 0 0 0 3px rgba(43, 94, 167, 0.12);
+}
+
+/* ============================================================
+   VIEW HEADER — Shared top-of-view header
+   ============================================================ */
+
+.view-header {
+    padding: var(--space-md) var(--space-md) var(--space-sm);
+    border-bottom: 1px solid #f0f0f0;
+    background: #fff;
+}
+
+.view-header h1 {
+    font-size: 22px;
+    font-weight: 700;
+    color: #111827;
+    margin: 0 0 4px;
+    letter-spacing: -0.3px;
+}
+
+.view-header p {
+    font-size: 14px;
+    color: #6b7280;
+    margin: 0;
+}
+
+@media (max-width: 768px) {
+    .view-header {
+        padding: 12px var(--space-md) 10px;
+    }
+
+    .view-header h1 {
+        font-size: 20px;
+    }
+}
+
+/* ============================================================
+   ANIMATIONS
+   ============================================================ */
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+    }
+
+    to {
+        transform: translateX(0);
+    }
+}

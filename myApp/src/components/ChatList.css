@@ -1,0 +1,296 @@
+/* ============================================================
+   CHAT LIST — Mobile-first polish
+   ============================================================ */
+
+.chat-list {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+    background: #f8f9fb;
+    border-right: 1px solid #eeeeee;
+}
+
+/* ---- Header ---- */
+.chat-list-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 16px 14px;
+    background: white;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.chat-list-header h2 {
+    font-size: 15px;
+    font-weight: 800;
+    color: #111827;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+}
+
+.logout-button {
+    background: none;
+    border: none;
+    color: #9ca3af;
+    cursor: pointer;
+    padding: 7px;
+    border-radius: 8px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    font-size: 18px;
+}
+
+.logout-button:hover {
+    background: #fef2f2;
+    color: #dc2626;
+}
+
+/* ---- Tabs ---- */
+.chat-tabs {
+    display: flex;
+    gap: 6px;
+    padding: 10px 14px;
+    background: white;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.tab {
+    flex: 1;
+    padding: 6px 4px;
+    /* Reduced horizontal padding to fit 4 tabs */
+    border: none;
+    background: #f3f4f6;
+    color: #6b7280;
+    font-size: 10px;
+    /* Reduced font size down to 10px to prevent wrap */
+    font-weight: 700;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.18s;
+    letter-spacing: 0.2px;
+    text-transform: uppercase;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.tab.active {
+    background: linear-gradient(135deg, #2B5EA7 0%, #00A79D 100%);
+    color: white;
+    box-shadow: 0 3px 8px rgba(43, 94, 167, 0.25);
+}
+
+.tab:hover:not(.active) {
+    background: #e5e7eb;
+    color: #374151;
+}
+
+/* ---- AI Toggle ---- */
+.ai-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: white;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.ai-toggle span {
+    font-size: 13px;
+    font-weight: 500;
+    color: #374151;
+}
+
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 46px;
+    height: 24px;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    inset: 0;
+    background-color: #d1d5db;
+    transition: 0.3s;
+    border-radius: 34px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: 0.3s;
+    border-radius: 50%;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+}
+
+input:checked+.slider {
+    background: linear-gradient(135deg, #2B5EA7 0%, #00A79D 100%);
+}
+
+input:checked+.slider:before {
+    transform: translateX(22px);
+}
+
+/* ---- Search ---- */
+.search-container {
+    position: relative;
+    padding: 10px 14px;
+    background: white;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.search-icon {
+    position: absolute;
+    left: 26px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #9ca3af;
+    font-size: 13px;
+    pointer-events: none;
+}
+
+.search-input {
+    width: 100%;
+    padding: 10px 12px 10px 34px;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 10px;
+    font-size: 14px;
+    outline: none;
+    transition: all 0.2s;
+    background: #f8f9fb;
+    color: #111827;
+}
+
+.search-input:focus {
+    border-color: #2B5EA7;
+    box-shadow: 0 0 0 3px rgba(43, 94, 167, 0.1);
+    background: white;
+}
+
+.search-input::placeholder {
+    color: #9ca3af;
+}
+
+/* ---- Chat items list ---- */
+.chat-list-items {
+    flex: 1;
+    overflow-y: auto;
+    background: #f8f9fb;
+}
+
+/* ---- Empty state ---- */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #6b7280;
+}
+
+.empty-state p {
+    font-size: 15px;
+    font-weight: 500;
+    margin-bottom: 8px;
+    color: #374151;
+}
+
+.empty-state .small {
+    font-size: 13px;
+    color: #9ca3af;
+}
+
+/* ============================================================
+   MOBILE
+   ============================================================ */
+@media (max-width: 768px) {
+    .chat-list {
+        width: 100%;
+        height: 100%;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .chat-list-header {
+        padding: 12px 12px 10px;
+        padding-left: calc(12px + env(safe-area-inset-left, 0px));
+        padding-right: calc(12px + env(safe-area-inset-right, 0px));
+        gap: 8px;
+    }
+
+    .chat-list-header h2 {
+        font-size: 16px;
+        font-weight: 700;
+        margin: 0;
+    }
+
+    .chat-tabs {
+        padding: 8px 10px;
+        gap: 4px;
+        padding-left: calc(10px + env(safe-area-inset-left, 0px));
+        padding-right: calc(10px + env(safe-area-inset-right, 0px));
+    }
+
+    .tab {
+        padding: 8px 10px;
+        font-size: 12px;
+        border-radius: 8px;
+        min-height: 36px;
+        touch-action: manipulation;
+    }
+
+    .search-container {
+        padding: 8px 10px;
+        padding-left: calc(10px + env(safe-area-inset-left, 0px));
+        padding-right: calc(10px + env(safe-area-inset-right, 0px));
+    }
+
+    .search-input {
+        padding: 10px 12px 10px 36px;
+        font-size: 14px;
+        border-radius: 10px;
+        min-height: 40px;
+    }
+
+    .search-icon {
+        left: 14px;
+        font-size: 14px;
+    }
+
+    .ai-toggle {
+        padding: 8px 10px;
+        border-radius: 8px;
+        min-height: 40px;
+        touch-action: manipulation;
+    }
+
+    .ai-toggle span {
+        font-size: 12px;
+    }
+
+    /* Chat items list scrolling */
+    .chat-items-list {
+        flex: 1;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        padding: 0 4px;
+        padding-left: calc(4px + env(safe-area-inset-left, 0px));
+        padding-right: calc(4px + env(safe-area-inset-right, 0px));
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+}

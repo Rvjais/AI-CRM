@@ -54,7 +54,7 @@ export const connectWhatsApp = async (userId, io) => {
             logger: socketLogger,
             printQRInTerminal: false,
             auth: state,
-            browser: ['Chrome (Linux)', '', ''],
+            browser: ['Ubuntu', 'Chrome', '20.0.04'],
             retryRequestDelayMs: 250, // Enable retries
             getMessage: async (key) => {
                 try {
@@ -175,8 +175,8 @@ export const connectWhatsApp = async (userId, io) => {
                 io.to(userId.toString()).emit('whatsapp:connected', {
                     phoneNumber,
                     deviceInfo: {
-                        browser: 'Chrome (Linux)',
-                        version: '',
+                        browser: 'RainCRM (Chrome)',
+                        version: '1.0.0',
                     },
                 });
             }
@@ -320,7 +320,8 @@ export const getConnection = (userId) => {
  * @returns {Boolean} Is connected
  */
 export const isConnected = (userId) => {
-    return connections.has(userId.toString());
+    const sock = connections.get(userId.toString());
+    return !!(sock && sock.user && sock.authState?.creds?.me);
 };
 
 /**

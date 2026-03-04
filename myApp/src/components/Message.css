@@ -1,0 +1,493 @@
+.message {
+    display: flex;
+    width: 100%;
+    margin-bottom: 12px;
+    animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.message.sent {
+    justify-content: flex-end;
+}
+
+.message.received {
+    justify-content: flex-start;
+    gap: 8px;
+}
+
+.message.sent .message-content-wrapper {
+    align-items: flex-end;
+}
+
+.message.received .message-content-wrapper {
+    align-items: flex-start;
+}
+
+.message-avatar {
+    flex-shrink: 0;
+}
+
+.avatar-small {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.message-bubble {
+    max-width: 70%;
+    /* Slightly narrower for readability */
+    padding: 10px 14px;
+    border-radius: 18px;
+    /* Rounder bubbles */
+    position: relative;
+    word-wrap: break-word;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    /* Softer shadow */
+    min-width: 0;
+    transition: transform 0.2s;
+}
+
+.message.sent .message-bubble {
+    background: linear-gradient(135deg, #4A9FF5 0%, #2E75E0 100%);
+    /* Premium Blue Gradient */
+    color: white;
+    border-bottom-right-radius: 4px;
+    /* Subtle tail effect */
+    box-shadow: 0 4px 15px rgba(74, 159, 245, 0.2);
+    /* Colored glow */
+}
+
+.message.received .message-bubble {
+    background: white;
+    color: #111827;
+    border-bottom-left-radius: 4px;
+    border: 1px solid rgba(0, 0, 0, 0.03);
+}
+
+.message-sender-name {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #e58e34;
+    /* Orange-ish color similar to WhatsApp pattern */
+    margin-bottom: 2px;
+    line-height: 1.2;
+    padding-right: 4px;
+}
+
+/* Quoted Message in Bubble */
+.quoted-message-preview {
+    border-left: 4px solid #4A9FF5;
+    background: rgba(0, 0, 0, 0.05);
+    padding: 6px 10px;
+    border-radius: 6px;
+    margin-bottom: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    min-width: 150px;
+    max-width: 100%;
+    width: 100%;
+}
+
+.message.sent .quoted-message-preview {
+    background: rgba(255, 255, 255, 0.15);
+    border-left-color: white;
+}
+
+.quoted-sender {
+    font-weight: 700;
+    color: #4A9FF5;
+    font-size: 12px;
+    margin-bottom: 2px;
+}
+
+.message.sent .quoted-sender {
+    color: white;
+}
+
+.quoted-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: #4b5563;
+    font-size: 12px;
+}
+
+.message.sent .quoted-text {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+
+.message-text {
+    font-size: 14.5px;
+    line-height: 1.5;
+    margin-bottom: 0;
+    /* Remove bottom margin */
+    max-width: 100%;
+}
+
+.message-time {
+    font-size: 11px;
+    opacity: 0.7;
+    float: none;
+    /* Remove float */
+    margin-left: auto;
+    /* Push to right */
+    margin-top: 0;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.message.sent .message-time {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.message.received .message-time {
+    color: #6b7280;
+}
+
+/* Media Styles */
+.message-media {
+    max-width: 100%;
+    border-radius: 8px;
+    margin-bottom: 4px;
+    display: block;
+}
+
+.message-audio {
+    max-width: 250px;
+    margin-bottom: 4px;
+}
+
+.message-sticker {
+    max-width: 128px;
+    height: auto;
+    background: transparent;
+    padding: 0;
+    margin-bottom: 4px;
+    border-radius: 0;
+    display: block;
+}
+
+.sticker-error {
+    background: rgba(255, 255, 0, 0.1);
+    color: #b45309;
+}
+
+.message-document {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.05);
+    padding: 8px 12px;
+    border-radius: 8px;
+    margin-bottom: 4px;
+}
+
+.doc-icon {
+    font-size: 20px;
+}
+
+.doc-link {
+    color: inherit;
+    text-decoration: none;
+    font-weight: 500;
+    word-break: break-all;
+}
+
+.doc-link:hover {
+    text-decoration: underline;
+}
+
+.message.sent .message-document {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.message.sent .doc-link {
+    color: white;
+}
+
+.media-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 8px;
+    margin-bottom: 4px;
+    min-width: 150px;
+    min-height: 100px;
+}
+
+.media-placeholder.error {
+    background: rgba(255, 0, 0, 0.05);
+    color: #ef4444;
+}
+
+.media-placeholder .icon {
+    font-size: 24px;
+    margin-bottom: 8px;
+}
+
+.media-placeholder .text {
+    font-size: 12px;
+    font-weight: 500;
+}
+
+/* Reactions */
+.message-content-wrapper {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Group hover for reaction actions */
+.message-bubble.group:hover .reaction-actions {
+    display: flex;
+}
+
+.reaction-actions {
+    display: none;
+    position: absolute;
+    top: 100%;
+    /* Move to bottom */
+    margin-top: 2px;
+    /* Reduced space */
+    background: white;
+    padding: 4px;
+    border-radius: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    gap: 4px;
+    z-index: 10;
+    animation: fadeIn 0.2s;
+}
+
+/* Invisible bridge to prevent flickering when moving mouse to reactions */
+.reaction-actions::before {
+    content: '';
+    position: absolute;
+    top: -10px;
+    left: 0;
+    right: 0;
+    height: 10px;
+    background: transparent;
+}
+
+.message.sent .reaction-actions {
+    right: 0;
+}
+
+.message.received .reaction-actions {
+    left: 0;
+}
+
+.reaction-actions button {
+    background: none;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 50%;
+    transition: transform 0.1s;
+}
+
+.reaction-actions button:hover {
+    transform: scale(1.2);
+    background: #f3f4f6;
+}
+
+.message-reactions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 4px;
+    justify-content: flex-end;
+    /* Or flex-start based on message type, but simplified for now */
+}
+
+.message.received .message-reactions {
+    justify-content: flex-start;
+}
+
+.reaction-bubble {
+    background: white;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    padding: 2px 6px;
+    font-size: 12px;
+    border: 1px solid #e5e7eb;
+}
+
+.message.sent .reaction-bubble {
+    background: rgba(255, 255, 255, 0.9);
+}
+
+/* ============================================
+   MOBILE RESPONSIVE STYLES
+   ============================================ */
+@media (max-width: 768px) {
+    .message {
+        margin-bottom: 8px;
+    }
+
+    .message-bubble {
+        max-width: 85%;
+        padding: 10px 12px;
+        border-radius: 16px;
+        gap: 4px;
+        font-size: 13px;
+        line-height: 1.4;
+    }
+
+    .message.sent .message-bubble {
+        background: #2B5EA7;
+        color: white;
+    }
+
+    .message.received .message-bubble {
+        background: #f3f4f6;
+        color: #1f2937;
+    }
+
+    .message-text {
+        font-size: 14px;
+        line-height: 1.4;
+        word-wrap: break-word;
+        word-break: break-word;
+    }
+
+    .message-time {
+        font-size: 11px;
+        opacity: 0.7;
+        margin-top: 2px;
+    }
+
+    .avatar-small {
+        width: 32px;
+        height: 32px;
+        font-size: 13px;
+        flex-shrink: 0;
+    }
+
+    /* Quoted message - truncate text */
+    .quoted-message-preview {
+        padding: 6px 10px;
+        border-left: 3px solid currentColor;
+        border-radius: 4px;
+        margin-bottom: 6px;
+        font-size: 12px;
+        background: rgba(0, 0, 0, 0.05);
+        min-width: 100px;
+        max-width: 220px;
+    }
+
+    .message.sent .quoted-message-preview {
+        background: rgba(255, 255, 255, 0.15);
+    }
+
+    .quoted-text {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 200px;
+        display: block;
+        font-size: 12px;
+        font-weight: 500;
+    }
+
+    .quoted-sender {
+        font-size: 11px;
+        opacity: 0.8;
+    }
+
+    /* Media sizing */
+    .message-media {
+        max-width: 240px;
+        max-height: 320px;
+        border-radius: 10px;
+        margin-bottom: 4px;
+    }
+
+    .message-audio {
+        max-width: 220px;
+        margin-bottom: 4px;
+    }
+
+    .message-sticker {
+        max-width: 120px;
+        margin-bottom: 4px;
+    }
+
+    .message-document {
+        padding: 8px 10px;
+        font-size: 12px;
+        border-radius: 8px;
+        margin-bottom: 4px;
+        gap: 6px;
+    }
+
+    .doc-icon {
+        font-size: 18px;
+    }
+
+    .doc-link {
+        word-break: break-all;
+    }
+
+    /* Reactions */
+    .reaction-actions {
+        margin-top: 4px;
+        padding: 3px;
+        gap: 2px;
+    }
+
+    .reaction-actions button {
+        font-size: 16px;
+        padding: 2px;
+    }
+
+    .reaction-bubble {
+        font-size: 11px;
+        padding: 2px 6px;
+    }
+
+    /* Text alignment on mobile */
+    .message.sent .message-text {
+        text-align: right;
+    }
+
+    .message.received .message-text {
+        text-align: left;
+    }
+
+    /* Message group spacing */
+    .message-group {
+        margin-bottom: 12px;
+    }
+}
