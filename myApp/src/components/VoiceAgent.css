@@ -521,31 +521,158 @@
 }
 
 @media (max-width: 768px) {
+
+    /* ---- Layout: Stack sidebar above content ---- */
     .voice-dashboard {
         flex-direction: column;
+        height: auto;
+        min-height: 100%;
     }
 
+    /* ---- Sidebar: Compact header + horizontal scroll tabs ---- */
     .v-sidebar {
         width: 100%;
         border-right: none;
         border-bottom: 1px solid #e5e7eb;
-        padding: 1rem 0;
+        padding: 0.75rem 0 0 0;
+        flex-shrink: 0;
     }
 
+    .v-sidebar-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 1rem 0.75rem 1rem;
+        border-bottom: 1px solid #f3f4f6;
+        margin-bottom: 0;
+    }
+
+    .v-sidebar-header h2 {
+        font-size: 1.2rem;
+        margin: 0;
+    }
+
+    .v-user-profile {
+        padding: 0.3rem 0.6rem;
+        gap: 0.5rem;
+        background: #f3f4f6;
+    }
+
+    .v-username {
+        font-size: 0.8rem;
+    }
+
+    /* ---- Nav: Icon + label pill tabs in a horizontal scroll row ---- */
     .v-nav {
         flex-direction: row;
         overflow-x: auto;
-        padding-bottom: 0.5rem;
+        padding: 0.75rem 1rem;
+        gap: 0.5rem;
+        /* Hide scrollbar but keep scroll */
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+
+    .v-nav::-webkit-scrollbar {
+        display: none;
     }
 
     .v-nav-item {
         white-space: nowrap;
+        flex-shrink: 0;
+        padding: 0.5rem 0.875rem;
+        font-size: 0.82rem;
+        gap: 0.4rem;
+        border-radius: 20px;
+        border: 1px solid #e5e7eb;
+        background: #f9fafb;
+        color: #6b7280;
+    }
+
+    .v-nav-item.active {
+        border-color: transparent;
+    }
+
+    .v-nav-icon {
+        font-size: 0.9rem;
+    }
+
+    /* ---- Top Bar: Stack title + buttons vertically ---- */
+    .v-top-bar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+        padding: 1rem 1rem;
+    }
+
+    .v-top-left h1 {
+        font-size: 1.25rem;
+    }
+
+    .v-top-left p {
+        font-size: 0.85rem;
+    }
+
+    .v-top-right {
+        width: 100%;
+        gap: 0.5rem;
+    }
+
+    .v-currency-btn,
+    .v-refresh-btn {
+        flex: 1;
+        justify-content: center;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.82rem;
+    }
+
+    /* ---- Tab Content: Less padding ---- */
+    .v-tab-content {
+        padding: 1rem;
+    }
+
+    /* ---- Overview Stats: Single column full-width ---- */
+    .v-stats-grid {
+        flex-direction: column;
+        gap: 0.875rem;
+    }
+
+    .v-stat-card {
+        min-width: unset;
+        width: 100%;
+    }
+
+    /* ---- Call History: Stack info + filter ---- */
+    .v-history-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+
+    .v-filter {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+
+    .v-agent-select {
+        flex: 1;
     }
 
     .v-call-item {
         flex-direction: column;
         align-items: flex-start;
-        gap: 1rem;
+        gap: 0.75rem;
+    }
+
+    .v-call-meta {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    /* ---- Voice Agents: Full-width card ---- */
+    .v-voice-agents-card {
+        max-width: 100%;
+        padding: 1rem;
     }
 
     .v-form-inline {
@@ -555,5 +682,74 @@
     .v-call-btn {
         margin-top: 0;
         width: 100%;
+    }
+
+    /* ---- Transcripts: Stack list and viewer vertically ---- */
+    .v-transcripts {
+        flex-direction: column !important;
+    }
+
+    .v-transcripts>div:first-child {
+        border-right: none !important;
+        border-bottom: 1px solid #e5e7eb;
+        padding-right: 0 !important;
+        padding-bottom: 1rem;
+        max-height: 220px !important;
+    }
+
+    .v-transcripts>div:last-child {
+        padding-left: 0 !important;
+        max-height: unset !important;
+    }
+
+    /* ---- Expenses: Hide table, show as stacked cards ---- */
+    .v-expenses table thead {
+        display: none;
+    }
+
+    .v-expenses table,
+    .v-expenses table tbody,
+    .v-expenses table tr,
+    .v-expenses table td {
+        display: block;
+        width: 100%;
+    }
+
+    .v-expenses table tr {
+        border: 1px solid #f3f4f6;
+        border-radius: 10px;
+        margin-bottom: 0.75rem;
+        padding: 0.75rem;
+        background: #ffffff;
+    }
+
+    .v-expenses table td {
+        padding: 0.25rem 0 !important;
+        font-size: 0.875rem;
+    }
+
+    .v-expenses table td::before {
+        font-weight: 600;
+        color: #9ca3af;
+        font-size: 0.75rem;
+        display: block;
+        text-transform: uppercase;
+        margin-bottom: 0.1rem;
+    }
+
+    .v-expenses table td:nth-child(1)::before {
+        content: "Date";
+    }
+
+    .v-expenses table td:nth-child(2)::before {
+        content: "Recipient";
+    }
+
+    .v-expenses table td:nth-child(3)::before {
+        content: "Duration";
+    }
+
+    .v-expenses table td:nth-child(4)::before {
+        content: "Cost";
     }
 }
