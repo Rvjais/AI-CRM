@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
-import { FaArrowLeft, FaReply, FaTrash, FaStar, FaPrint, FaEllipsisV } from 'react-icons/fa';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { FaArrowLeft, FaTrash, FaStar, FaPrint, FaEllipsisV, FaReply } from 'react-icons/fa';
 import api from '../../utils/apiClient';
 
 function EmailThread({ threadId, onClose, onRefresh }) {
     const [thread, setThread] = useState(null);
     const [loading, setLoading] = useState(true);
+    const iframeRefs = useRef({});
 
     useEffect(() => {
         fetchThreadDetail();
@@ -40,26 +41,96 @@ function EmailThread({ threadId, onClose, onRefresh }) {
         return header ? header.value : '';
     };
 
+    // Parse "Name <email@example.com>" into { name, email }
+    const parseSender = (rawFrom) => {
+        const match = rawFrom.match(/^(.*?)\s*<(.+)>$/);
+        if (match) return { name: match[1].replace(/"/g, '').trim(), email: match[2] };
+        return { name: rawFrom, email: rawFrom };
+    };
+
+    const formatDate = (rawDate) => {
+        try {
+            const d = new Date(rawDate);
+            return d.toLocaleString('en-US', {
+                month: 'short', day: 'numeric', year: 'numeric',
+                hour: 'numeric', minute: '2-digit', hour12: true
+            });
+        } catch {
+            return rawDate;
+        }
+    };
+
     const getBody = (message) => {
-        // Gmail API body is complex (multi-part, base64)
-        // This is a simplified version to extract text/html
         let part = message.payload;
         if (part.parts) {
-            // Find HTML part or first text part
             const htmlPart = part.parts.find(p => p.mimeType === 'text/html');
             const textPart = part.parts.find(p => p.mimeType === 'text/plain');
             part = htmlPart || textPart || part.parts[0];
         }
-
         if (part && part.body && part.body.data) {
-            const decoded = atob(part.body.data.replace(/-/g, '+').replace(/_/g, '/'));
-            return decoded;
+            try {
+                return atob(part.body.data.replace(/-/g, '+').replace(/_/g, '/'));
+            } catch {
+                return '<p>(Could not decode email content)</p>';
+            }
         }
-        return '(No content)';
+        return '<p>(No content)</p>';
     };
 
+    // Build srcdoc content that wraps the email HTML in a responsive shell
+    const buildIframeSrcdoc = (htmlBody) => `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+          <style>
+            * { box-sizing: border-box; }
+            body {
+              margin: 0;
+              padding: 12px;
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+              font-size: 14px;
+              line-height: 1.6;
+              color: #202124;
+              word-wrap: break-word;
+              overflow-wrap: break-word;
+            }
+            img { max-width: 100% !important; height: auto !important; }
+            table { max-width: 100% !important; width: 100% !important; border-collapse: collapse; }
+            td, th { max-width: 100% !important; word-wrap: break-word; overflow-wrap: break-word; }
+            a { color: #1a73e8; }
+            pre, code { white-space: pre-wrap; word-break: break-all; }
+            /* Override common marketing email max-widths */
+            [width], [style*="width"] { max-width: 100% !important; }
+          </style>
+        </head>
+        <body>${htmlBody}</body>
+        </html>
+    `;
+
+    // Auto-resize iframe to fit its content
+    const handleIframeLoad = useCallback((msgId, iframe) => {
+        if (!iframe) return;
+        try {
+            const resize = () => {
+                const h = iframe.contentDocument?.documentElement?.scrollHeight;
+                if (h) iframe.style.height = h + 'px';
+            };
+            resize();
+            iframe.contentWindow?.addEventListener('resize', resize);
+        } catch (e) {
+            // cross-origin guard
+        }
+    }, []);
+
     if (loading) {
-        return <div className="email-thread-loading">Loading conversation...</div>;
+        return (
+            <div className="email-thread-loading">
+                <div className="loading-spinner"></div>
+                <p>Loading conversation...</p>
+            </div>
+        );
     }
 
     if (!thread || !thread.messages) {
@@ -71,45 +142,70 @@ function EmailThread({ threadId, onClose, onRefresh }) {
 
     return (
         <div className="email-thread">
+            {/* Gmail-style top bar */}
             <div className="thread-header">
-                <button className="back-btn" onClick={onClose}><FaArrowLeft /></button>
+                <button className="back-btn icon-btn" onClick={onClose} title="Back">
+                    <FaArrowLeft />
+                </button>
                 <h2 className="thread-title">{subject}</h2>
                 <div className="thread-actions">
-                    <button onClick={handleTrash} title="Delete"><FaTrash /></button>
-                    <button title="Star"><FaStar /></button>
-                    <button title="Print"><FaPrint /></button>
-                    <button title="More"><FaEllipsisV /></button>
+                    <button className="icon-btn" onClick={handleTrash} title="Delete"><FaTrash /></button>
+                    <button className="icon-btn" title="Star"><FaStar /></button>
+                    <button className="icon-btn" title="Print"><FaPrint /></button>
+                    <button className="icon-btn" title="More"><FaEllipsisV /></button>
                 </div>
             </div>
 
             <div className="messages-container">
-                {messages.map((msg, index) => (
-                    <div key={msg.id} className="message-item">
-                        <div className="message-header">
-                            <div className="sender-info">
+                {messages.map((msg) => {
+                    const rawFrom = getHeader(msg, 'From');
+                    const { name: senderName, email: senderEmail } = parseSender(rawFrom);
+                    const rawDate = getHeader(msg, 'Date');
+                    const rawTo = getHeader(msg, 'To');
+                    const body = getBody(msg);
+                    const srcdoc = buildIframeSrcdoc(body);
+
+                    return (
+                        <div key={msg.id} className="message-item">
+                            {/* Sender row */}
+                            <div className="message-sender-row">
                                 <div className="sender-avatar">
-                                    {getHeader(msg, 'From').charAt(0).toUpperCase()}
+                                    {senderName.charAt(0).toUpperCase()}
                                 </div>
                                 <div className="sender-details">
-                                    <span className="sender-name">{getHeader(msg, 'From')}</span>
-                                    <span className="sender-to">to {getHeader(msg, 'To')}</span>
+                                    <div className="sender-name-line">
+                                        <span className="sender-name">{senderName}</span>
+                                        <span className="sender-email-badge">&lt;{senderEmail}&gt;</span>
+                                    </div>
+                                    <span className="sender-to-line">to {rawTo}</span>
+                                </div>
+                                <div className="message-meta">
+                                    <span className="message-date">{formatDate(rawDate)}</span>
+                                    <button className="icon-btn reply-meta-btn" title="Reply"><FaReply /></button>
                                 </div>
                             </div>
-                            <div className="message-meta">
-                                <span className="message-date">{getHeader(msg, 'Date')}</span>
-                                <button className="reply-btn"><FaReply /></button>
-                            </div>
+
+                            {/* Email body in iframe */}
+                            <iframe
+                                ref={el => {
+                                    iframeRefs.current[msg.id] = el;
+                                    if (el) handleIframeLoad(msg.id, el);
+                                }}
+                                className="email-body-frame"
+                                srcDoc={srcdoc}
+                                title={`Email from ${senderName}`}
+                                sandbox="allow-same-origin allow-popups"
+                                scrolling="no"
+                                onLoad={(e) => handleIframeLoad(msg.id, e.target)}
+                            />
                         </div>
-                        <div
-                            className="message-body"
-                            dangerouslySetInnerHTML={{ __html: getBody(msg) }}
-                        />
-                    </div>
-                ))}
+                    );
+                })}
             </div>
 
             <div className="quick-reply">
                 <div className="reply-box">
+                    <FaReply className="reply-box-icon" />
                     <p>Click here to <span>Reply</span> or <span>Forward</span></p>
                 </div>
             </div>

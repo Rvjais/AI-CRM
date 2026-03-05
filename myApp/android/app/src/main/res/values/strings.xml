@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">RainCRM</string>
-    <string name="title_activity_main">RainCRM</string>
+    <string name="app_name">Rain CRM</string>
+    <string name="title_activity_main">Rain CRM</string>
     <string name="package_name">com.raincrm.app</string>
     <string name="custom_url_scheme">com.raincrm.app</string>
 </resources>

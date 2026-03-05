@@ -159,7 +159,8 @@ input:checked+.slider:before {
 
 .search-icon {
     position: absolute;
-    left: 26px;
+    left: 24px;
+    /* Adjusted to balance padding */
     top: 50%;
     transform: translateY(-50%);
     color: #9ca3af;
@@ -169,7 +170,8 @@ input:checked+.slider:before {
 
 .search-input {
     width: 100%;
-    padding: 10px 12px 10px 34px;
+    padding: 10px 12px 10px 40px;
+    /* Increased left padding */
     border: 1.5px solid #e5e7eb;
     border-radius: 10px;
     font-size: 14px;
@@ -261,14 +263,16 @@ input:checked+.slider:before {
     }
 
     .search-input {
-        padding: 10px 12px 10px 36px;
+        padding: 10px 12px 10px 48px;
+        /* Increased from 40px */
         font-size: 14px;
         border-radius: 10px;
         min-height: 40px;
     }
 
     .search-icon {
-        left: 14px;
+        left: 20px;
+        /* Adjusted from 18px */
         font-size: 14px;
     }
 

@@ -179,12 +179,13 @@ export const getAllChats = asyncHandler(async (req, res) => {
 export const getChatMessages = asyncHandler(async (req, res) => {
     const { chatJid } = req.params;
     const { page = 1, limit = 50 } = req.query;
+    const safeLimit = Math.min(Math.max(parseInt(limit) || 50, 1), 100);
 
     const result = await messageService.getChatMessages(
         req.userId,
         chatJid,
         parseInt(page),
-        parseInt(limit)
+        safeLimit
     );
 
     return successResponse(res, 200, 'Messages retrieved successfully', result);

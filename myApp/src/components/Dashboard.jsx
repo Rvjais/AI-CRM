@@ -3,6 +3,7 @@ import { IonPage, IonContent } from '@ionic/react';
 import api from '../utils/apiClient';
 import ChatWindow from './ChatWindow';
 import { IoClose } from 'react-icons/io5';
+import { FaRegCommentDots } from 'react-icons/fa'; // Added icon for chat
 import './Dashboard.css';
 import Loader from './Loader';
 
@@ -97,45 +98,52 @@ function Dashboard() {
         <IonPage>
             <IonContent className="ion-padding dashboard-view-content">
                 <div className="dashboard-view">
-                    <div className="view-header">
-                        <h1>Dashboard</h1>
-                        <p>Overview of your business metrics</p>
+                    <div className="header-card">
+                        <div className="view-header centered">
+                            <h1>Dashboard</h1>
+                            <p>Overview of your business metrics</p>
+                            <div className="header-divider"></div>
+                        </div>
                     </div>
 
                     <div className="dashboard-grid">
                         {/* Leads Section (WhatsApp Sentiment) */}
                         <div className="stat-card leads-card">
-                            <div className="stat-header">
-                                <div className="stat-icon whatsapp">📱</div>
-                                <div className="stat-info">
-                                    <h3>WhatsApp Leads</h3>
-                                    {stats.isConnected ? (
-                                        <div className="leads-summary">
-                                            <span className="lead-tag pos">{stats.leads?.positive || 0} Positive</span>
-                                            <span className="lead-tag neg">{stats.leads?.negative || 0} Negative</span>
-                                        </div>
-                                    ) : (
-                                        <p className="stat-value">Not Connected</p>
-                                    )}
+                            <div className="leads-card-inner">
+                                <div className="stat-header">
+                                    <div className="stat-icon whatsapp">📱</div>
+                                    <div className="stat-info">
+                                        <h3>WhatsApp Leads</h3>
+                                        {stats.isConnected ? (
+                                            <div className="leads-summary">
+                                                <span className="lead-tag pos">{stats.leads?.positive || 0} POSITIVE</span>
+                                                <span className="lead-tag neg">{stats.leads?.negative || 0} NEGATIVE</span>
+                                            </div>
+                                        ) : (
+                                            <p className="stat-value">Not Connected</p>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
 
                             {stats.isConnected && (
                                 <div className="leads-lists-container">
-                                    <div className="lead-column positive-col">
-                                        <h4>Positive Interactions</h4>
+                                    <div className="lead-column positive-container">
+                                        <h4>POSITIVE INTERACTIONS</h4>
                                         <div className="lead-list">
                                             {stats.leads?.positiveList?.length > 0 ? (
                                                 stats.leads.positiveList.map(chat => (
                                                     <div key={chat._id} className="lead-chat-item" onClick={() => handleChatClick(chat)}>
-                                                        <div className="lead-avatar">
+                                                        <div className="lead-avatar positive">
                                                             {(chat.contactName || chat.phoneNumber || '?').charAt(0)}
                                                         </div>
                                                         <div className="lead-details">
                                                             <span className="lead-name">{chat.contactName || chat.phoneNumber}</span>
                                                             <span className="lead-time">{new Date(chat.lastMessageAt).toLocaleDateString()}</span>
                                                         </div>
-                                                        <button className="lead-chat-btn">💬</button>
+                                                        <button className="lead-chat-btn">
+                                                            <FaRegCommentDots />
+                                                        </button>
                                                     </div>
                                                 ))
                                             ) : (
@@ -144,20 +152,23 @@ function Dashboard() {
                                         </div>
                                     </div>
 
-                                    <div className="lead-column negative-col">
-                                        <h4>Negative Interactions</h4>
+                                    <div className="lead-column negative-container">
+                                        <h4 className="negative-header">NEGATIVE INTERACTIONS</h4>
                                         <div className="lead-list">
                                             {stats.leads?.negativeList?.length > 0 ? (
                                                 stats.leads.negativeList.map(chat => (
                                                     <div key={chat._id} className="lead-chat-item" onClick={() => handleChatClick(chat)}>
-                                                        <div className="lead-avatar">
+                                                        <div className="negative-indicator"></div>
+                                                        <div className="lead-avatar negative">
                                                             {(chat.contactName || chat.phoneNumber || '?').charAt(0)}
                                                         </div>
                                                         <div className="lead-details">
                                                             <span className="lead-name">{chat.contactName || chat.phoneNumber}</span>
                                                             <span className="lead-time">{new Date(chat.lastMessageAt).toLocaleDateString()}</span>
                                                         </div>
-                                                        <button className="lead-chat-btn">💬</button>
+                                                        <button className="lead-chat-btn">
+                                                            <FaRegCommentDots />
+                                                        </button>
                                                     </div>
                                                 ))
                                             ) : (
@@ -243,17 +254,20 @@ function Dashboard() {
                                 {stats.email.priorityList.map((email) => (
                                     <div key={email.id} className="priority-item">
                                         <div className="pi-left">
-                                            <div className={`pi-score-circle ${email.score >= 8 ? 'high' : email.score >= 4 ? 'medium' : 'low'}`}>
-                                                {email.score}
+                                            <div className="score-wrapper">
+                                                <div className={`pi-score-circle ${email.score >= 8 ? 'high' : email.score >= 4 ? 'medium' : 'low'}`}>
+                                                    {email.score}
+                                                </div>
+                                                {email.score >= 8 && <span className="score-label">Label</span>}
                                             </div>
                                         </div>
                                         <div className="pi-content">
                                             <div className="pi-header">
                                                 <span className="pi-subject">{email.subject}</span>
-                                                <span className="pi-date">{new Date(email.date).toLocaleDateString()}</span>
+                                                <span className="pi-date">{new Date(email.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                                             </div>
                                             <div className="pi-from">{email.from}</div>
-                                            <div className="pi-reason"><strong>AI Analysis:</strong> {email.reason}</div>
+                                            <div className="pi-reason"><strong>{email.score >= 9 ? '❗️' : '💡'} AI Analysis:</strong> {email.reason}</div>
                                         </div>
                                     </div>
                                 ))}

@@ -44,6 +44,7 @@
         "winston": "^3.11.0"
     },
     "devDependencies": {
+        "node-fetch": "^3.3.2",
         "nodemon": "^3.0.2"
     }
 }

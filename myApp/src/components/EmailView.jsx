@@ -5,7 +5,8 @@ import api from '../utils/apiClient';
 import EmailLayout from './email/EmailLayout';
 import './EmailView.css';
 import Loader from './Loader';
-
+import { Capacitor } from '@capacitor/core';
+import { Browser } from '@capacitor/browser';
 function EmailView({ token }) {
     const [isConnected, setIsConnected] = useState(false);
     const [loading, setLoading] = useState(true);
@@ -48,7 +49,9 @@ function EmailView({ token }) {
 
     const fetchAuthUrl = async () => {
         try {
-            const data = await api.get('/api/auth/google');
+            const isNative = Capacitor.isNativePlatform();
+            const platformQuery = isNative ? '?platform=android' : '';
+            const data = await api.get(`/api/auth/google${platformQuery}`);
             if (data.success) {
                 setAuthUrl(data.data.url);
             }
@@ -133,9 +136,14 @@ function EmailView({ token }) {
         }
     };
 
-    const handleConnect = () => {
+    const handleConnect = async () => {
         if (authUrl) {
-            window.location.href = authUrl;
+            if (Capacitor.isNativePlatform()) {
+                await Browser.open({ url: authUrl });
+                // Note: Background listener in App.jsx closes the browser on callback
+            } else {
+                window.location.href = authUrl;
+            }
         }
     };
 

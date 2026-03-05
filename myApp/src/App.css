@@ -91,9 +91,9 @@
 
   .main-content {
     flex: 1;
-    /* Full height minus the mobile top bar and safe area */
-    height: calc(100dvh - 56px - env(safe-area-inset-bottom, 0px));
-    margin-top: 56px;
+    /* Full height minus the mobile top bar and top/bottom safe areas */
+    height: calc(100dvh - 56px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    margin-top: calc(56px + env(safe-area-inset-top, 0px));
     width: 100%;
     max-width: 100%;
     overflow: hidden;

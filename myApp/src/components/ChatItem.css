@@ -172,16 +172,19 @@
     }
 
     .chat-name {
-        font-size: 14px;
+        font-size: 13px;
+        /* Reduced from 14px */
         font-weight: 600;
     }
 
     .last-message {
-        font-size: 12px;
+        font-size: 11px;
+        /* Reduced from 12px */
     }
 
     .chat-time {
-        font-size: 10px;
+        font-size: 9px;
+        /* Reduced from 10px */
     }
 
     .unread-badge {

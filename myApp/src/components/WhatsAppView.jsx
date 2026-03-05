@@ -8,6 +8,9 @@ import QRScanner from './QRScanner';
 import api from '../utils/apiClient';
 import ForwardModal from './ForwardModal';
 import Loader from './Loader';
+import { Storage } from '@ionic/storage';
+
+let store = null; // Module-level storage instance to avoid recreating
 
 function WhatsAppView({ token, onLogout, isActive }) {
     const [selectedChat, setSelectedChat] = useState(null);
@@ -28,6 +31,7 @@ function WhatsAppView({ token, onLogout, isActive }) {
     const socketRef = useRef(null);
     const isCheckingRef = useRef(false);
     const messagesCacheRef = useRef({}); // { jid: [messages] }
+    const storeRef = useRef(null); // Reference to the Ionic Storage instance
 
     useEffect(() => {
         chatsRef.current = chats;
@@ -121,6 +125,10 @@ function WhatsAppView({ token, onLogout, isActive }) {
                 updatedChats.splice(index, 1);
                 updatedChats.unshift(chatUpdate);
 
+                if (storeRef.current) {
+                    storeRef.current.set('chats', updatedChats);
+                }
+
                 return updatedChats;
             });
 
@@ -150,6 +158,9 @@ function WhatsAppView({ token, onLogout, isActive }) {
                     const chatId = newMessage.chatJid;
                     if (chatId) {
                         messagesCacheRef.current[chatId] = updated;
+                        if (storeRef.current) {
+                            storeRef.current.set('messagesCache', messagesCacheRef.current);
+                        }
                     }
                     return updated;
                 });
@@ -165,6 +176,9 @@ function WhatsAppView({ token, onLogout, isActive }) {
 
                     if (!isDuplicate) {
                         messagesCacheRef.current[chatId] = [...cached, newMessage];
+                        if (storeRef.current) {
+                            storeRef.current.set('messagesCache', messagesCacheRef.current);
+                        }
                     }
                 }
             }
@@ -173,8 +187,8 @@ function WhatsAppView({ token, onLogout, isActive }) {
         newSocket.on('message:update', (data) => {
             console.log('🔄 Message update received:', data);
 
-            setMessages(prevMessages =>
-                prevMessages.map(msg => {
+            setMessages(prevMessages => {
+                const newMessages = prevMessages.map(msg => {
                     // Match by ID
                     if (msg.messageId === data.messageId || msg._id === data.messageId) {
                         return {
@@ -184,8 +198,19 @@ function WhatsAppView({ token, onLogout, isActive }) {
                         };
                     }
                     return msg;
-                })
-            );
+                });
+
+                // Also update cache directly
+                const activeChatId = selectedChatRef.current?.jid;
+                if (activeChatId && messagesCacheRef.current[activeChatId]) {
+                    messagesCacheRef.current[activeChatId] = newMessages;
+                    if (storeRef.current) {
+                        storeRef.current.set('messagesCache', messagesCacheRef.current);
+                    }
+                }
+
+                return newMessages;
+            });
         });
 
         newSocket.on('chat:update', (data) => {
@@ -204,6 +229,10 @@ function WhatsAppView({ token, onLogout, isActive }) {
                     suggestions: updatedChat.suggestions,
                     aiEnabled: updatedChat.aiEnabled
                 };
+
+                if (storeRef.current) {
+                    storeRef.current.set('chats', newChats);
+                }
                 return newChats;
             });
 
@@ -228,6 +257,26 @@ function WhatsAppView({ token, onLogout, isActive }) {
 
     useEffect(() => {
         const init = async () => {
+            // Initialize Ionic Storage
+            if (!store) {
+                store = new Storage();
+                await store.create();
+            }
+            storeRef.current = store;
+
+            // Load cached data instantly before checking network
+            const cachedChats = await store.get('chats');
+            if (cachedChats && Array.isArray(cachedChats)) {
+                setChats(cachedChats);
+                console.log('⚡ Loaded chats from local storage quickly');
+            }
+
+            const cachedMessages = await store.get('messagesCache');
+            if (cachedMessages) {
+                messagesCacheRef.current = cachedMessages;
+                console.log('⚡ Loaded message cache from local storage quickly');
+            }
+
             await checkInfrastructure();
             await checkConnectionStatus();
         };
@@ -363,6 +412,11 @@ function WhatsAppView({ token, onLogout, isActive }) {
                 });
 
                 setChats(dedupedChats);
+
+                // Persist chats to storage
+                if (storeRef.current) {
+                    storeRef.current.set('chats', dedupedChats);
+                }
             }
         } catch (error) {
             console.error('Error fetching chats:', error);
@@ -372,6 +426,9 @@ function WhatsAppView({ token, onLogout, isActive }) {
     const handleChatUpdate = (updatedChat) => {
         setChats(prevChats => {
             const newChats = prevChats.map(c => (c.jid === updatedChat.jid || c._id === updatedChat._id) ? updatedChat : c);
+            if (storeRef.current) {
+                storeRef.current.set('chats', newChats);
+            }
             return newChats;
         });
         if (selectedChatRef.current?.jid === updatedChat.jid || selectedChatRef.current?._id === updatedChat._id) {
@@ -411,6 +468,9 @@ function WhatsAppView({ token, onLogout, isActive }) {
         setMessages(newMessages);
         if (chatId) {
             messagesCacheRef.current[chatId] = newMessages;
+            if (storeRef.current) {
+                storeRef.current.set('messagesCache', messagesCacheRef.current);
+            }
         }
     };
 

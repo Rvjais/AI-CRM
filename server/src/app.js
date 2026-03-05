@@ -15,9 +15,8 @@ import logger from './utils/logger.util.js';
 
 const app = express();
 
-// Trust the first proxy in front of Express (LiteSpeed)
-// Essential for the Rate Limiter to see real user IPs instead of 127.0.0.1
-app.set('trust proxy', true);
+// Trust only the immediate upstream proxy (LiteSpeed)
+app.set('trust proxy', 1);
 
 // Security middleware
 app.use(helmet());
@@ -48,7 +47,6 @@ app.use((req, res, next) => {
         origin.startsWith('http://localhost') ||
         origin.startsWith('http://127.0.0.1') ||
         ALLOWED_ORIGINS_LIST.includes(origin) ||
-        origin.endsWith('.vercel.app') ||
         (env.ALLOWED_ORIGINS && env.ALLOWED_ORIGINS.includes(origin)) ||
         env.NODE_ENV === 'development';
 
@@ -80,7 +78,6 @@ app.use((req, res, next) => {
     logger.info(`${req.method} ${req.path}`, {
         ip: req.ip,
         userAgent: req.get('user-agent'),
-        headers: req.headers, // [DEBUG] Log headers
     });
     next();
 });

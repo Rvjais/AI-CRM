@@ -1,10 +1,5 @@
 import api from './utils/apiClient';
 
-// ... inside App component ...
-// ... inside App component ...
-// [We are using replace_file_content so I need to match carefully]
-// I will target the imports and renderView function
-
 import { IonApp, IonRouterOutlet, IonSplitPane, IonPage, setupIonicReact } from '@ionic/react';
 import { IonReactRouter } from '@ionic/react-router';
 import { Route, Redirect } from 'react-router-dom';
@@ -40,30 +35,85 @@ import ComingSoon from './components/ComingSoon';
 import VoiceAgent from './components/VoiceAgent';
 import Login from './components/Login';
 import Settings from './components/Settings';
+import Loader from './components/Loader';
 import './App.css';
 
 import ErrorBoundary from './components/ErrorBoundary';
 
 setupIonicReact();
 
+import { App as CapApp } from '@capacitor/app';
+import { Browser } from '@capacitor/browser';
+import { Preferences } from '@capacitor/preferences';
+
 function App() {
-  const [token, setToken] = useState(localStorage.getItem('token'));
+  const [token, setToken] = useState(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
+
+  // Load token on startup
+  useEffect(() => {
+    const initializeAuth = async () => {
+      try {
+        const { value } = await Preferences.get({ key: 'token' });
+        if (value) {
+          setToken(value);
+        }
+      } catch (error) {
+        console.error('Error loading token from preferences:', error);
+      } finally {
+        setIsInitializing(false);
+      }
+    };
+
+    initializeAuth();
+  }, []);
 
   useEffect(() => {
     // Check for Gmail OAuth code in URL
     // (We will handle this better in a Route wrapper later if needed, but keeping original logic for now)
+
+    // Listen for deep links (Google OAuth callback from Capacitor Browser)
+    const listener = CapApp.addListener('appUrlOpen', async (event) => {
+      const url = event.url;
+      // Example URL: com.raincrm.app://oauth_callback?gmailConnected=true
+      if (url.includes('oauth_callback')) {
+        // Close the Capacitor Browser to return user to the app view
+        await Browser.close();
+
+        // Note: Since they probably started in /sheets or /email, the router
+        // might still be there. A force reload or toast could be added here.
+        // For now, closing the browser immediately brings them back to exactly where they were.
+
+        // To be safe, reload to ensure the connected state bubbles everywhere
+        window.location.reload();
+      }
+    });
+
+    return () => {
+      listener.then(l => l.remove());
+    };
   }, [token]);
 
-  const handleLogin = (newToken) => {
-    localStorage.setItem('token', newToken);
+  const handleLogin = async (newToken) => {
+    await Preferences.set({ key: 'token', value: newToken });
     setToken(newToken);
   };
 
-  const handleLogout = () => {
-    localStorage.clear(); // Clear ALL cached data so next user sees a clean state
+  const handleLogout = async () => {
+    await Preferences.clear(); // Clear ALL cached data so next user sees a clean state
     setToken(null);
   };
+
+  if (isInitializing) {
+    return (
+      <IonApp>
+        <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Loader message="Loading..." />
+        </div>
+      </IonApp>
+    );
+  }
 
   if (!token) {
     return (
@@ -82,7 +132,7 @@ function App() {
             isCollapsed={isSidebarCollapsed}
             setIsCollapsed={setIsSidebarCollapsed}
           />
-          
+
           <div className="main-content" id="main-content">
             <ErrorBoundary>
               <IonRouterOutlet id="main-content">

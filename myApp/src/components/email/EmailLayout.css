@@ -193,7 +193,8 @@
 
 .search-icon {
     position: absolute;
-    left: 28px;
+    left: 24px;
+    /* Move slightly left to balance padding */
     top: 50%;
     transform: translateY(-50%);
     color: #9ca3af;
@@ -202,7 +203,8 @@
 
 .search-input {
     width: 100%;
-    padding: 8px 12px 8px 36px;
+    padding: 8px 12px 8px 38px;
+    /* Increase left padding */
     border: 1px solid #e5e7eb;
     border-radius: 8px;
     font-size: 13px;
@@ -377,6 +379,8 @@
     color: #202124;
     margin: 0;
     font-weight: 500;
+    word-break: break-word;
+    /* Ensure long titles wrap properly */
 }
 
 .thread-actions {
@@ -404,56 +408,178 @@
 }
 
 .message-item {
-    margin-bottom: 32px;
+    margin-bottom: 24px;
+    border-bottom: 1px solid #f1f3f4;
+    padding-bottom: 24px;
 }
 
-.message-header {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 16px;
+.message-item:last-child {
+    border-bottom: none;
 }
 
-.sender-info {
+/* Gmail-like sender row */
+.message-sender-row {
     display: flex;
+    align-items: flex-start;
     gap: 12px;
+    margin-bottom: 12px;
+    padding: 0 4px;
 }
 
 .sender-avatar {
     width: 40px;
     height: 40px;
-    background: #2B5EA7;
+    min-width: 40px;
+    background: linear-gradient(135deg, #2B5EA7 0%, #00A79D 100%);
     color: white;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: 700;
+    font-size: 18px;
+    flex-shrink: 0;
 }
 
 .sender-details {
     display: flex;
     flex-direction: column;
+    min-width: 0;
+    flex: 1;
+    overflow: hidden;
+}
+
+.sender-name-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px;
+    min-width: 0;
 }
 
 .sender-name {
     font-weight: 700;
     color: #202124;
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 160px;
 }
 
-.sender-to {
+.sender-email-badge {
     font-size: 12px;
     color: #5f6368;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 180px;
+}
+
+.sender-to-line {
+    font-size: 12px;
+    color: #80868b;
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .message-meta {
     display: flex;
-    align-items: center;
-    gap: 12px;
-    color: #5f6368;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+    flex-shrink: 0;
 }
 
 .message-date {
-    font-size: 12px;
+    font-size: 11px;
+    color: #80868b;
+    white-space: nowrap;
+}
+
+.reply-meta-btn {
+    font-size: 13px !important;
+}
+
+/* Icon button - shared style for all header action icons */
+.icon-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    color: #5f6368;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    transition: background 0.2s;
+}
+
+.icon-btn:hover {
+    background: #f1f3f4;
+}
+
+/* Email body iframe - auto-resizing, no borders */
+.email-body-frame {
+    width: 100%;
+    border: none;
+    min-height: 80px;
+    display: block;
+    overflow: hidden;
+}
+
+/* Quick reply bar - Gmail-style */
+.quick-reply {
+    padding: 16px 24px;
+    border-top: 1px solid #f1f3f4;
+    flex-shrink: 0;
+}
+
+.reply-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border: 1px solid #e0e0e0;
+    border-radius: 24px;
+    cursor: pointer;
+    color: #5f6368;
+    font-size: 14px;
+    transition: background 0.2s, box-shadow 0.2s;
+}
+
+.reply-box:hover {
+    background: #f8f9fa;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.reply-box-icon {
+    font-size: 15px;
+    color: #80868b;
+    flex-shrink: 0;
+}
+
+.reply-box p {
+    margin: 0;
+}
+
+.reply-box span {
+    color: #1a73e8;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.email-thread-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: 16px;
+    color: #5f6368;
 }
 
 .message-body {
@@ -461,6 +587,17 @@
     line-height: 1.6;
     color: #374151;
     padding-left: 52px;
+    max-width: 100%;
+    overflow-x: auto;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.message-body img,
+.message-body table,
+.message-body td,
+.message-body div {
+    max-width: 100% !important;
 }
 
 .message-body blockquote {
@@ -859,23 +996,68 @@
         display: none;
     }
 
-    /* Thread Header */
+    /* Thread Header - Stack title under buttons on mobile */
     .thread-header {
         padding: 12px 16px;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .back-btn {
+        order: 1;
+    }
+
+    .thread-actions {
+        order: 2;
+        margin-left: auto;
     }
 
     .thread-title {
         font-size: 16px;
+        order: 3;
+        flex-basis: 100%;
+        margin-top: 8px;
+        word-break: break-word;
     }
 
-    /* Messages Container */
+    /* Messages Container - Fix Overflow */
     .messages-container {
         padding: 16px;
+        overflow-x: hidden;
     }
 
+    /* Email body iframe: no padding on mobile, just fill width */
+    .email-body-frame {
+        width: 100%;
+        border: none;
+    }
+
+    /* Sender row compact for mobile */
+    .message-sender-row {
+        padding: 0;
+        gap: 10px;
+    }
+
+    .sender-name {
+        max-width: 120px;
+    }
+
+    .sender-email-badge {
+        max-width: 100px;
+    }
+
+    /* Keep message-body for fallback plain text emails */
     .message-body {
         padding-left: 0;
         font-size: 14px;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        overflow-x: auto;
+    }
+
+    /* Force marketing email contents back into the container */
+    .message-body * {
+        max-width: 100% !important;
     }
 
     /* Compose - Full screen on mobile */
@@ -1039,6 +1221,8 @@
     }
 
     .search-input {
+        padding: 8px 12px 8px 40px;
+        /* Preserve room for icon on mobile */
         font-size: 14px;
     }
 

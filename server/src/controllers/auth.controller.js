@@ -91,6 +91,7 @@ export const changePassword = asyncHandler(async (req, res) => {
  */
 export const getGoogleAuthUrl = asyncHandler(async (req, res) => {
     const userId = req.userId;
+    const { platform = 'web' } = req.query; // e.g. ?platform=android
     const User = (await import('../models/User.js')).default;
     const user = await User.findById(userId);
 
@@ -100,11 +101,14 @@ export const getGoogleAuthUrl = asyncHandler(async (req, res) => {
 
     const { oauth2Client, GMAIL_SCOPES } = await import('../config/google.config.js');
 
+    // Encode userId and platform in the state parameter
+    const statePayload = Buffer.from(JSON.stringify({ userId, platform })).toString('base64');
+
     const url = oauth2Client.generateAuthUrl({
         access_type: 'offline',
         scope: GMAIL_SCOPES,
         prompt: 'consent', // Force consent to ensure we get a refresh token
-        state: userId.toString() // Pass userId as string in state to identify the user upon redirect
+        state: statePayload
     });
 
     return successResponse(res, 200, 'Auth URL generated', { url });
@@ -163,15 +167,22 @@ export const googleCallback = asyncHandler(async (req, res) => {
  */
 export const googleCallbackGet = asyncHandler(async (req, res) => {
     const { code, state } = req.query;
-    const userId = state;
 
-    if (!code) {
-        throw new Error('Code is required');
+    if (!code) throw new Error('Code is required');
+    if (!state) throw new Error('State is required');
+
+    // Decode state
+    let decodedState;
+    try {
+        decodedState = JSON.parse(Buffer.from(state, 'base64').toString('ascii'));
+    } catch (e) {
+        // Fallback for legacy state which was just userId as string
+        decodedState = { userId: state, platform: 'web' };
     }
 
-    if (!userId) {
-        throw new Error('State/UserId is required');
-    }
+    const { userId, platform } = decodedState;
+
+    if (!userId) throw new Error('UserId could not be parsed from state');
 
     const { oauth2Client } = await import('../config/google.config.js');
     const { tokens } = await oauth2Client.getToken(code);
@@ -180,9 +191,7 @@ export const googleCallbackGet = asyncHandler(async (req, res) => {
     const User = (await import('../models/User.js')).default;
     const user = await User.findById(userId);
 
-    if (!user) {
-        throw new Error('User not found');
-    }
+    if (!user) throw new Error('User not found');
 
     user.gmailAccessToken = tokens.access_token;
     if (tokens.refresh_token) {
@@ -201,9 +210,14 @@ export const googleCallbackGet = asyncHandler(async (req, res) => {
 
     await user.save();
 
-    // Redirect user back to frontend
-    const frontendUrl = process.env.FRONTEND_URL || 'https://in.aicrmz.com';
-    return res.redirect(`${frontendUrl}?gmailConnected=true`);
+    // Redirect user based on platform
+    if (platform === 'android') {
+        const deepLink = `com.raincrm.app://oauth_callback?gmailConnected=true`;
+        return res.redirect(deepLink);
+    } else {
+        const frontendUrl = process.env.FRONTEND_URL || 'https://in.aicrmz.com';
+        return res.redirect(`${frontendUrl}?gmailConnected=true`);
+    }
 });
 /**
  * Disconnect Google Account

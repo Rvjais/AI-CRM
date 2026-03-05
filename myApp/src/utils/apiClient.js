@@ -2,15 +2,16 @@
  * Centralized API Client
  * Handles all HTTP requests to the backend API
  */
+import { Preferences } from '@capacitor/preferences';
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL || 'https://api.aicrmz.com').replace(/\/$/, '');
 
 /**
  * Get authorization header
- * @returns {Object} Authorization header or empty object
+ * @returns {Promise<Object>} Authorization header or empty object
  */
-const getAuthHeaders = () => {
-    const token = localStorage.getItem('token');
+const getAuthHeaders = async () => {
+    const { value: token } = await Preferences.get({ key: 'token' });
     return token ? { 'Authorization': `Bearer ${token}` } : {};
 };
 
@@ -26,7 +27,7 @@ const handleResponse = async (response) => {
     if (!response.ok) {
         // Handle authentication errors
         if (response.status === 401) {
-            localStorage.removeItem('token');
+            await Preferences.remove({ key: 'token' });
             window.location.href = '/';
         }
 
@@ -43,10 +44,11 @@ const handleResponse = async (response) => {
  * @returns {Promise<Object>} Response data
  */
 export const get = async (endpoint, options = {}) => {
+    const authHeaders = await getAuthHeaders();
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: 'GET',
         headers: {
-            ...getAuthHeaders(),
+            ...authHeaders,
             ...options.headers,
         },
         ...options,
@@ -64,15 +66,14 @@ export const get = async (endpoint, options = {}) => {
  */
 export const post = async (endpoint, data = {}, options = {}) => {
     const isFormData = data instanceof FormData;
+    const authHeaders = await getAuthHeaders();
 
     // Prepare headers
     const headers = {
-        ...getAuthHeaders(),
+        ...authHeaders,
         ...options.headers,
     };
 
-    // Set Content-Type to json if NOT formData
-    // If it IS FormData, DELETE any 'Content-Type' header to let browser set boundary
     // Set Content-Type to json if NOT formData
     // If it IS FormData, DELETE any 'Content-Type' header to let browser set boundary
     if (!isFormData) {
@@ -80,8 +81,6 @@ export const post = async (endpoint, data = {}, options = {}) => {
     } else {
         delete headers['Content-Type'];
     }
-
-    console.log(`📡 [apiClient] POST ${endpoint} Headers:`, headers);
 
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: 'POST',
@@ -101,11 +100,12 @@ export const post = async (endpoint, data = {}, options = {}) => {
  * @returns {Promise<Object>} Response data
  */
 export const put = async (endpoint, data = {}, options = {}) => {
+    const authHeaders = await getAuthHeaders();
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: 'PUT',
         headers: {
             'Content-Type': 'application/json',
-            ...getAuthHeaders(),
+            ...authHeaders,
             ...options.headers,
         },
         body: JSON.stringify(data),
@@ -122,10 +122,11 @@ export const put = async (endpoint, data = {}, options = {}) => {
  * @returns {Promise<Object>} Response data
  */
 export const del = async (endpoint, options = {}) => {
+    const authHeaders = await getAuthHeaders();
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: 'DELETE',
         headers: {
-            ...getAuthHeaders(),
+            ...authHeaders,
             ...options.headers,
         },
         ...options,

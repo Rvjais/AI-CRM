@@ -3,7 +3,8 @@ import { IonPage, IonContent } from '@ionic/react';
 import api from '../utils/apiClient';
 import './SheetsConfig.css';
 import { FaPlus, FaTrash, FaSave, FaSync } from 'react-icons/fa';
-
+import { Capacitor } from '@capacitor/core';
+import { Browser } from '@capacitor/browser';
 function SheetsConfig() {
     const [config, setConfig] = useState({
         spreadsheetId: '',
@@ -90,12 +91,19 @@ function SheetsConfig() {
             setTimeout(() => setMessage(''), 3000);
         }
     };
-
     const handleReconnect = async () => {
         try {
-            const result = await api.get('/api/auth/google');
+            const isNative = Capacitor.isNativePlatform();
+            const platformQuery = isNative ? '?platform=android' : '';
+
+            const result = await api.get(`/api/auth/google${platformQuery}`);
             if (result.success && result.data.url) {
-                window.location.href = result.data.url;
+                if (isNative) {
+                    await Browser.open({ url: result.data.url });
+                    // The App.jsx listener will handle the deep link callback and close the browser
+                } else {
+                    window.location.href = result.data.url;
+                }
             }
         } catch (error) {
             console.error('Error fetching auth url:', error);

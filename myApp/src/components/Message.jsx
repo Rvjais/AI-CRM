@@ -1,7 +1,11 @@
+import { useState } from 'react';
+import { FaDownload, FaTimes } from 'react-icons/fa';
 import './Message.css';
 import api from '../utils/apiClient';
 
 function Message({ message, onForward, onReply, isGroup }) {
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [modalMediaUrl, setModalMediaUrl] = useState('');
     const formatTime = (timestamp) => {
         if (!timestamp) return '';
         const date = new Date(timestamp);
@@ -45,7 +49,19 @@ function Message({ message, onForward, onReply, isGroup }) {
             let url = content.image?.url || content.url || (content.text && content.text.startsWith('http') ? content.text : null);
             url = ensureHttps(url);
 
-            if (url) return <img src={url} alt={content.caption || 'Image'} className="message-media" />;
+            if (url) {
+                return (
+                    <img
+                        src={url}
+                        alt={content.caption || 'Image'}
+                        className="message-media message-media-clickable"
+                        onClick={() => {
+                            setModalMediaUrl(url);
+                            setIsModalOpen(true);
+                        }}
+                    />
+                );
+            }
             return (
                 <div className="media-placeholder error">
                     <span className="icon">🖼️</span>
@@ -203,9 +219,38 @@ function Message({ message, onForward, onReply, isGroup }) {
                     </div>
                 )}
             </div>
+
+            {/* Fullscreen Media Modal */}
+            {isModalOpen && modalMediaUrl && (
+                <div className="fullscreen-media-modal" onClick={() => setIsModalOpen(false)}>
+                    <div className="modal-header" onClick={(e) => e.stopPropagation()}>
+                        <button className="modal-btn" onClick={() => setIsModalOpen(false)} title="Close">
+                            <FaTimes />
+                        </button>
+                        <a
+                            href={modalMediaUrl}
+                            download={`image-${message._id || Date.now()}.jpg`}
+                            className="modal-btn"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            title="Download"
+                        >
+                            <FaDownload />
+                        </a>
+                    </div>
+                    <div className="modal-content">
+                        <img
+                            src={modalMediaUrl}
+                            alt="Fullscreen display"
+                            className="modal-image"
+                            onClick={(e) => e.stopPropagation()}
+                        />
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
-
 
 export default Message;
