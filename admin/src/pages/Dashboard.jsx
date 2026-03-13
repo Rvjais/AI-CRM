@@ -61,8 +61,13 @@ const Dashboard = () => {
     const handleSaveUser = async (e) => {
         e.preventDefault();
         try {
-            const { _id, name, email, credits } = editingUser;
-            const res = await api.put(`/admin/users/${_id}`, { name, email, credits: Number(credits) });
+            const { _id, name, email, credits, featureFlags } = editingUser;
+            const res = await api.put(`/admin/users/${_id}`, {
+                name,
+                email,
+                credits: Number(credits),
+                featureFlags
+            });
 
             // Update local state
             setUsers(users.map(u => u._id === _id ? res.data.data : u));
@@ -119,6 +124,7 @@ const Dashboard = () => {
                                     <th className="px-4 py-3 md:px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">Email</th>
                                     <th className="px-4 py-3 md:px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Credits</th>
                                     <th className="px-4 py-3 md:px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">WhatsApp</th>
+                                    <th className="px-4 py-3 md:px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hosted AI</th>
                                     <th className="px-4 py-3 md:px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                     <th className="px-4 py-3 md:px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                 </tr>
@@ -138,6 +144,11 @@ const Dashboard = () => {
                                         <td className="px-4 py-3 md:px-6 whitespace-nowrap hidden md:table-cell">
                                             <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${user.whatsappConnected ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
                                                 {user.whatsappConnected ? 'Connected' : 'Disconnected'}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-3 md:px-6 whitespace-nowrap">
+                                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${user.featureFlags?.hostedAI ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-400'}`}>
+                                                {user.featureFlags?.hostedAI ? 'Enabled' : 'Disabled'}
                                             </span>
                                         </td>
                                         <td className="px-4 py-3 md:px-6 whitespace-nowrap">
