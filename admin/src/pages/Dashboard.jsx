@@ -55,13 +55,25 @@ const Dashboard = () => {
     };
 
     const handleEditClick = (user) => {
-        setEditingUser({ ...user });
+        console.log('Editing user:', user);
+        setEditingUser({
+            ...user,
+            featureFlags: user.featureFlags || {
+                aiBot: true,
+                sheetAutomation: true,
+                formNotifications: true,
+                emailNotifications: true,
+                hostedAI: false
+            }
+        });
     };
 
     const handleSaveUser = async (e) => {
         e.preventDefault();
         try {
             const { _id, name, email, credits, featureFlags } = editingUser;
+            console.log('Saving user updates:', { _id, name, email, credits, featureFlags });
+
             const res = await api.put(`/admin/users/${_id}`, {
                 name,
                 email,
@@ -69,13 +81,19 @@ const Dashboard = () => {
                 featureFlags
             });
 
-            // Update local state
-            setUsers(users.map(u => u._id === _id ? res.data.data : u));
-            setEditingUser(null);
-            alert('User updated successfully');
+            console.log('Update response:', res.data);
+
+            if (res.data.success) {
+                // Update local state
+                setUsers(users.map(u => u._id === _id ? res.data.data : u));
+                setEditingUser(null);
+                alert('User updated successfully');
+            } else {
+                alert('Failed to update: ' + (res.data.message || 'Unknown error'));
+            }
         } catch (error) {
-            console.error('Update failed', error);
-            alert('Failed to update user');
+            console.error('Update failed details:', error.response?.data || error.message);
+            alert('Failed to update user: ' + (error.response?.data?.message || error.message));
         }
     };
 
