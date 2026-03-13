@@ -204,15 +204,35 @@ const Dashboard = () => {
                                         className="w-full p-2 border rounded focus:ring-blue-500 focus:border-blue-500"
                                     />
                                 </div>
-                                <div className="mb-6">
+                                <div className="mb-4">
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Credits</label>
                                     <input
                                         type="number"
-                                        value={editingUser.credits}
+                                        value={editingUser.credits || 0}
                                         onChange={(e) => setEditingUser({ ...editingUser, credits: e.target.value })}
                                         className="w-full p-2 border rounded focus:ring-blue-500 focus:border-blue-500"
                                     />
                                     <p className="text-xs text-gray-500 mt-1">Credits are used for AI responses.</p>
+                                </div>
+                                <div className="mb-6 bg-blue-50 p-3 rounded-lg border border-blue-100">
+                                    <label className="flex items-center gap-3 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={editingUser.featureFlags?.hostedAI || false}
+                                            onChange={(e) => setEditingUser({
+                                                ...editingUser,
+                                                featureFlags: {
+                                                    ...editingUser.featureFlags,
+                                                    hostedAI: e.target.checked
+                                                }
+                                            })}
+                                            className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                                        />
+                                        <div>
+                                            <span className="text-sm font-semibold text-gray-800">Allow Hosted AI Access</span>
+                                            <p className="text-xs text-gray-500">Enable this client to use the VPS-hosted AI (Ollama/Qwen).</p>
+                                        </div>
+                                    </label>
                                 </div>
                                 <div className="flex justify-end gap-3">
                                     <button
@@ -231,10 +251,10 @@ const Dashboard = () => {
                                 </div>
                             </form>
                         </div>
-                    </div>
+                    </div >
                 )}
-            </main>
-        </div>
+            </main >
+        </div >
     );
 };
 
