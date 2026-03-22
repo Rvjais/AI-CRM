@@ -1,14 +1,10 @@
-import ImportBatch from '../models/ImportBatch.js';
-import { getClientModels } from '../utils/database.factory.js';
-import { parseCsv, normalizeData } from '../utils/csv.util.js';
-import logger from '../utils/logger.util.js';
-
+import { getClientModels } from "../utils/database.factory.js";
 export const processImport = async (userId, file, type = 'WHATSAPP', mappingStr = '{}') => {
     let batchId = null;
     const mapping = typeof mappingStr === 'string' ? JSON.parse(mappingStr) : mappingStr;
 
     try {
-        const { Contact } = await getClientModels(userId);
+        const { Contact, ImportBatch } = await getClientModels(userId);
 
         // 1. Create Batch Record
         const batch = await ImportBatch.create({
@@ -167,13 +163,12 @@ export const processImport = async (userId, file, type = 'WHATSAPP', mappingStr 
 };
 
 export const listBatches = async (userId) => {
+    const { ImportBatch } = await getClientModels(userId);
     return await ImportBatch.find({ userId }).sort({ createdAt: -1 });
 };
 
-// ... existing code ...
 export const deleteBatch = async (userId, batchId) => {
-    // Optional: Also remove tags from contacts?
-    // For now just delete the batch record
+    const { ImportBatch } = await getClientModels(userId);
     return await ImportBatch.findOneAndDelete({ _id: batchId, userId });
 };
 

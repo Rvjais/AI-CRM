@@ -120,9 +120,10 @@ export const getDashboardStats = asyncHandler(async (req, res) => {
 
     // 3. Forms Stats (Total inputs & last 5 submissions)
     try {
-        // Fetch only forms belonging to this user
-        const forms = await import('../models/Form.js').then(m => m.default.find({ createdBy: userId }).lean());
-        const FormSubmission = (await import('../models/FormSubmission.js')).default;
+        const { getClientModels } = await import('../utils/database.factory.js');
+        const { Form, FormSubmission } = await getClientModels(userId);
+
+        const forms = await Form.find({ createdBy: userId }).lean();
 
         for (const form of forms) {
             const submissionCount = await FormSubmission.countDocuments({ formId: form._id });
@@ -186,15 +187,15 @@ export const getDashboardStats = asyncHandler(async (req, res) => {
             const recentThreads = threadData.threads || [];
 
             // Import Models/Services dynamically if needed or assume imports
-            const EmailAnalysis = (await import('../models/EmailAnalysis.js')).default;
+            const { getClientModels } = await import('../utils/database.factory.js');
+            const { EmailAnalysis } = await getClientModels(userId);
             const { analyzeEmail } = await import('../services/ai.service.js');
 
             let positive = 0, neutral = 0, negative = 0;
             let processedEmails = []; // Array to hold all analyzed emails for sorting
 
-            // Analyze/Retrieve Analysis
-            // Use Promise.all for parallelism
-            await Promise.all(recentThreads.map(async (thread) => {
+            // Analyze/Retrieve Analysis SEQUENTIALLY
+            for (const thread of recentThreads) {
                 try {
                     // Check Cache
                     let analysis = await EmailAnalysis.findOne({ userId, threadId: thread.id });
@@ -214,24 +215,18 @@ export const getDashboardStats = asyncHandler(async (req, res) => {
 
                             // Notification for High Priority
                             const score = Number(aiResult.importanceScore) || 0;
-                            console.log(`📧 [Email Analysis] Subject: "${thread.subject}", Score: ${score}`);
 
                             if (score > 7) {
                                 try {
                                     const selfJid = whatsappService.getSelfJid(userId);
-                                    console.log(`📱 [Notify] High Priority! Self JID: ${selfJid}`);
-
                                     if (selfJid) {
                                         // [FEATURE FLAG CHECK]
                                         if (user && user.featureFlags && user.featureFlags.emailNotifications === false) {
-                                            console.log(`📧 [Notify] Email notifications disabled for user ${userId}. Skipping.`);
+                                            // Disabled
                                         } else {
                                             const msg = `🚨 *High Priority Email Detected*\n\n*Subject:* ${thread.subject}\n*Score:* ${score}/10\n*Reason:* ${aiResult.importanceReason}\n\nCheck your dashboard for details.`;
                                             await whatsappService.sendMessage(userId, selfJid, { text: msg });
-                                            console.log(`✅ [Notify] Message sent to ${selfJid}`);
                                         }
-                                    } else {
-                                        console.warn(`⚠️ [Notify] Skipped - No Self JID found for user ${userId}`);
                                     }
                                 } catch (notifyErr) {
                                     console.error('❌ [Notify] Failed to send email priority notification:', notifyErr);
@@ -262,7 +257,7 @@ export const getDashboardStats = asyncHandler(async (req, res) => {
                 } catch (err) {
                     console.error(`Error analyzing thread ${thread.id}:`, err);
                 }
-            }));
+            }
 
             // Sort by Importance Score (Desc)
             const priorityList = processedEmails

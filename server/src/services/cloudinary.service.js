@@ -69,8 +69,12 @@ export const uploadToCloudinary = async (fileBuffer, fileName, mimeType, userId,
             uploadStream.end(fileBuffer);
         });
 
-        // Create media record
-        const media = await Media.create({
+        // Fetch dynamic models for this user's database
+        const { getClientModels } = await import('../utils/database.factory.js');
+        const { Media: MediaModel } = await getClientModels(userId);
+
+        // Create media record in Tenant DB
+        const media = await MediaModel.create({
             userId,
             messageId,
             cloudinaryId: result.public_id,
@@ -85,7 +89,7 @@ export const uploadToCloudinary = async (fileBuffer, fileName, mimeType, userId,
             },
         });
 
-        logger.info(`Media uploaded to Cloudinary: ${result.public_id}`);
+        logger.info(`Media uploaded to Cloudinary: ${result.public_id} (Stored in Tenant DB)`);
 
         return media;
     } catch (error) {
@@ -124,11 +128,14 @@ export const deleteFromCloudinary = async (cloudinaryId, resourceType = 'image',
 
 /**
  * Get media by message ID
+ * @param {String} userId - User ID (needed for tenant resolution)
  * @param {String} messageId - Message ID
  * @returns {Object} Media document
  */
-export const getMediaByMessageId = async (messageId) => {
-    return await Media.findOne({ messageId });
+export const getMediaByMessageId = async (userId, messageId) => {
+    const { getClientModels } = await import('../utils/database.factory.js');
+    const { Media: MediaModel } = await getClientModels(userId);
+    return await MediaModel.findOne({ messageId });
 };
 
 /**
@@ -138,7 +145,9 @@ export const getMediaByMessageId = async (messageId) => {
  * @returns {Array} Media documents
  */
 export const getUserMedia = async (userId, limit = 50) => {
-    return await Media.find({ userId })
+    const { getClientModels } = await import('../utils/database.factory.js');
+    const { Media: MediaModel } = await getClientModels(userId);
+    return await MediaModel.find({ userId })
         .sort({ createdAt: -1 })
         .limit(limit);
 };

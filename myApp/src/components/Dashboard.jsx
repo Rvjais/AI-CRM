@@ -267,7 +267,13 @@ function Dashboard() {
                                                 <span className="pi-date">{new Date(email.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                                             </div>
                                             <div className="pi-from">{email.from}</div>
-                                            <div className="pi-reason"><strong>{email.score >= 9 ? '❗️' : '💡'} AI Analysis:</strong> {email.reason}</div>
+                                            <div className="pi-reason">
+                                                <div className="ai-badge">
+                                                    <span className="ai-icon">✨</span>
+                                                    <span className="ai-label">AI INSIGHT</span>
+                                                </div>
+                                                {email.reason}
+                                            </div>
                                         </div>
                                     </div>
                                 ))}

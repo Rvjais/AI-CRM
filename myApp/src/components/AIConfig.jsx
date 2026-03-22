@@ -14,7 +14,8 @@ function AIConfig({ token }) {
         { id: 'openai', name: 'OpenAI (GPT-3.5/4)' },
         { id: 'gemini', name: 'Google Gemini' },
         { id: 'anthropic', name: 'Anthropic Claude' },
-        { id: 'openrouter', name: 'OpenRouter (All Models)' }
+        { id: 'openrouter', name: 'OpenRouter (All Models)' },
+        { id: 'ollama', name: 'Self-Hosted AI (Ollama)' }
     ]);
 
     // API Keys state
@@ -22,7 +23,8 @@ function AIConfig({ token }) {
         openai: '',
         gemini: '',
         anthropic: '',
-        openrouter: ''
+        openrouter: '',
+        ollama: ''
     });
 
     // Configured state - which keys are actually set on backend
@@ -30,7 +32,8 @@ function AIConfig({ token }) {
         openai: false,
         gemini: false,
         anthropic: false,
-        openrouter: false
+        openrouter: false,
+        ollama: false
     });
 
     const [isEditingKey, setIsEditingKey] = useState(true);
@@ -122,7 +125,8 @@ function AIConfig({ token }) {
                     openai: '',
                     gemini: '',
                     anthropic: '',
-                    openrouter: ''
+                    openrouter: '',
+                    ollama: ''
                 });
 
                 // Exit edit mode if we just saved a key for the current provider
@@ -219,20 +223,29 @@ function AIConfig({ token }) {
 
                                 <div className="form-group">
                                     <label>
-                                        API Key for {currentProviderName}
+                                        {provider === 'ollama' ? 'Status' : `API Key for ${currentProviderName}`}
                                         {keysConfigured[provider] && (
                                             <span className="key-status configured">
-                                                <FaCheckCircle /> Configured
+                                                <FaCheckCircle /> {provider === 'ollama' ? 'Active' : 'Configured'}
                                             </span>
                                         )}
                                         {!keysConfigured[provider] && (
                                             <span className="key-status missing">
-                                                <FaExclamationTriangle /> Not Configured
+                                                <FaExclamationTriangle /> {provider === 'ollama' ? 'Unavailable' : 'Not Configured'}
                                             </span>
                                         )}
                                     </label>
 
-                                    {!isEditingKey && keysConfigured[provider] ? (
+                                    {provider === 'ollama' ? (
+                                        <div className="ollama-status-view">
+                                            <div className="status-badge active">
+                                                Runs locally on VPS
+                                            </div>
+                                            <p className="description-small">
+                                                Ollama is managed by the administrator. No API key required.
+                                            </p>
+                                        </div>
+                                    ) : !isEditingKey && keysConfigured[provider] ? (
                                         <div className="configured-key-view">
                                             <div className="key-masked-display">
                                                 ••••••••••••••••••••
@@ -269,11 +282,13 @@ function AIConfig({ token }) {
                                         </div>
                                     )}
 
-                                    <small className="field-hint">
-                                        {isEditingKey
-                                            ? "Enter your API key above. It will be encrypted and stored securely."
-                                            : "API key is configured and active."}
-                                    </small>
+                                    {provider !== 'ollama' && (
+                                        <small className="field-hint">
+                                            {isEditingKey
+                                                ? "Enter your API key above. It will be encrypted and stored securely."
+                                                : "API key is configured and active."}
+                                        </small>
+                                    )}
                                 </div>
 
                                 <div className="form-group checkbox-group">

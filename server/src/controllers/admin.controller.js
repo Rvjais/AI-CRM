@@ -78,17 +78,28 @@ export const updateUser = async (req, res) => {
         const updates = req.body;
 
         // allowed fields
-        const allowedUpdates = ['name', 'email', 'credits', 'isActive', 'role'];
+        const allowedUpdates = ['name', 'email', 'credits', 'isActive', 'role', 'featureFlags'];
         const filteredUpdates = Object.keys(updates)
             .filter(key => allowedUpdates.includes(key))
             .reduce((obj, key) => {
-                obj[key] = updates[key];
+                if (key === 'featureFlags' && typeof updates[key] === 'object') {
+                    // Use dot notation to avoid wiping out other flags if any are missing
+                    Object.keys(updates[key]).forEach(flag => {
+                        obj[`featureFlags.${flag}`] = updates[key][flag];
+                    });
+                } else {
+                    obj[key] = updates[key];
+                }
                 return obj;
             }, {});
+
+        console.log('Executing Admin Update:', filteredUpdates);
 
         const user = await User.findByIdAndUpdate(userId, filteredUpdates, { new: true }).select('-password');
 
         if (!user) return errorResponse(res, 404, 'User not found');
+
+        console.log('Update Result (featureFlags):', user.featureFlags);
 
         return successResponse(res, 200, 'User updated successfully', user);
     } catch (error) {

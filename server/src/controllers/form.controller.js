@@ -1,6 +1,6 @@
-import Form from '../models/Form.js';
-import FormSubmission from '../models/FormSubmission.js';
+import { getClientModels } from '../utils/database.factory.js';
 import { validationResult } from 'express-validator';
+import { successResponse } from '../utils/response.util.js';
 
 export const createForm = async (req, res, next) => {
     try {
@@ -11,7 +11,9 @@ export const createForm = async (req, res, next) => {
 
         const { title, description, fields, theme, customColor, designConfig } = req.body;
 
-        const newForm = new Form({
+        const { Form } = await getClientModels(req.user._id);
+
+        const newForm = await Form.create({
             title,
             description,
             fields,
@@ -20,8 +22,6 @@ export const createForm = async (req, res, next) => {
             designConfig,
             createdBy: req.user._id
         });
-
-        await newForm.save();
 
         res.status(201).json({
             success: true,
@@ -34,6 +34,7 @@ export const createForm = async (req, res, next) => {
 
 export const getForms = async (req, res, next) => {
     try {
+        const { Form } = await getClientModels(req.user._id);
         const forms = await Form.find({ createdBy: req.user._id }).sort({ createdAt: -1 });
         res.json({
             success: true,
@@ -46,6 +47,7 @@ export const getForms = async (req, res, next) => {
 
 export const getForm = async (req, res, next) => {
     try {
+        const { Form } = await getClientModels(req.user._id);
         const form = await Form.findOne({ _id: req.params.id, createdBy: req.user._id });
         if (!form) {
             return res.status(404).json({ success: false, message: 'Form not found' });
@@ -63,6 +65,7 @@ export const updateForm = async (req, res, next) => {
     try {
         const { title, description, fields, theme, customColor } = req.body;
 
+        const { Form } = await getClientModels(req.user._id);
         let form = await Form.findOne({ _id: req.params.id, createdBy: req.user._id });
         if (!form) {
             return res.status(404).json({ success: false, message: 'Form not found' });
@@ -91,6 +94,7 @@ export const updateForm = async (req, res, next) => {
 
 export const deleteForm = async (req, res, next) => {
     try {
+        const { Form, FormSubmission } = await getClientModels(req.user._id);
         const form = await Form.findOneAndDelete({ _id: req.params.id, createdBy: req.user._id });
         if (!form) {
             return res.status(404).json({ success: false, message: 'Form not found' });
@@ -108,11 +112,23 @@ export const deleteForm = async (req, res, next) => {
     }
 };
 
-// Public endpoint
+/**
+ * Public endpoint
+ * Expects ?u=userId or similar to resolve tenant DB if form is purely in tenant DB
+ * For compatibility, we'll try to resolve userId from a FormIndex or similar if possible.
+ * [STRATEGY] Since user wants ONLY credentials in Master, we'll assume the URL contains the userId.
+ */
 export const submitForm = async (req, res, next) => {
     try {
         const { formId } = req.params;
+        const { u: userId } = req.query; // Expect userId in query param for public links
         const formData = req.body;
+
+        if (!userId) {
+            return res.status(400).json({ success: false, message: 'Missing tenant identifier' });
+        }
+
+        const { Form, FormSubmission } = await getClientModels(userId);
 
         // Check if form exists
         const form = await Form.findById(formId);
@@ -120,24 +136,23 @@ export const submitForm = async (req, res, next) => {
             return res.status(404).json({ success: false, message: 'Form not found' });
         }
 
-        const submission = new FormSubmission({
+        const submission = await FormSubmission.create({
             formId,
             data: formData
         });
 
-        await submission.save();
-
         // --- Notification Logic ---
         try {
             // lazy load service to avoid any circular dependency issues if they exist
-            const whatsappService = (await import('../services/whatsapp.service.js'));
+            const whatsappService = (await import('../services/whatsapp.service.js')).default;
 
             const creatorId = form.createdBy;
             const creatorJid = whatsappService.getSelfJid(creatorId);
 
             if (creatorJid) {
                 // [FEATURE FLAG CHECK]
-                const creator = await ((await import('../models/User.js')).default).findById(creatorId);
+                const User = (await import('../models/User.js')).default;
+                const creator = await User.findById(creatorId);
                 if (creator && creator.featureFlags && creator.featureFlags.formNotifications === false) {
                     console.log(`[Form] WhatsApp notifications disabled for user ${creatorId}. Skipping.`);
                     return successResponse(res, 201, 'Form submitted successfully');
@@ -146,13 +161,9 @@ export const submitForm = async (req, res, next) => {
                 // Format the message
                 let messageText = `📝 *New Submission: ${form.title}*\n\n`;
 
-                // Fields from schema or just keys from body?
-                // Using formData directly is safer as it contains actual submitted values
                 Object.entries(formData).forEach(([key, value]) => {
-                    // Try to find label if possible, otherwise use key
                     const fieldConfig = form.fields.find(f => f.id === key || f.label === key);
                     const label = fieldConfig ? fieldConfig.label : key;
-
                     messageText += `*${label}:* ${value}\n`;
                 });
 
@@ -160,13 +171,10 @@ export const submitForm = async (req, res, next) => {
 
                 await whatsappService.sendTextMessage(creatorId, creatorJid, messageText);
                 console.log(`[Form] Notification sent to creator ${creatorId}`);
-            } else {
-                console.log(`[Form] Creator ${creatorId} not connected to WhatsApp. No notification sent.`);
             }
 
         } catch (notifyError) {
             console.error('[Form] Notification failed:', notifyError);
-            // Don't fail the request, just log it
         }
         // --------------------------
 
@@ -181,6 +189,8 @@ export const submitForm = async (req, res, next) => {
 
 export const getSubmissions = async (req, res, next) => {
     try {
+        const { Form, FormSubmission } = await getClientModels(req.user._id);
+
         // First verify user owns the form
         const form = await Form.findOne({ _id: req.params.id, createdBy: req.user._id });
         if (!form) {

@@ -95,9 +95,9 @@ function AIInsights({ selectedChat, messages, aiEnabled, isCollapsed, setIsColla
                                         if (k.includes('email')) return <FaEnvelope className="data-icon" />;
                                         if (k.includes('phone') || k.includes('contact')) return <FaPhone className="data-icon" />;
                                         if (k.includes('budget') || k.includes('price') || k.includes('cost')) return <FaMoneyBillWave className="data-icon" />;
-                                        if (k.includes('location') || k.includes('address') || k.includes('city')) return <FaMapMarkerAlt className="data-icon" />;
-                                        if (k.includes('service') || k.includes('product')) return <FaTag className="data-icon" />;
-                                        if (k.includes('age')) return <FaCalendarAlt className="data-icon" />;
+                                        if (k.includes('location') || k.includes('address') || k.includes('city') || k.includes('area')) return <FaMapMarkerAlt className="data-icon" />;
+                                        if (k.includes('service') || k.includes('product') || k.includes('interest') || k.includes('order')) return <FaTag className="data-icon" />;
+                                        if (k.includes('age') || k.includes('birthday')) return <FaCalendarAlt className="data-icon" />;
                                         return <FaInfoCircle className="data-icon" />;
                                     };
 
@@ -130,7 +130,15 @@ function AIInsights({ selectedChat, messages, aiEnabled, isCollapsed, setIsColla
                             <h3>SUGGESTED ACTIONS</h3>
                             <div className="suggestions">
                                 {selectedChat.suggestions.map((suggestion, index) => (
-                                    <button key={index} className="suggestion-btn">
+                                    <button
+                                        key={index}
+                                        className="suggestion-btn"
+                                        onClick={() => {
+                                            navigator.clipboard.writeText(suggestion);
+                                            alert("Suggestion copied to clipboard!");
+                                        }}
+                                        title="Click to copy suggestion"
+                                    >
                                         {suggestion}
                                     </button>
                                 ))}

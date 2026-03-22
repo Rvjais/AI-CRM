@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { IonPage, IonContent } from '@ionic/react';
+import { Preferences } from '@capacitor/preferences';
 import api from '../utils/apiClient';
 import './Login.css';
 
@@ -27,7 +28,12 @@ function Login({ onLogin }) {
                 // Register returns: { user, accessToken, refreshToken }
                 // Login returns: { user, accessToken, refreshToken }
                 const token = data.data.accessToken || data.data.token;
+                const refreshToken = data.data.refreshToken;
                 if (token) {
+                    // Save refresh token for silent renewal
+                    if (refreshToken) {
+                        await Preferences.set({ key: 'refreshToken', value: refreshToken });
+                    }
                     onLogin(token);
                 } else {
                     setError('Authentication successful but no token received.');

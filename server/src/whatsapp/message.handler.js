@@ -2,7 +2,6 @@ import { downloadMediaMessage, jidNormalizedUser } from '@whiskeysockets/baileys
 import { MESSAGE_TYPES, MESSAGE_STATUS } from '../config/constants.js';
 import { saveMessage } from '../services/message.service.js';
 import { uploadToCloudinary } from '../services/cloudinary.service.js';
-import { uploadToMongo } from '../services/mongo.service.js';
 import logger from '../utils/logger.util.js';
 import { getClientModels } from '../utils/database.factory.js';
 
@@ -343,33 +342,45 @@ export const handleIncomingMessage = async (userId, msg, io, sendResponse, hostN
 
                     logger.info(`AI enabled for chat ${chatJid}, generating response...`);
 
-                    // Simulate reading delay based on length (optional but nice)
-                    // const delay = Math.min(content.text.length * 50, 2000);
-                    // await new Promise(resolve => setTimeout(resolve, delay));
+                    // --- IDEMPOTENCY LOCK ---
+                    // Prevent multiple triggers for the same message ID (avoids double replies when AI is slow)
+                    if (!global.processingMessages) global.processingMessages = new Set();
+                    if (global.processingMessages.has(msg.key.id)) {
+                        logger.info(`⚠️ [AI Response] Already processing message ${msg.key.id}. Skipping.`);
+                        return;
+                    }
+                    global.processingMessages.add(msg.key.id);
 
-                    // Fetch system prompt from User (implied in service or passed here)
-                    const aiResponse = await generateAIResponse(userId, chatJid, content.text);
+                    try {
+                        const aiResponse = await generateAIResponse(userId, chatJid, content.text);
 
-                    if (aiResponse) {
-                        // Send response
-                        await sendResponse(chatJid, aiResponse);
+                        if (aiResponse) {
+                            // Send response
+                            await sendResponse(chatJid, aiResponse);
 
-                        // Save bot message to database
-                        const botMessageData = {
-                            userId,
-                            messageId: `AI-${Date.now()}`,
-                            chatJid,
-                            fromMe: true, // It's from "us" (the bot)
-                            type: MESSAGE_TYPES.TEXT,
-                            content: { text: aiResponse },
-                            timestamp: new Date(),
-                            status: MESSAGE_STATUS.DELIVERED,
-                            hostNumber: hostNumber // [FIX] Start saving to correct collection
-                        };
+                            // Save bot message to database
+                            const botMessageData = {
+                                userId,
+                                messageId: `AI-${Date.now()}`,
+                                chatJid,
+                                fromMe: true,
+                                type: MESSAGE_TYPES.TEXT,
+                                content: { text: aiResponse },
+                                timestamp: new Date(),
+                                status: MESSAGE_STATUS.DELIVERED,
+                                hostNumber: hostNumber
+                            };
 
-                        const savedBotMessage = await saveMessage(botMessageData);
-                        io.to(userId.toString()).emit('message:new', { message: savedBotMessage });
-                        logger.info(`AI response sent to ${chatJid}`);
+                            const savedBotMessage = await saveMessage(botMessageData);
+                            io.to(userId.toString()).emit('message:new', { message: savedBotMessage });
+                            logger.info(`AI response sent to ${chatJid}`);
+                        }
+                    } finally {
+                        // RELEASE LOCK
+                        // Keep the ID for a few mins to prevent delayed re-triggers
+                        setTimeout(() => {
+                            global.processingMessages?.delete(msg.key.id);
+                        }, 5 * 60 * 1000);
                     }
                 }
             } catch (aiError) {
@@ -568,16 +579,9 @@ export const downloadAndUploadMedia = async (msg, userId) => {
         const mimeType = mediaMsg.mimetype;
         const fileName = mediaMsg.fileName || `media_${Date.now()}`;
 
-        // Check MIME type to decide storage
-        if (mimeType.startsWith('image/') || mimeType.startsWith('video/')) {
-            // Upload to Cloudinary
-            const media = await uploadToCloudinary(buffer, fileName, mimeType, userId);
-            return media.secureUrl;
-        } else {
-            // Upload to MongoDB GridFS
-            const result = await uploadToMongo(buffer, fileName, mimeType);
-            return result.url;
-        }
+        // Upload to Cloudinary (Everything goes to Cloudinary now to save DB space)
+        const media = await uploadToCloudinary(buffer, fileName, mimeType, userId);
+        return media.secureUrl;
     } catch (error) {
         logger.error('Error downloading/uploading media:', error);
         throw error;

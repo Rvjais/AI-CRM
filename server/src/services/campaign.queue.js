@@ -67,6 +67,10 @@ const processUserQueue = async (userId) => {
                 campaign.status = 'COMPLETED';
                 campaign.completedAt = new Date();
                 await campaign.save();
+
+                // [CLEANUP] Delete all jobs for this campaign to save database space
+                logger.info(`Cleaning up jobs for completed campaign ${campaign._id}...`);
+                await CampaignJob.deleteMany({ campaignId: campaign._id });
             }
             continue;
         }

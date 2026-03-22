@@ -16,6 +16,7 @@ function AIConfig({ token }) {
         { id: 'openrouter', name: 'OpenRouter (All Models)' }
     ]);
 
+
     // API Keys state
     const [apiKeysInput, setApiKeysInput] = useState({
         openai: '',
@@ -66,16 +67,8 @@ function AIConfig({ token }) {
                 setMaxTokens(data.data.maxTokens || 150);
                 setAutoReply(data.data.autoReply || false);
 
-                if (data.data.keysConfigured) {
-                    setKeysConfigured(data.data.keysConfigured);
-                } else if (data.data.hasApiKey) {
-                    // Fallback regarding legacy key
-                    setKeysConfigured(prev => ({ ...prev, openai: true }));
-                }
-
-                if (data.data.provider) {
-                    setProvider(data.data.provider);
-                }
+                const savedProvider = data.data.provider || 'openai';
+                setProvider(savedProvider);
             }
         } catch (error) {
             console.error('Error fetching AI config:', error);
@@ -108,12 +101,13 @@ function AIConfig({ token }) {
 
             if (data.success) {
                 setSaved(true);
-                const providerName = providers.find(p => p.id === provider)?.name || provider;
-                setSaveMessage(`API Key for ${providerName} Saved!`);
 
-                // Update local configured state based on response
+                const providerName = providers.find(p => p.id === provider)?.name || provider;
+
+                setSaveMessage(`Configuration Saved!`);
+
                 if (data.data.keysConfigured) {
-                    setKeysConfigured(data.data.keysConfigured);
+                    setKeysConfigured(prev => ({ ...prev, ...data.data.keysConfigured }));
                 }
 
                 // Clear inputs for security
@@ -229,48 +223,50 @@ function AIConfig({ token }) {
                                 )}
                             </label>
 
-                            {!isEditingKey && keysConfigured[provider] ? (
-                                <div className="configured-key-view">
-                                    <div className="key-masked-display">
-                                        ••••••••••••••••••••
-                                    </div>
-                                    <button
-                                        className="btn-change-key"
-                                        onClick={() => setIsEditingKey(true)}
-                                    >
-                                        <FaPen size={12} /> Change API Key
-                                    </button>
-                                </div>
-                            ) : (
-                                <div className="key-input-wrapper">
-                                    <input
-                                        type="password"
-                                        value={apiKeysInput[provider]}
-                                        onChange={(e) => handleKeyChange(provider, e.target.value)}
-                                        placeholder={keysConfigured[provider] ? "Enter new key to update..." : `Enter ${currentProviderName} API Key`}
-                                        className="api-key-input"
-                                        autoFocus={isEditingKey && keysConfigured[provider]}
-                                    />
-                                    {keysConfigured[provider] && (
+                            <>
+                                {!isEditingKey && keysConfigured[provider] ? (
+                                    <div className="configured-key-view">
+                                        <div className="key-masked-display">
+                                            ••••••••••••••••••••
+                                        </div>
                                         <button
-                                            className="btn-cancel-edit"
-                                            onClick={() => {
-                                                setIsEditingKey(false);
-                                                handleKeyChange(provider, ''); // Clear input on cancel
-                                            }}
-                                            title="Cancel changing key"
+                                            className="btn-change-key"
+                                            onClick={() => setIsEditingKey(true)}
                                         >
-                                            <FaTimes />
+                                            <FaPen size={12} /> Change API Key
                                         </button>
-                                    )}
-                                </div>
-                            )}
+                                    </div>
+                                ) : (
+                                    <div className="key-input-wrapper">
+                                        <input
+                                            type="password"
+                                            value={apiKeysInput[provider]}
+                                            onChange={(e) => handleKeyChange(provider, e.target.value)}
+                                            placeholder={keysConfigured[provider] ? "Enter new key to update..." : `Enter ${currentProviderName} API Key`}
+                                            className="api-key-input"
+                                            autoFocus={isEditingKey && keysConfigured[provider]}
+                                        />
+                                        {keysConfigured[provider] && (
+                                            <button
+                                                className="btn-cancel-edit"
+                                                onClick={() => {
+                                                    setIsEditingKey(false);
+                                                    handleKeyChange(provider, ''); // Clear input on cancel
+                                                }}
+                                                title="Cancel changing key"
+                                            >
+                                                <FaTimes />
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
 
-                            <small className="field-hint">
-                                {isEditingKey
-                                    ? "Enter your API key above. It will be encrypted and stored securely."
-                                    : "API key is configured and active."}
-                            </small>
+                                <small className="field-hint">
+                                    {isEditingKey
+                                        ? "Enter your API key above. It will be encrypted and stored securely."
+                                        : "API key is configured and active."}
+                                </small>
+                            </>
                         </div>
 
                         <div className="form-group checkbox-group">

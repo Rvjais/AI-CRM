@@ -107,6 +107,11 @@ export const getClientModels = async (userId, phoneNumber) => {
     const campaignJobSchema = (await import('../schemas/CampaignJob.schema.js')).default;
     const whatsappSessionSchema = (await import('../schemas/WhatsAppSession.schema.js')).default;
     const voiceAgentSchema = (await import('../schemas/VoiceAgent.schema.js')).default;
+    const formSchema = (await import('../schemas/Form.schema.js')).default;
+    const formSubmissionSchema = (await import('../schemas/FormSubmission.schema.js')).default;
+    const importBatchSchema = (await import('../schemas/ImportBatch.schema.js')).default;
+    const emailAnalysisSchema = (await import('../models/EmailAnalysis.js')).default.schema;
+
     // Core Data Models (Scoped by Phone Number if provided)
     const Message = await getClientModel(user, 'Message', messageSchema, phoneNumber);
     const Chat = await getClientModel(user, 'Chat', chatSchema, phoneNumber);
@@ -122,10 +127,12 @@ export const getClientModels = async (userId, phoneNumber) => {
     const CampaignJob = await getClientModel(user, 'CampaignJob', campaignJobSchema, phoneNumber);
 
     // Platform Models (Not scoped by phone number, but stored in User DB)
-    // WhatsAppSession stores the connection state. It shouldn't be suffixed because we need to find it 
-    // *before* we know the phone number (e.g. to check status).
     const WhatsAppSession = await getClientModel(user, 'WhatsAppSession', whatsappSessionSchema);
     const VoiceAgent = await getClientModel(user, 'VoiceAgent', voiceAgentSchema);
+    const Form = await getClientModel(user, 'Form', formSchema);
+    const FormSubmission = await getClientModel(user, 'FormSubmission', formSubmissionSchema);
+    const ImportBatch = await getClientModel(user, 'ImportBatch', importBatchSchema);
+    const EmailAnalysis = await getClientModel(user, 'EmailAnalysis', emailAnalysisSchema);
 
     // Return everything
     return {
@@ -138,6 +145,10 @@ export const getClientModels = async (userId, phoneNumber) => {
         Campaign,
         CampaignJob,
         WhatsAppSession,
-        VoiceAgent
+        VoiceAgent,
+        Form,
+        FormSubmission,
+        ImportBatch,
+        EmailAnalysis
     };
 };

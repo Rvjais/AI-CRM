@@ -15,25 +15,69 @@ const getAuthHeaders = async () => {
     return token ? { 'Authorization': `Bearer ${token}` } : {};
 };
 
+// --- Silent Token Refresh Logic ---
+let isRefreshing = false;
+
+const forceLogout = async () => {
+    await Preferences.clear();
+    window.location.href = '/';
+};
+
+const tryRefreshToken = async () => {
+    if (isRefreshing) return false; // Already in progress, bail out
+    isRefreshing = true;
+    try {
+        const { value: refreshToken } = await Preferences.get({ key: 'refreshToken' });
+        if (!refreshToken) return false;
+
+        const response = await fetch(`${API_BASE_URL}/api/auth/refresh-token`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refreshToken }),
+        });
+
+        const data = await response.json();
+        if (response.ok && data.success && data.data.accessToken) {
+            // Save the new access token
+            await Preferences.set({ key: 'token', value: data.data.accessToken });
+            // Save new refresh token if one was issued
+            if (data.data.refreshToken) {
+                await Preferences.set({ key: 'refreshToken', value: data.data.refreshToken });
+            }
+            return true; // Refresh succeeded
+        }
+        return false; // Refresh failed
+    } catch {
+        return false;
+    } finally {
+        isRefreshing = false;
+    }
+};
+
 /**
  * Handle API response
  * @param {Response} response - Fetch response object
+ * @param {Function} retryFn - Optional function to retry the original request
  * @returns {Promise<Object>} Parsed JSON response
  * @throws {Error} If response is not ok
  */
-const handleResponse = async (response) => {
-    const data = await response.json();
-
-    if (!response.ok) {
-        // Handle authentication errors
-        if (response.status === 401) {
-            await Preferences.remove({ key: 'token' });
-            window.location.href = '/';
+const handleResponse = async (response, retryFn) => {
+    if (response.status === 401) {
+        // Try to silently refresh the access token
+        const refreshed = await tryRefreshToken();
+        if (refreshed && retryFn) {
+            // Retry the original request with the new token
+            return retryFn();
         }
-
-        throw new Error(data.message || `HTTP ${response.status}: ${response.statusText}`);
+        // Refresh failed — force logout
+        await forceLogout();
+        throw new Error('Session expired. Please log in again.');
     }
 
+    const data = await response.json();
+    if (!response.ok) {
+        throw new Error(data.message || `HTTP ${response.status}: ${response.statusText}`);
+    }
     return data;
 };
 
@@ -44,17 +88,16 @@ const handleResponse = async (response) => {
  * @returns {Promise<Object>} Response data
  */
 export const get = async (endpoint, options = {}) => {
-    const authHeaders = await getAuthHeaders();
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-        method: 'GET',
-        headers: {
-            ...authHeaders,
-            ...options.headers,
-        },
-        ...options,
-    });
-
-    return handleResponse(response);
+    const doRequest = async () => {
+        const authHeaders = await getAuthHeaders();
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+            method: 'GET',
+            headers: { ...authHeaders, ...options.headers },
+            ...options,
+        });
+        return handleResponse(response, doRequest);
+    };
+    return doRequest();
 };
 
 /**
@@ -66,30 +109,23 @@ export const get = async (endpoint, options = {}) => {
  */
 export const post = async (endpoint, data = {}, options = {}) => {
     const isFormData = data instanceof FormData;
-    const authHeaders = await getAuthHeaders();
-
-    // Prepare headers
-    const headers = {
-        ...authHeaders,
-        ...options.headers,
+    const doRequest = async () => {
+        const authHeaders = await getAuthHeaders();
+        const headers = { ...authHeaders, ...options.headers };
+        if (!isFormData) {
+            headers['Content-Type'] = 'application/json';
+        } else {
+            delete headers['Content-Type'];
+        }
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+            method: 'POST',
+            headers,
+            body: isFormData ? data : JSON.stringify(data),
+            ...options,
+        });
+        return handleResponse(response, doRequest);
     };
-
-    // Set Content-Type to json if NOT formData
-    // If it IS FormData, DELETE any 'Content-Type' header to let browser set boundary
-    if (!isFormData) {
-        headers['Content-Type'] = 'application/json';
-    } else {
-        delete headers['Content-Type'];
-    }
-
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-        method: 'POST',
-        headers,
-        body: isFormData ? data : JSON.stringify(data),
-        ...options,
-    });
-
-    return handleResponse(response);
+    return doRequest();
 };
 
 /**
@@ -100,19 +136,17 @@ export const post = async (endpoint, data = {}, options = {}) => {
  * @returns {Promise<Object>} Response data
  */
 export const put = async (endpoint, data = {}, options = {}) => {
-    const authHeaders = await getAuthHeaders();
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-            ...authHeaders,
-            ...options.headers,
-        },
-        body: JSON.stringify(data),
-        ...options,
-    });
-
-    return handleResponse(response);
+    const doRequest = async () => {
+        const authHeaders = await getAuthHeaders();
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', ...authHeaders, ...options.headers },
+            body: JSON.stringify(data),
+            ...options,
+        });
+        return handleResponse(response, doRequest);
+    };
+    return doRequest();
 };
 
 /**
@@ -122,17 +156,16 @@ export const put = async (endpoint, data = {}, options = {}) => {
  * @returns {Promise<Object>} Response data
  */
 export const del = async (endpoint, options = {}) => {
-    const authHeaders = await getAuthHeaders();
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-        method: 'DELETE',
-        headers: {
-            ...authHeaders,
-            ...options.headers,
-        },
-        ...options,
-    });
-
-    return handleResponse(response);
+    const doRequest = async () => {
+        const authHeaders = await getAuthHeaders();
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+            method: 'DELETE',
+            headers: { ...authHeaders, ...options.headers },
+            ...options,
+        });
+        return handleResponse(response, doRequest);
+    };
+    return doRequest();
 };
 
 /**

@@ -18,7 +18,9 @@ export const listThreads = asyncHandler(async (req, res) => {
 
     // Enhance with AI Analysis
     try {
-        const EmailAnalysis = (await import('../models/EmailAnalysis.js')).default;
+        const { getClientModels } = await import('../utils/database.factory.js');
+        const { EmailAnalysis } = await getClientModels(req.userId);
+
         const { analyzeEmail } = await import('../services/ai.service.js');
         const threads = result.threads || [];
 
@@ -33,15 +35,14 @@ export const listThreads = asyncHandler(async (req, res) => {
             return acc;
         }, {});
 
-        // 2. Identify missing and analyze in parallel (Limit to top 10)
-        // We map over threads, if analysis missing, we start a promise to analyze
-        // ONLY valid for the first 10 threads to save resources/time as requested
-        const enhancedThreads = await Promise.all(threads.map(async (thread, index) => {
+        // 2. Identify missing and analyze SEQUENTIALLY (to avoid overloading Ollama/CPU)
+        const enhancedThreads = [];
+        for (let i = 0; i < threads.length; i++) {
+            const thread = threads[i];
             let analysis = analysisMap[thread.id];
 
-            // Only analyze if missing AND it's within the top 10 (index < 10)
-            if (!analysis && thread.snippet && index < 10) {
-                // Not found in DB, try to analyze
+            // Only analyze if missing AND it's within the top 10
+            if (!analysis && thread.snippet && i < 10) {
                 try {
                     const aiResult = await analyzeEmail(req.userId, thread.snippet);
                     if (aiResult) {
@@ -54,21 +55,31 @@ export const listThreads = asyncHandler(async (req, res) => {
                             importanceReason: aiResult.importanceReason
                         });
 
-                        // Notification for High Priority
+                        // [RETENTION POLICY] Keep only last 10
+                        const count = await EmailAnalysis.countDocuments({ userId: req.userId });
+                        if (count > 10) {
+                            const oldestToKeep = await EmailAnalysis.find({ userId: req.userId })
+                                .sort({ analyzedAt: -1 })
+                                .skip(9)
+                                .limit(1)
+                                .select('_id');
+
+                            if (oldestToKeep.length > 0) {
+                                await EmailAnalysis.deleteMany({
+                                    userId: req.userId,
+                                    analyzedAt: { $lt: oldestToKeep[0].analyzedAt }
+                                });
+                            }
+                        }
+
                         const score = Number(aiResult.importanceScore) || 0;
-                        console.log(`📧 [Email Controller] Subject: "${thread.subject}", Score: ${score}`);
 
                         if (score > 7) {
                             try {
                                 const selfJid = whatsappService.getSelfJid(req.userId);
-                                console.log(`📱 [Notify] High Priority! Self JID: ${selfJid}`);
-
                                 if (selfJid) {
                                     const msg = `🚨 *High Priority Email Detected*\n\n*Subject:* ${thread.subject}\n*Score:* ${score}/10\n*Reason:* ${aiResult.importanceReason}\n\nCheck your dashboard for details.`;
                                     await whatsappService.sendMessage(req.userId, selfJid, { text: msg });
-                                    console.log(`✅ [Notify] Message sent to ${selfJid}`);
-                                } else {
-                                    console.warn(`⚠️ [Notify] Skipped - No Self JID found for user ${req.userId}`);
                                 }
                             } catch (notifyErr) {
                                 console.error('❌ [Notify] Failed to send email priority notification:', notifyErr);
@@ -80,13 +91,13 @@ export const listThreads = asyncHandler(async (req, res) => {
                 }
             }
 
-            return {
+            enhancedThreads.push({
                 ...thread,
                 sentiment: analysis ? analysis.sentiment : null,
                 importanceScore: analysis ? analysis.importanceScore : null,
                 summary: analysis ? analysis.summary : null
-            };
-        }));
+            });
+        }
 
         result.threads = enhancedThreads;
 

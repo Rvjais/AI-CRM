@@ -53,7 +53,8 @@ const checkUserEmails = async (user) => {
         if (threads.length === 0) return;
 
         // Dynamic Import for EmailAnalysis model
-        const EmailAnalysis = (await import('../models/EmailAnalysis.js')).default;
+        const { getClientModels } = await import('../utils/database.factory.js');
+        const { EmailAnalysis } = await getClientModels(user._id);
 
         for (const thread of threads) {
             // 2. Check if already analyzed
@@ -66,12 +67,11 @@ const checkUserEmails = async (user) => {
 
             // 3. Analyze with AI
             if (thread.snippet) {
-                // console.log(`[Email Cron] Analyzing new thread: ${thread.subject}`);
                 const aiResult = await aiService.analyzeEmail(user._id, thread.snippet);
 
                 if (aiResult) {
                     // 4. Save Analysis
-                    const analysis = await EmailAnalysis.create({
+                    await EmailAnalysis.create({
                         userId: user._id,
                         threadId: thread.id,
                         sentiment: aiResult.sentiment || 'neutral',
@@ -79,6 +79,24 @@ const checkUserEmails = async (user) => {
                         importanceScore: aiResult.importanceScore || 5,
                         importanceReason: aiResult.importanceReason
                     });
+
+                    // [RETENTION POLICY] Keep only last 10 analyses per user
+                    const count = await EmailAnalysis.countDocuments({ userId: user._id });
+                    if (count > 10) {
+                        const oldestToKeep = await EmailAnalysis.find({ userId: user._id })
+                            .sort({ analyzedAt: -1 })
+                            .skip(9)
+                            .limit(1)
+                            .select('_id');
+
+                        if (oldestToKeep.length > 0) {
+                            await EmailAnalysis.deleteMany({
+                                userId: user._id,
+                                analyzedAt: { $lt: oldestToKeep[0].analyzedAt }
+                            });
+                            logger.info(`[Email Cron] Purged old analyses for user ${user._id} (Retention: 10)`);
+                        }
+                    }
 
                     // 5. Check Priority & Notify
                     const score = Number(aiResult.importanceScore) || 0;

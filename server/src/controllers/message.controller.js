@@ -2,7 +2,7 @@ import * as messageService from '../services/message.service.js';
 import * as whatsappService from '../services/whatsapp.service.js';
 import { uploadToCloudinary } from '../services/cloudinary.service.js';
 import { getClientModels } from '../utils/database.factory.js';
-import { successResponse, createdResponse, noContentResponse } from '../utils/response.util.js';
+import { successResponse, createdResponse, noContentResponse, badRequestResponse } from '../utils/response.util.js';
 import { asyncHandler } from '../middleware/error.middleware.js';
 import { MESSAGE_TYPES, MESSAGE_STATUS } from '../config/constants.js';
 
@@ -472,7 +472,7 @@ export const summarizeChat = asyncHandler(async (req, res) => {
 
         if (!summary) {
             console.error(`❌ [summarizeChat] AI Analysis failed. Result:`, { sentiment, summary, suggestions });
-            return successResponse(res, 400, 'Failed to generate summary or AI not configured');
+            return badRequestResponse(res, 'Failed to generate summary or AI not configured');
         }
 
         const { WhatsAppSession } = await getClientModels(userId);

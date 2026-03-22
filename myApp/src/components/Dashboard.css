@@ -901,12 +901,36 @@
     font-size: 14px;
     color: #1f2937;
     line-height: 1.5;
-    margin-top: 6px;
+    margin-top: 10px;
+    background: rgba(255, 255, 255, 0.3);
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.5);
 }
 
-.pi-reason strong {
-    font-weight: 700;
-    color: #111827;
+.ai-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #111827;
+    color: #ffffff;
+    padding: 2px 10px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-right: 12px;
+    margin-bottom: 4px;
+    vertical-align: middle;
+}
+
+.ai-icon {
+    font-size: 12px;
+}
+
+.ai-label {
+    opacity: 0.9;
 }
 
 /* ============================================================

@@ -1,34 +1,34 @@
 import User from '../models/User.js';
 import OpenAI from 'openai';
-
 /**
  * AI Service for generating responses
  */
 
-// Helper to get configuration for a user
 const getUserAIConfig = async (userId) => {
-    const user = await User.findById(userId).select('+aiSettings.apiKey +aiSettings.apiKeys.openai +aiSettings.apiKeys.gemini +aiSettings.apiKeys.anthropic +aiSettings.apiKeys.openrouter');
+    const user = await User.findById(userId).select(
+        '+aiSettings.apiKey +aiSettings.apiKeys.openai +aiSettings.apiKeys.gemini +aiSettings.apiKeys.anthropic +aiSettings.apiKeys.openrouter'
+    ).lean();
     if (!user) throw new Error('User not found');
 
+
     const settings = user.aiSettings || {};
-    const provider = settings.provider || 'openai';
+    let provider = settings.provider || 'openai';
 
-    // Fallback logic for backward compatibility
+    // Resolve API key for the chosen provider
     let apiKey = '';
-
     if (settings.apiKeys && settings.apiKeys[provider]) {
         apiKey = settings.apiKeys[provider];
     } else if (provider === 'openai') {
-        // Fallback to old apiKey field or env var for OpenAI
-        apiKey = settings.apiKey || process.env.OPENAI_API_KEY;
+        // Backward compatibility: fallback to old single apiKey or env var
+        apiKey = settings.apiKey || process.env.OPENAI_API_KEY || '';
     }
 
-    // Special case for OpenRouter needing env fallback if configured as such (optional)
+    let model = settings.model || 'gpt-3.5-turbo';
 
     return {
         provider,
         apiKey,
-        model: settings.model || 'gpt-3.5-turbo',
+        model,
         systemPrompt: settings.systemPrompt || "You are a helpful customer support assistant.",
         maxTokens: settings.maxTokens || 150,
         temperature: settings.temperature !== undefined ? settings.temperature : 0.7
@@ -52,22 +52,18 @@ const generateOpenAIResponse = async (apiKey, model, messages, maxTokens, temper
     return completion.choices[0].message.content;
 };
 
-const generateGeminiResponse = async (apiKey, model, messages, maxTokens, temperature = 0.7) => {
-    // Convert messages to Gemini format
-    // System instruction is supported in v1beta models, or prepended to first user message
-    // messages: [{role: "system", content: "..."} , {role: "user", ...}]
 
+
+const generateGeminiResponse = async (apiKey, model, messages, maxTokens, temperature = 0.7) => {
     const contents = [];
     let systemInstruction = null;
 
     for (const msg of messages) {
         if (msg.role === 'system') {
             systemInstruction = {
-                role: 'user', // Gemini treats system prompts often better as first user turn or explicit system_instruction in beta
+                role: 'user',
                 parts: [{ text: msg.content }]
             };
-            // For stability, let's prepend system prompt to first user message or handle separately
-            // But simple REST API v1beta content generation:
         } else if (msg.role === 'user') {
             contents.push({ role: 'user', parts: [{ text: msg.content }] });
         } else if (msg.role === 'assistant') {
@@ -75,14 +71,8 @@ const generateGeminiResponse = async (apiKey, model, messages, maxTokens, temper
         }
     }
 
-    // If system prompt exists, prepend it to the first user message for simplicity in standard v1 API
-    // Or use v1beta system_instruction if utilizing that endpoint. 
-    // Let's stick to v1beta for better features if possible, but v1 is standard.
-    // Simple approach: Prepend system prompt to the first message if it's user, or insert a user message at start.
-
     const effectiveMessages = [...contents];
     if (systemInstruction) {
-        // Check if first message is user, if so prepend text. If not, insert new user message.
         if (effectiveMessages.length > 0 && effectiveMessages[0].role === 'user') {
             effectiveMessages[0].parts[0].text = `System Instruction: ${systemInstruction.parts[0].text}\n\n${effectiveMessages[0].parts[0].text}`;
         } else {
@@ -119,8 +109,6 @@ const generateGeminiResponse = async (apiKey, model, messages, maxTokens, temper
 };
 
 const generateClaudeResponse = async (apiKey, model, messages, maxTokens, temperature = 0.7) => {
-    // Convert messages for Anthropic
-    // System prompt is top level parameter
     let system = "";
     const anthropicMessages = [];
 
@@ -144,7 +132,7 @@ const generateClaudeResponse = async (apiKey, model, messages, maxTokens, temper
                 'content-type': 'application/json'
             },
             body: JSON.stringify({
-                model: model || 'claude-3-opus-20240229', // Default if not specified, though usually user selects
+                model: model || 'claude-3-haiku-20240307',
                 max_tokens: maxTokens,
                 system,
                 messages: anthropicMessages,
@@ -165,23 +153,61 @@ const generateClaudeResponse = async (apiKey, model, messages, maxTokens, temper
     }
 };
 
+// Reusable response generator that honors all provider settings
+const unifiedGenerateResponse = async (userId, messages, maxTokens, temperature, priority = 0) => {
+    const config = await getUserAIConfig(userId);
+    if (!config.apiKey) {
+        throw new Error(`API Key missing for provider: ${config.provider}`);
+    }
+
+    let model = config.model;
+    const finalMaxTokens = maxTokens || config.maxTokens;
+    const finalTemperature = temperature !== undefined ? temperature : config.temperature;
+
+    switch (config.provider) {
+        case 'gemini':
+            if (!model || model.includes('gpt') || model.includes('claude')) {
+                model = 'gemini-1.5-flash';
+            }
+            return await generateGeminiResponse(config.apiKey, model, messages, finalMaxTokens, finalTemperature);
+        case 'anthropic':
+            if (!model || model.includes('gpt') || model.includes('gemini')) {
+                model = 'claude-3-haiku-20240307';
+            }
+            return await generateClaudeResponse(config.apiKey, model, messages, finalMaxTokens, finalTemperature);
+        case 'openrouter':
+            return await generateOpenAIResponse(
+                config.apiKey,
+                model || 'openai/gpt-3.5-turbo',
+                messages,
+                finalMaxTokens,
+                finalTemperature,
+                'https://openrouter.ai/api/v1',
+                {
+                    "HTTP-Referer": process.env.FRONTEND_URL || "https://localhost",
+                    "X-Title": "WhatsApp CRM"
+                }
+            );
+
+        case 'openai':
+        default:
+            if (!model || model.includes('gemini') || model.includes('claude')) {
+                model = 'gpt-3.5-turbo';
+            }
+            return await generateOpenAIResponse(config.apiKey, model, messages, finalMaxTokens, finalTemperature);
+    }
+};
+
 export const generateAIResponse = async (userId, chatJid, userMessage) => {
     try {
         // 1. Check Credits
         const user = await User.findById(userId).select('credits');
         if (!user || user.credits <= 0) {
             console.warn(`[AI Service] User ${userId} has insufficient credits: ${user?.credits}`);
-            // Optional: Send a specific message like "Credit limit reached. Please upgrade."
-            // But we shouldn't reply to the customer with that.
             return null;
         }
 
         const config = await getUserAIConfig(userId);
-        if (!config.apiKey) {
-            console.warn('[AI Service] No API Key found for provider:', config.provider);
-            return `[AI Not Configured] Please add API Key for ${config.provider} in AI Settings.`;
-        }
-
         const { getClientModels } = await import('../utils/database.factory.js');
         const { WhatsAppSession } = await getClientModels(userId);
         const session = await WhatsAppSession.findOne({ userId });
@@ -206,53 +232,15 @@ export const generateAIResponse = async (userId, chatJid, userMessage) => {
             { role: "user", content: userMessage }
         ];
 
-        // Logic to prevent using OpenAI model names for other providers
-        let model = config.model;
-        let responseText = null;
-
-        switch (config.provider) {
-            case 'gemini':
-                // Force Gemini model if current model looks like OpenAI or is empty
-                if (!model || model.includes('gpt')) {
-                    model = 'gemini-2.5-flash';
-                }
-                responseText = await generateGeminiResponse(config.apiKey, model, messages, config.maxTokens, config.temperature);
-                break;
-            case 'anthropic':
-                if (!model || model.includes('gpt')) {
-                    model = 'claude-3-haiku-20240307';
-                }
-                responseText = await generateClaudeResponse(config.apiKey, model, messages, config.maxTokens, config.temperature);
-                break;
-            case 'openrouter':
-                // OpenRouter might use gpt, so we trust config or default
-                responseText = await generateOpenAIResponse(
-                    config.apiKey,
-                    model || 'openai/gpt-3.5-turbo',
-                    messages,
-                    config.maxTokens,
-                    config.temperature,
-                    'https://openrouter.ai/api/v1',
-                    {
-                        "HTTP-Referer": process.env.FRONTEND_URL || "https://localhost",
-                        "X-Title": "WhatsApp CRM"
-                    }
-                );
-                break;
-            case 'openai':
-            default:
-                responseText = await generateOpenAIResponse(config.apiKey, model || 'gpt-3.5-turbo', messages, config.maxTokens, config.temperature);
-                break;
-        }
+        // Priority 1 for immediate chat responses to jump past background jobs
+        const responseText = await unifiedGenerateResponse(userId, messages, undefined, undefined, 1);
 
         // 2. Deduct Credit if successful
         if (responseText) {
             await User.findByIdAndUpdate(userId, { $inc: { credits: -1 } });
-            // console.log(`[AI Service] Deducted 1 credit for user ${userId}.`);
         }
 
         return responseText;
-
     } catch (error) {
         console.error('Error in AI generation:', error);
         return null;
@@ -266,6 +254,7 @@ export const generateAIResponse = async (userId, chatJid, userMessage) => {
 export const analyzeSentiment = async (text, userId) => {
     try {
         const config = await getUserAIConfig(userId);
+        // Allow Ollama (apiKey='ollama') and any configured provider through
         if (!config.apiKey) return 'neutral';
 
         const messages = [
@@ -273,42 +262,17 @@ export const analyzeSentiment = async (text, userId) => {
             { role: "user", content: `Analyze the sentiment of this WhatsApp message: "${text}"` }
         ];
 
-        let content = '';
-
-        // Very basic switch for sentiment
-        // Valid model selection for sentiment
-        if (config.provider === 'gemini') {
-            let modelToUse = config.model;
-            // Fallback if model is invalid for Gemini
-            if (!modelToUse || modelToUse.includes('gpt') || modelToUse.includes('claude')) {
-                modelToUse = 'gemini-2.5-flash';
-            }
-            content = await generateGeminiResponse(config.apiKey, modelToUse, messages, 100);
-        } else if (config.provider === 'anthropic') {
-            let modelToUse = config.model;
-            if (!modelToUse || modelToUse.includes('gpt') || modelToUse.includes('gemini')) {
-                modelToUse = 'claude-3-haiku-20240307';
-            }
-            content = await generateClaudeResponse(config.apiKey, modelToUse, messages, 100);
-        } else if (config.provider === 'openrouter') {
-            content = await generateOpenAIResponse(config.apiKey, config.model || 'openai/gpt-3.5-turbo', messages, 100, 'https://openrouter.ai/api/v1', { "HTTP-Referer": "https://localhost" });
-        } else {
-            let modelToUse = config.model;
-            if (!modelToUse || modelToUse.includes('gemini') || modelToUse.includes('claude')) {
-                modelToUse = 'gpt-3.5-turbo';
-            }
-            content = await generateOpenAIResponse(config.apiKey, modelToUse, messages, 100);
-        }
+        const content = await unifiedGenerateResponse(userId, messages, 100);
 
         if (content) {
             // Clean JSON markdown if present (Gemini loves markdown blocks)
-            content = content.replace(/```json\n?|\n?```/g, '');
+            const cleanContent = content.replace(/```json\n?|\n?```/g, '').trim();
             try {
-                const result = JSON.parse(content);
+                const result = JSON.parse(cleanContent);
                 return result.sentiment || 'neutral';
             } catch (e) {
                 // Try simple parsing if JSON fails
-                const lower = content.toLowerCase();
+                const lower = cleanContent.toLowerCase();
                 if (lower.includes('positive')) return 'positive';
                 if (lower.includes('negative')) return 'negative';
                 return 'neutral';
@@ -354,10 +318,7 @@ export const generateSummary = async (userId, chatJid) => {
             { role: "user", content: conversation }
         ];
 
-        if (config.provider === 'gemini') return await generateGeminiResponse(config.apiKey, 'gemini-2.5-flash', messages, 200);
-        if (config.provider === 'anthropic') return await generateClaudeResponse(config.apiKey, 'claude-3-haiku-20240307', messages, 200);
-        if (config.provider === 'openrouter') return await generateOpenAIResponse(config.apiKey, config.model, messages, 200, 'https://openrouter.ai/api/v1', { "HTTP-Referer": "https://localhost" });
-        return await generateOpenAIResponse(config.apiKey, 'gpt-3.5-turbo', messages, 200);
+        return await unifiedGenerateResponse(userId, messages, 200);
 
     } catch (error) {
         console.error('Error generating summary:', error);
@@ -390,31 +351,10 @@ export const generateSuggestions = async (userId, chatJid) => {
             { role: "user", content: conversation }
         ];
 
-        let content = '';
-        if (config.provider === 'gemini') {
-            let modelToUse = config.model;
-            if (!modelToUse || modelToUse.includes('gpt') || modelToUse.includes('claude')) {
-                modelToUse = 'gemini-2.5-flash';
-            }
-            content = await generateGeminiResponse(config.apiKey, modelToUse, messages, 150);
-        } else if (config.provider === 'anthropic') {
-            let modelToUse = config.model;
-            if (!modelToUse || modelToUse.includes('gpt') || modelToUse.includes('gemini')) {
-                modelToUse = 'claude-3-haiku-20240307';
-            }
-            content = await generateClaudeResponse(config.apiKey, modelToUse, messages, 150);
-        } else if (config.provider === 'openrouter') {
-            content = await generateOpenAIResponse(config.apiKey, config.model || 'openai/gpt-3.5-turbo', messages, 150, 'https://openrouter.ai/api/v1', { "HTTP-Referer": "https://localhost" });
-        } else {
-            let modelToUse = config.model;
-            if (!modelToUse || modelToUse.includes('gemini') || modelToUse.includes('claude')) {
-                modelToUse = 'gpt-3.5-turbo';
-            }
-            content = await generateOpenAIResponse(config.apiKey, modelToUse, messages, 150);
-        }
+        const rawContent = await unifiedGenerateResponse(userId, messages, 150);
 
-        if (content) {
-            content = content.replace(/```json\n?|\n?```/g, '');
+        if (rawContent) {
+            const content = rawContent.replace(/```json\n?|\n?```/g, '');
             try {
                 const parsed = JSON.parse(content);
                 return Array.isArray(parsed) ? parsed : [];
@@ -472,33 +412,10 @@ export const extractData = async (userId, chatJid, schema) => {
             { role: "user", content: conversation }
         ];
 
-        let content = '';
-        if (config.provider === 'gemini') {
-            let modelToUse = config.model;
-            // Cross-provider safety check
-            if (!modelToUse || modelToUse.includes('gpt') || modelToUse.includes('claude')) {
-                modelToUse = 'gemini-2.5-flash';
-            }
-            content = await generateGeminiResponse(config.apiKey, modelToUse, messages, 500);
-        } else if (config.provider === 'anthropic') {
-            let modelToUse = config.model;
-            if (!modelToUse || modelToUse.includes('gpt') || modelToUse.includes('gemini')) {
-                modelToUse = 'claude-3-haiku-20240307';
-            }
-            content = await generateClaudeResponse(config.apiKey, modelToUse, messages, 500);
-        } else if (config.provider === 'openrouter') {
-            content = await generateOpenAIResponse(config.apiKey, config.model || 'openai/gpt-3.5-turbo', messages, 500, 'https://openrouter.ai/api/v1', { "HTTP-Referer": "https://localhost" });
-        } else {
-            // OpenAI
-            let modelToUse = config.model;
-            if (!modelToUse || modelToUse.includes('gemini') || modelToUse.includes('claude')) {
-                modelToUse = 'gpt-3.5-turbo';
-            }
-            content = await generateOpenAIResponse(config.apiKey, modelToUse, messages, 500);
-        }
+        const rawContent = await unifiedGenerateResponse(userId, messages, 500);
 
-        if (content) {
-            content = content.replace(/```json\n?|\n?```/g, '').trim();
+        if (rawContent) {
+            const content = rawContent.replace(/```json\n?|\n?```/g, '').trim();
             try {
                 return JSON.parse(content);
             } catch (e) {
@@ -636,30 +553,7 @@ export const analyzeMessage = async (userId, chatJid, messageText, schema = []) 
             { role: "user", content: systemPrompt }
         ];
 
-        let content = '';
-        if (config.provider === 'gemini') {
-            let modelToUse = config.model;
-            // Cross-provider safety check
-            if (!modelToUse || modelToUse.includes('gpt') || modelToUse.includes('claude')) {
-                modelToUse = 'gemini-1.5-flash';
-            }
-            content = await generateGeminiResponse(config.apiKey, modelToUse, messages, 500);
-        } else if (config.provider === 'anthropic') {
-            let modelToUse = config.model;
-            if (!modelToUse || modelToUse.includes('gpt') || modelToUse.includes('gemini')) {
-                modelToUse = 'claude-3-haiku-20240307';
-            }
-            content = await generateClaudeResponse(config.apiKey, modelToUse, messages, 400);
-        } else if (config.provider === 'openrouter') {
-            content = await generateOpenAIResponse(config.apiKey, config.model || 'openai/gpt-3.5-turbo', messages, 500, 'https://openrouter.ai/api/v1', { "HTTP-Referer": "https://localhost" });
-        } else {
-            // OpenAI
-            let modelToUse = config.model;
-            if (!modelToUse || modelToUse.includes('gemini') || modelToUse.includes('claude')) {
-                modelToUse = 'gpt-3.5-turbo';
-            }
-            content = await generateOpenAIResponse(config.apiKey, modelToUse, messages, 400);
-        }
+        const content = await unifiedGenerateResponse(userId, messages, 500);
 
         if (content) {
             console.log('[AI Service] Raw Content:', content); // LOG RAW CONTENT
@@ -734,17 +628,10 @@ export const analyzeEmail = async (userId, emailText) => {
             { role: "user", content: emailText.substring(0, 3000) } // Limit text to avoid token limits
         ];
 
-        let content = '';
-        if (config.provider === 'gemini') {
-            content = await generateGeminiResponse(config.apiKey, 'gemini-2.5-flash', messages, 300);
-        } else if (config.provider === 'anthropic') {
-            content = await generateClaudeResponse(config.apiKey, 'claude-3-haiku-20240307', messages, 300);
-        } else {
-            content = await generateOpenAIResponse(config.apiKey, config.model || 'gpt-3.5-turbo', messages, 300);
-        }
+        const rawEmail = await unifiedGenerateResponse(userId, messages, 300);
 
-        if (content) {
-            content = content.replace(/```json\n?|\n?```/g, '').trim();
+        if (rawEmail) {
+            const content = rawEmail.replace(/```json\n?|\n?```/g, '').trim();
             try {
                 return JSON.parse(content);
             } catch (e) {
