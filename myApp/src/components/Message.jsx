@@ -3,9 +3,11 @@ import { FaDownload, FaTimes } from 'react-icons/fa';
 import './Message.css';
 import api from '../utils/apiClient';
 
-function Message({ message, onForward, onReply, isGroup }) {
+function Message({ message, onForward, onReply, isGroup, onReact, activeReactionMsgId, setActiveReactionMsgId }) {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalMediaUrl, setModalMediaUrl] = useState('');
+    const msgId = message._id || message.messageId;
+    const showReactions = activeReactionMsgId === msgId;
     const formatTime = (timestamp) => {
         if (!timestamp) return '';
         const date = new Date(timestamp);
@@ -132,12 +134,37 @@ function Message({ message, onForward, onReply, isGroup }) {
     };
 
     const handleReaction = async (emoji) => {
+        setActiveReactionMsgId(null);
+
+        // Check if user already reacted with the same emoji (toggle off)
+        const existingReaction = message.reactions?.find(
+            r => r.emoji === emoji && r.fromMe
+        );
+        const isRemoving = !!existingReaction;
+
+        // Optimistic update
+        if (onReact) {
+            if (isRemoving) {
+                onReact(message._id || message.messageId, emoji, 'remove');
+            } else {
+                onReact(message._id || message.messageId, emoji, 'add');
+            }
+        }
+
         try {
-            await api.post(`/api/messages/${message._id}/react`, { emoji });
-            // Optimistic update could go here, or rely on socket update
-            // For now, we rely on the socket update which updates the message list
+            await api.post(`/api/messages/${message._id}/react`, {
+                emoji: isRemoving ? '' : emoji
+            });
         } catch (error) {
             console.error('Failed to react:', error);
+            // Revert optimistic update on failure
+            if (onReact) {
+                if (isRemoving) {
+                    onReact(message._id || message.messageId, emoji, 'add');
+                } else {
+                    onReact(message._id || message.messageId, emoji, 'remove');
+                }
+            }
         }
     };
 
@@ -171,7 +198,10 @@ function Message({ message, onForward, onReply, isGroup }) {
             )}
 
             <div className="message-content-wrapper">
-                <div className={`message-bubble group ${message.fromMe ? 'sent-bubble' : 'received-bubble'}`}>
+                <div
+                className={`message-bubble group ${message.fromMe ? 'sent-bubble' : 'received-bubble'}`}
+                onClick={() => setActiveReactionMsgId(showReactions ? null : msgId)}
+            >
                     {/* Show Sender Name in Group Chats */}
                     {isGroup && !message.fromMe && message.senderName && (
                         <div className="message-sender-name">
@@ -196,18 +226,20 @@ function Message({ message, onForward, onReply, isGroup }) {
                     {renderContent()}
                     <span className="message-time">{formatTime(message.timestamp)}</span>
 
-                    {/* Reaction Picker (Hidden by default, shown on hover via CSS group-hover) */}
-                    <div className="reaction-actions">
-                        <button onClick={() => handleReaction('👍')}>👍</button>
-                        <button onClick={() => handleReaction('❤️')}>❤️</button>
-                        <button onClick={() => handleReaction('😂')}>😂</button>
-                        <button onClick={() => handleReaction('😮')}>😮</button>
-                        <button onClick={() => handleReaction('😢')}>😢</button>
-                        <button onClick={() => handleReaction('🙏')}>🙏</button>
-                        <div style={{ width: '1px', height: '16px', background: 'rgba(0,0,0,0.1)', margin: '0 4px' }}></div>
-                        <button onClick={() => onReply && onReply(message)} title="Reply">↩️</button>
-                        <button onClick={() => onForward && onForward(message)} title="Forward">↪️</button>
-                    </div>
+                    {/* Reaction Picker */}
+                    {showReactions && (
+                        <div className="reaction-actions show" onClick={(e) => e.stopPropagation()}>
+                            <button onClick={() => handleReaction('👍')}>👍</button>
+                            <button onClick={() => handleReaction('❤️')}>❤️</button>
+                            <button onClick={() => handleReaction('😂')}>😂</button>
+                            <button onClick={() => handleReaction('😮')}>😮</button>
+                            <button onClick={() => handleReaction('😢')}>😢</button>
+                            <button onClick={() => handleReaction('🙏')}>🙏</button>
+                            <div className="reaction-divider"></div>
+                            <button onClick={() => { setActiveReactionMsgId(null); onReply && onReply(message); }} title="Reply">↩️</button>
+                            <button onClick={() => { setActiveReactionMsgId(null); onForward && onForward(message); }} title="Forward">↪️</button>
+                        </div>
+                    )}
                 </div>
 
                 {/* Display Reactions */}

@@ -4,6 +4,7 @@ import { MESSAGE_TYPES, MESSAGE_STATUS } from '../config/constants.js';
 const reactionSchema = new mongoose.Schema({
     emoji: { type: String, required: true },
     fromJid: { type: String, required: true },
+    fromMe: { type: Boolean, default: false },
     timestamp: { type: Date, default: Date.now },
 }, { _id: false });
 

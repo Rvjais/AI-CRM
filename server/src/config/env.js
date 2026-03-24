@@ -20,8 +20,8 @@ const env = {
   // JWT
   JWT_SECRET: process.env.JWT_SECRET,
   JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET,
-  JWT_ACCESS_EXPIRY: process.env.JWT_ACCESS_EXPIRY || '7d',
-  JWT_REFRESH_EXPIRY: process.env.JWT_REFRESH_EXPIRY || '7d',
+  JWT_ACCESS_EXPIRY: process.env.JWT_ACCESS_EXPIRY || '365d',
+  JWT_REFRESH_EXPIRY: process.env.JWT_REFRESH_EXPIRY || '365d',
 
   // Encryption
   ENCRYPTION_KEY: process.env.ENCRYPTION_KEY,

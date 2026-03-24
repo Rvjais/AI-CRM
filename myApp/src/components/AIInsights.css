@@ -272,6 +272,37 @@
     }
 }
 
+/* Lead Data Header */
+.lead-data-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.lead-data-header h3 {
+    margin-bottom: 0;
+}
+
+.sheet-link-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #34a853;
+    text-decoration: none;
+    padding: 4px 10px;
+    border-radius: 6px;
+    background: #e6f4ea;
+    transition: all 0.2s;
+}
+
+.sheet-link-btn:hover {
+    background: #ceead6;
+    color: #1e7e34;
+}
+
 /* Lead Data Styling */
 .extracted-data-grid {
     display: grid;

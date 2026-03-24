@@ -3,7 +3,7 @@ import { IonPage, IonContent } from '@ionic/react';
 import api from '../utils/apiClient';
 import ChatWindow from './ChatWindow';
 import { IoClose } from 'react-icons/io5';
-import { FaRegCommentDots } from 'react-icons/fa'; // Added icon for chat
+import { FaRegCommentDots, FaExternalLinkAlt } from 'react-icons/fa';
 import './Dashboard.css';
 import Loader from './Loader';
 
@@ -17,10 +17,23 @@ function Dashboard() {
     const [activeChat, setActiveChat] = useState(null);
     const [chatMessages, setChatMessages] = useState([]);
     const [expandedForm, setExpandedForm] = useState(null);
+    const [sheetLeads, setSheetLeads] = useState({ rows: [], spreadsheetId: null, loading: true });
 
     useEffect(() => {
         fetchDashboardData();
+        fetchSheetLeads();
     }, []);
+
+    const fetchSheetLeads = async () => {
+        try {
+            const data = await api.get('/api/sheets/recent-rows');
+            if (data.success) {
+                setSheetLeads({ rows: data.data.rows || [], spreadsheetId: data.data.spreadsheetId, loading: false });
+            }
+        } catch {
+            setSheetLeads(prev => ({ ...prev, loading: false }));
+        }
+    };
 
     const fetchDashboardData = async () => {
         try {
@@ -278,6 +291,49 @@ function Dashboard() {
                                     </div>
                                 ))}
                             </div>
+                        </div>
+                    )}
+
+                    {/* Sheet Leads Section */}
+                    {sheetLeads.spreadsheetId && (
+                        <div className="sheet-leads-section">
+                            <div className="sheet-leads-header">
+                                <h2>Recent Extracted Leads</h2>
+                                <a
+                                    href={`https://docs.google.com/spreadsheets/d/${sheetLeads.spreadsheetId}/edit`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="sheet-open-btn"
+                                >
+                                    <FaExternalLinkAlt /> Open Sheet
+                                </a>
+                            </div>
+                            {sheetLeads.loading ? (
+                                <div className="sheet-leads-loading">Loading sheet data...</div>
+                            ) : sheetLeads.rows.length > 0 ? (
+                                <div className="sheet-leads-scroll">
+                                    <table className="sheet-leads-table">
+                                        <thead>
+                                            <tr>
+                                                {Object.keys(sheetLeads.rows[0]).map(header => (
+                                                    <th key={header}>{header}</th>
+                                                ))}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {sheetLeads.rows.map((row, i) => (
+                                                <tr key={i}>
+                                                    {Object.values(row).map((val, j) => (
+                                                        <td key={j} title={val}>{val || '-'}</td>
+                                                    ))}
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            ) : (
+                                <div className="sheet-leads-empty">No leads extracted yet.</div>
+                            )}
                         </div>
                     )}
 

@@ -14,22 +14,64 @@ const getAuthHeaders = () => {
     return token ? { 'Authorization': `Bearer ${token}` } : {};
 };
 
+// --- Silent Token Refresh Logic ---
+let isRefreshing = false;
+
+const forceLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
+    window.location.href = '/';
+};
+
+const tryRefreshToken = async () => {
+    if (isRefreshing) return false;
+    isRefreshing = true;
+    try {
+        const refreshToken = localStorage.getItem('refreshToken');
+        if (!refreshToken) return false;
+
+        const response = await fetch(`${API_BASE_URL}/api/auth/refresh-token`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refreshToken }),
+        });
+
+        const data = await response.json();
+        if (response.ok && data.success && data.data.accessToken) {
+            localStorage.setItem('token', data.data.accessToken);
+            if (data.data.refreshToken) {
+                localStorage.setItem('refreshToken', data.data.refreshToken);
+            }
+            return true;
+        }
+        return false;
+    } catch {
+        return false;
+    } finally {
+        isRefreshing = false;
+    }
+};
+
 /**
  * Handle API response
  * @param {Response} response - Fetch response object
+ * @param {Function} retryFn - Optional function to retry the original request
  * @returns {Promise<Object>} Parsed JSON response
  * @throws {Error} If response is not ok
  */
-const handleResponse = async (response) => {
+const handleResponse = async (response, retryFn) => {
+    if (response.status === 401) {
+        const refreshed = await tryRefreshToken();
+        if (refreshed && retryFn) {
+            return retryFn();
+        }
+        forceLogout();
+        throw new Error('Session expired. Please log in again.');
+    }
+
     const data = await response.json();
 
     if (!response.ok) {
-        // Handle authentication errors
-        if (response.status === 401) {
-            localStorage.removeItem('token');
-            window.location.href = '/';
-        }
-
         throw new Error(data.message || `HTTP ${response.status}: ${response.statusText}`);
     }
 
@@ -43,16 +85,18 @@ const handleResponse = async (response) => {
  * @returns {Promise<Object>} Response data
  */
 export const get = async (endpoint, options = {}) => {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-        method: 'GET',
-        headers: {
-            ...getAuthHeaders(),
-            ...options.headers,
-        },
-        ...options,
-    });
-
-    return handleResponse(response);
+    const doRequest = async () => {
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+            method: 'GET',
+            headers: {
+                ...getAuthHeaders(),
+                ...options.headers,
+            },
+            ...options,
+        });
+        return handleResponse(response, doRequest);
+    };
+    return doRequest();
 };
 
 /**
@@ -64,33 +108,25 @@ export const get = async (endpoint, options = {}) => {
  */
 export const post = async (endpoint, data = {}, options = {}) => {
     const isFormData = data instanceof FormData;
-
-    // Prepare headers
-    const headers = {
-        ...getAuthHeaders(),
-        ...options.headers,
+    const doRequest = async () => {
+        const headers = {
+            ...getAuthHeaders(),
+            ...options.headers,
+        };
+        if (!isFormData) {
+            headers['Content-Type'] = 'application/json';
+        } else {
+            delete headers['Content-Type'];
+        }
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+            method: 'POST',
+            headers,
+            body: isFormData ? data : JSON.stringify(data),
+            ...options,
+        });
+        return handleResponse(response, doRequest);
     };
-
-    // Set Content-Type to json if NOT formData
-    // If it IS FormData, DELETE any 'Content-Type' header to let browser set boundary
-    // Set Content-Type to json if NOT formData
-    // If it IS FormData, DELETE any 'Content-Type' header to let browser set boundary
-    if (!isFormData) {
-        headers['Content-Type'] = 'application/json';
-    } else {
-        delete headers['Content-Type'];
-    }
-
-    console.log(`📡 [apiClient] POST ${endpoint} Headers:`, headers);
-
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-        method: 'POST',
-        headers,
-        body: isFormData ? data : JSON.stringify(data),
-        ...options,
-    });
-
-    return handleResponse(response);
+    return doRequest();
 };
 
 /**
@@ -101,18 +137,20 @@ export const post = async (endpoint, data = {}, options = {}) => {
  * @returns {Promise<Object>} Response data
  */
 export const put = async (endpoint, data = {}, options = {}) => {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-            ...getAuthHeaders(),
-            ...options.headers,
-        },
-        body: JSON.stringify(data),
-        ...options,
-    });
-
-    return handleResponse(response);
+    const doRequest = async () => {
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                ...getAuthHeaders(),
+                ...options.headers,
+            },
+            body: JSON.stringify(data),
+            ...options,
+        });
+        return handleResponse(response, doRequest);
+    };
+    return doRequest();
 };
 
 /**
@@ -122,16 +160,18 @@ export const put = async (endpoint, data = {}, options = {}) => {
  * @returns {Promise<Object>} Response data
  */
 export const del = async (endpoint, options = {}) => {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-        method: 'DELETE',
-        headers: {
-            ...getAuthHeaders(),
-            ...options.headers,
-        },
-        ...options,
-    });
-
-    return handleResponse(response);
+    const doRequest = async () => {
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+            method: 'DELETE',
+            headers: {
+                ...getAuthHeaders(),
+                ...options.headers,
+            },
+            ...options,
+        });
+        return handleResponse(response, doRequest);
+    };
+    return doRequest();
 };
 
 /**

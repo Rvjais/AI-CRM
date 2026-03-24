@@ -934,6 +934,105 @@
 }
 
 /* ============================================================
+   SHEET LEADS SECTION
+   ============================================================ */
+.sheet-leads-section {
+    background: #ffffff;
+    border-radius: 20px;
+    padding: 20px;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+.sheet-leads-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.sheet-leads-header h2 {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0;
+}
+
+.sheet-leads-header .sheet-open-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #34a853;
+    text-decoration: none;
+    padding: 6px 12px;
+    border-radius: 8px;
+    background: #e6f4ea;
+    transition: all 0.2s;
+    border: none;
+    cursor: pointer;
+}
+
+.sheet-leads-header .sheet-open-btn:hover {
+    background: #ceead6;
+    color: #1e7e34;
+}
+
+.sheet-leads-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.sheet-leads-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    min-width: 400px;
+}
+
+.sheet-leads-table thead th {
+    text-align: left;
+    padding: 8px 10px;
+    background: #f9fafb;
+    color: #6b7280;
+    font-weight: 600;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid #e5e7eb;
+    white-space: nowrap;
+}
+
+.sheet-leads-table tbody td {
+    padding: 8px 10px;
+    color: #374151;
+    border-bottom: 1px solid #f3f4f6;
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sheet-leads-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.sheet-leads-empty {
+    text-align: center;
+    padding: 24px 16px;
+    color: #9ca3af;
+    font-size: 13px;
+}
+
+.sheet-leads-loading {
+    text-align: center;
+    padding: 20px;
+    color: #9ca3af;
+    font-size: 12px;
+}
+
+/* ============================================================
    FORMS OVERVIEW SECTION
    ============================================================ */
 .forms-section {

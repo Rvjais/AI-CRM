@@ -15,6 +15,7 @@ function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat, 
     const [isGif, setIsGif] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [replyingTo, setReplyingTo] = useState(null);
+    const [activeReactionMsgId, setActiveReactionMsgId] = useState(null);
     const messagesEndRef = useRef(null);
     const fileInputRef = useRef(null);
     const prevChatIdRef = useRef(null);
@@ -93,6 +94,25 @@ function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat, 
 
     const handleReply = (msg) => {
         setReplyingTo(msg);
+    };
+
+    const handleReact = (msgId, emoji, action) => {
+        const chatJid = selectedChat.jid || selectedChat.phone;
+        const updatedMessages = messages.map(msg => {
+            if (msg._id === msgId || msg.messageId === msgId) {
+                let reactions = [...(msg.reactions || [])];
+                if (action === 'remove') {
+                    reactions = reactions.filter(r => !(r.emoji === emoji && r.fromMe));
+                } else {
+                    // Remove any existing reaction from me, then add new one
+                    reactions = reactions.filter(r => !r.fromMe);
+                    reactions.push({ emoji, fromMe: true, timestamp: new Date().toISOString() });
+                }
+                return { ...msg, reactions };
+            }
+            return msg;
+        });
+        setMessages(updatedMessages, chatJid);
     };
 
     useEffect(() => {
@@ -344,6 +364,9 @@ function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat, 
                             onForward={onForward}
                             onReply={handleReply}
                             isGroup={selectedChat.jid ? selectedChat.jid.endsWith('@g.us') : false}
+                            onReact={handleReact}
+                            activeReactionMsgId={activeReactionMsgId}
+                            setActiveReactionMsgId={setActiveReactionMsgId}
                         />
                     ))
                 )}

@@ -267,18 +267,12 @@
     flex-direction: column;
 }
 
-/* Group hover for reaction actions */
-.message-bubble.group:hover .reaction-actions {
-    display: flex;
-}
-
+/* Reaction actions - now state-controlled via React */
 .reaction-actions {
-    display: none;
+    display: flex;
     position: absolute;
     top: 100%;
-    /* Move to bottom */
     margin-top: 2px;
-    /* Reduced space */
     background: white;
     padding: 4px;
     border-radius: 20px;
@@ -286,6 +280,9 @@
     gap: 4px;
     z-index: 10;
     animation: fadeIn 0.2s;
+    max-width: calc(100vw - 24px);
+    flex-wrap: wrap;
+    justify-content: center;
 }
 
 /* Invisible bridge to prevent flickering when moving mouse to reactions */
@@ -301,10 +298,12 @@
 
 .message.sent .reaction-actions {
     right: 0;
+    left: auto;
 }
 
 .message.received .reaction-actions {
     left: 0;
+    right: auto;
 }
 
 .reaction-actions button {
@@ -320,6 +319,14 @@
 .reaction-actions button:hover {
     transform: scale(1.2);
     background: #f3f4f6;
+}
+
+.reaction-divider {
+    width: 1px;
+    height: 16px;
+    background: rgba(0, 0, 0, 0.1);
+    margin: 0 4px;
+    flex-shrink: 0;
 }
 
 .message-reactions {
@@ -465,11 +472,20 @@
         margin-top: 4px;
         padding: 3px;
         gap: 2px;
+        max-width: calc(100vw - 32px);
+        flex-wrap: wrap;
+        justify-content: center;
     }
 
     .reaction-actions button {
-        font-size: 16px;
+        font-size: 14px;
         padding: 2px;
+        min-width: 28px;
+        min-height: 28px;
+    }
+
+    .reaction-divider {
+        display: none;
     }
 
     .reaction-bubble {

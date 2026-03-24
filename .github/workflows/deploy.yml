@@ -1,0 +1,35 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to VPS via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            # Navigate to backend directory
+            cd /home/api.aicrmz.com/public_html
+
+            # Pull latest code from GitHub
+            git pull origin main
+
+            # Install any new dependencies
+            npm install --omit=dev
+
+            # Restart the backend with PM2
+            pm2 restart rain-crm-backend
+
+            echo "✅ Deployment complete!"

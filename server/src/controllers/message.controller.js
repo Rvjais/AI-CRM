@@ -252,15 +252,19 @@ export const reactToMessage = asyncHandler(async (req, res) => {
 
     await whatsappService.sendMessage(req.userId, originalMessage.chatJid, reactionMessage);
 
-    // 3. Update DB
-    const message = await messageService.addReaction(
-        messageId,
-        req.userId,
-        emoji,
-        sock.user.id
-    );
+    // 3. Update DB — toggle like real WhatsApp
+    const fromJid = sock.user.id;
+    let message;
 
-    return successResponse(res, 200, 'Reaction added successfully', message);
+    if (!emoji) {
+        // Remove reaction
+        message = await messageService.removeReaction(messageId, req.userId, fromJid);
+    } else {
+        // Replace any existing reaction from this user with the new one
+        message = await messageService.toggleReaction(messageId, req.userId, emoji, fromJid, true);
+    }
+
+    return successResponse(res, 200, emoji ? 'Reaction added' : 'Reaction removed', message);
 });
 
 /**

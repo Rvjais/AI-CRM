@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { FaInfoCircle, FaSync, FaChevronLeft, FaChevronRight, FaBrain, FaUser, FaEnvelope, FaPhone, FaMoneyBillWave, FaMapMarkerAlt, FaTag, FaCalendarAlt } from 'react-icons/fa';
+import { FaInfoCircle, FaSync, FaChevronLeft, FaChevronRight, FaBrain, FaUser, FaEnvelope, FaPhone, FaMoneyBillWave, FaMapMarkerAlt, FaTag, FaCalendarAlt, FaExternalLinkAlt } from 'react-icons/fa';
 import SentimentGauge from './SentimentGauge';
 import './AIInsights.css';
 
 function AIInsights({ selectedChat, messages, aiEnabled, isCollapsed, setIsCollapsed, onCloseMobile }) {
     const [note, setNote] = useState('');
+    const [spreadsheetId, setSpreadsheetId] = useState(null);
 
     const [isRegenerating, setIsRegenerating] = useState(false);
 
@@ -15,6 +16,19 @@ function AIInsights({ selectedChat, messages, aiEnabled, isCollapsed, setIsColla
             setNote(savedNote || '');
         }
     }, [selectedChat]);
+
+    useEffect(() => {
+        const fetchSheetId = async () => {
+            try {
+                const api = (await import('../utils/apiClient')).default;
+                const result = await api.get('/api/sheets/config');
+                if (result.success && result.data?.spreadsheetId) {
+                    setSpreadsheetId(result.data.spreadsheetId);
+                }
+            } catch { /* ignore */ }
+        };
+        fetchSheetId();
+    }, []);
 
     const handleSaveNote = () => {
         if (selectedChat) {
@@ -85,7 +99,20 @@ function AIInsights({ selectedChat, messages, aiEnabled, isCollapsed, setIsColla
             {!isCollapsed && (
                 <div className="insights-content">
                     <div className="insights-card">
-                        <h3>LEAD DATA</h3>
+                        <div className="lead-data-header">
+                            <h3>LEAD DATA</h3>
+                            {spreadsheetId && (
+                                <a
+                                    href={`https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="sheet-link-btn"
+                                    title="Open Google Sheet"
+                                >
+                                    <FaExternalLinkAlt /> Sheet
+                                </a>
+                            )}
+                        </div>
                         {selectedChat?.extractedData && Object.keys(selectedChat.extractedData).length > 0 ? (
                             <div className="extracted-data-grid">
                                 {Object.entries(selectedChat.extractedData).map(([key, value]) => {

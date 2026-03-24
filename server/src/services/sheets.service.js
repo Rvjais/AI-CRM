@@ -251,6 +251,42 @@ export const getSheetHeaders = async (userId) => {
  * Update headers in the sheet based on config
  * @param {string} userId 
  */
+/**
+ * Get last N rows from the sheet
+ * @param {string} userId
+ * @param {number} count - Number of rows to return (default 5)
+ */
+export const getRecentRows = async (userId, count = 5) => {
+    const user = await User.findById(userId);
+    if (!user.sheetsConfig || !user.sheetsConfig.spreadsheetId) {
+        throw new Error('Sheets configuration missing');
+    }
+
+    const sheets = await getSheetsClient(userId);
+    const { spreadsheetId, sheetName, columns } = user.sheetsConfig;
+
+    // Fetch all data rows (skip header row 1)
+    const result = await sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range: `${sheetName}!A2:Z`,
+    });
+
+    const allRows = result.data.values || [];
+    const headers = (columns || []).map(col => col.header);
+
+    // Take the last N rows
+    const recentRows = allRows.slice(-count);
+
+    // Map each row to an object using column headers
+    return recentRows.reverse().map(row => {
+        const obj = {};
+        headers.forEach((header, i) => {
+            obj[header] = row[i] || '';
+        });
+        return obj;
+    });
+};
+
 export const updateSheetHeaders = async (userId) => {
     const user = await User.findById(userId);
     const sheets = await getSheetsClient(userId);

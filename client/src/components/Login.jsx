@@ -27,6 +27,9 @@ function Login({ onLogin }) {
                 // Login returns: { user, accessToken, refreshToken }
                 const token = data.data.accessToken || data.data.token;
                 if (token) {
+                    if (data.data.refreshToken) {
+                        localStorage.setItem('refreshToken', data.data.refreshToken);
+                    }
                     onLogin(token);
                 } else {
                     setError('Authentication successful but no token received.');

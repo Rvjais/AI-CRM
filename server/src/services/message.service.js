@@ -407,6 +407,61 @@ export const addReaction = async (messageId, userId, emoji, fromJid) => {
 };
 
 /**
+ * Remove reaction from a user
+ */
+export const removeReaction = async (messageId, userId, fromJid) => {
+    try {
+        const { Message } = await getClientModels(userId);
+        const message = await Message.findOneAndUpdate(
+            { _id: messageId, userId },
+            { $pull: { reactions: { fromJid } } },
+            { new: true }
+        );
+        return message;
+    } catch (error) {
+        logger.error('Remove reaction error:', error);
+        throw error;
+    }
+};
+
+/**
+ * Toggle reaction — removes existing from this user, then adds the new one
+ * (like real WhatsApp: one reaction per user per message)
+ */
+export const toggleReaction = async (messageId, userId, emoji, fromJid, fromMe = false) => {
+    try {
+        const { Message } = await getClientModels(userId);
+        // First remove any existing reaction from this user
+        await Message.updateOne(
+            { _id: messageId, userId },
+            { $pull: { reactions: { fromJid } } }
+        );
+        // Then add the new reaction
+        const message = await Message.findOneAndUpdate(
+            { _id: messageId, userId },
+            {
+                $push: {
+                    reactions: {
+                        emoji,
+                        fromJid,
+                        fromMe,
+                        timestamp: new Date(),
+                    },
+                },
+            },
+            { new: true }
+        );
+        if (message) {
+            logger.info(`Reaction toggled on message: ${messageId}`);
+        }
+        return message;
+    } catch (error) {
+        logger.error('Toggle reaction error:', error);
+        throw error;
+    }
+};
+
+/**
  * Mark messages as read
  * @param {String} userId - User ID
  * @param {String} chatJid - Chat JID

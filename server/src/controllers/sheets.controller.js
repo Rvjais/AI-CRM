@@ -63,6 +63,30 @@ export const syncHeaders = asyncHandler(async (req, res) => {
 });
 
 /**
+ * Get recent rows from the sheet
+ * GET /api/sheets/recent-rows
+ */
+export const getRecentRows = asyncHandler(async (req, res) => {
+    const userId = req.userId;
+    const user = await User.findById(userId).select('sheetsConfig');
+
+    if (!user?.sheetsConfig?.spreadsheetId) {
+        return successResponse(res, 200, 'Sheets not configured', { rows: [], spreadsheetId: null });
+    }
+
+    try {
+        const rows = await sheetsService.getRecentRows(userId, 5);
+        return successResponse(res, 200, 'Recent rows retrieved', {
+            rows,
+            spreadsheetId: user.sheetsConfig.spreadsheetId
+        });
+    } catch (error) {
+        console.error('Error fetching recent rows:', error);
+        return successResponse(res, 200, 'Could not fetch sheet data', { rows: [], spreadsheetId: user.sheetsConfig.spreadsheetId });
+    }
+});
+
+/**
  * Extract and Sync Chat Data
  * POST /api/sheets/sync-chat
  */

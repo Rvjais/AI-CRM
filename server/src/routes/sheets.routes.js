@@ -7,6 +7,7 @@ const router = express.Router();
 router.use(authenticate);
 
 router.get('/config', sheetsController.getConfig);
+router.get('/recent-rows', sheetsController.getRecentRows);
 router.post('/config', sheetsController.saveConfig);
 router.post('/sync-headers', sheetsController.syncHeaders);
 router.post('/sync-chat', sheetsController.syncChat);
