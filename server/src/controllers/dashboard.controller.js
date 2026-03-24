@@ -14,58 +14,49 @@ import * as whatsappService from '../services/whatsapp.service.js';
 export const getDashboardStats = asyncHandler(async (req, res) => {
     const userId = req.userId;
 
-    // Check WhatsApp Connection Status
-    const isWhatsAppConnected = whatsappService.isConnected(userId);
+    // Check WhatsApp Connection Status — live socket OR database session
+    let isWhatsAppConnected = whatsappService.isConnected(userId);
+
+    const userCentral = await User.findById(userId);
+
+    // Fallback: if no live socket, check if a WhatsApp session exists in the DB
+    if (!isWhatsAppConnected) {
+        try {
+            const { getClientModels } = await import('../utils/database.factory.js');
+            const { WhatsAppSession } = await getClientModels(userId);
+            const session = await WhatsAppSession.findOne({ userId });
+            if (session?.phoneNumber) {
+                isWhatsAppConnected = true;
+            }
+        } catch (e) {
+            // ignore — no session found
+        }
+    }
 
     let totalChats = 0;
-    let leads = { positive: 0, negative: 0 }; // New: Leads stats
+    let leads = { positive: 0, negative: 0 };
     let aiInteractions = 0;
 
     // Forms Stats
     let formsStats = [];
 
-    const userCentral = await User.findById(userId);
-
-    // Dynamic Voice Bot Stats
-    let voiceBotStats = {
+    // Twilio Call Stats
+    let twilioStats = {
         totalCalls: 0,
-        totalDurationFormatted: '0m 0s',
-        cost: '$0.00',
+        completedCalls: 0,
+        totalDuration: 0,
+        totalCost: '0.00',
         connected: false
     };
 
-    if (userCentral && userCentral.bolnaAgentIds && userCentral.bolnaAgentIds.length > 0) {
-        voiceBotStats.connected = true;
+    if (userCentral?.twilioConfig?.phoneNumber) {
+        twilioStats.connected = true;
         try {
-            const { fetchAgentExecutions } = await import('../services/bolna.service.js');
-
-            let totalCalls = 0;
-            let totalDurationSec = 0;
-            let totalCost = 0;
-
-            // Fetch live API executions for each connected agent map
-            for (const agentId of userCentral.bolnaAgentIds) {
-                const response = await fetchAgentExecutions(agentId);
-                const executions = response.data || [];
-
-                totalCalls += executions.length;
-                for (const ex of executions) {
-                    totalDurationSec += (Number(ex.execution_time) || 0);
-                    totalCost += (Number(ex.cost) || 0);
-                }
-            }
-
-            // Format duration mm:ss
-            const minutes = Math.floor(totalDurationSec / 60);
-            const seconds = Math.floor(totalDurationSec % 60);
-            voiceBotStats.totalDurationFormatted = `${minutes}m ${seconds}s`;
-
-            // Format cost (Bolna typically returns exact decimal dollars/cents)
-            voiceBotStats.cost = `$${totalCost.toFixed(3)}`;
-            voiceBotStats.totalCalls = totalCalls;
-
+            const { getCallStats } = await import('../services/twilio.service.js');
+            const stats = await getCallStats(userId);
+            twilioStats = { ...stats, connected: true };
         } catch (err) {
-            console.error('Error fetching Bolna aggregate telemetry:', err);
+            console.error('Error fetching Twilio stats:', err.message);
         }
     }
 
@@ -288,7 +279,7 @@ export const getDashboardStats = asyncHandler(async (req, res) => {
         ai: {
             interactions: aiInteractions
         },
-        voiceBot: voiceBotStats, // Dummy data
+        twilio: twilioStats,
         forms: formsStats, // New forms stats
         email: emailStats
     });

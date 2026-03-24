@@ -56,7 +56,7 @@ body {
 /* WhatsApp View - Grid layout for 3-panel chat */
 .whatsapp-view {
   display: grid;
-  grid-template-columns: 320px 1fr 380px;
+  grid-template-columns: 300px 1fr 340px;
   grid-template-rows: 100%;
   /* CRITICAL: Must match container height exactly */
   height: 100%;

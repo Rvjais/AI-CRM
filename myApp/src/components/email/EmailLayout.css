@@ -42,23 +42,23 @@
 
 .primary-compose-btn {
     width: 100%;
-    background: #4A9FF5;
+    background: #2B5EA7;
     color: white;
     border: none;
-    padding: 12px 24px;
+    padding: 11px 20px;
     border-radius: 10px;
     font-weight: 600;
+    font-size: 14px;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 10px;
+    gap: 8px;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.15s;
 }
 
 .primary-compose-btn:hover {
-    background: #3b8cf0;
-    box-shadow: 0 4px 12px rgba(74, 159, 245, 0.2);
+    background: #1e4a8a;
 }
 
 .sidebar-nav {
@@ -113,13 +113,13 @@
 }
 
 .nav-item.active {
-    background: #e0f2fe;
-    color: #4A9FF5;
+    background: #eff6ff;
+    color: #2B5EA7;
     font-weight: 600;
 }
 
 .nav-item.active .nav-icon {
-    color: #4A9FF5;
+    color: #2B5EA7;
 }
 
 .nav-icon {
@@ -142,19 +142,18 @@
     justify-content: center;
     gap: 8px;
     padding: 10px;
-    background: white;
-    border: 1px solid #fee2e2;
-    color: #ef4444;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 500;
+    background: #fff;
+    border: 1px solid #fecaca;
+    color: #dc2626;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.15s;
 }
 
 .disconnect-btn-sidebar:hover {
     background: #fef2f2;
-    border-color: #fecaca;
 }
 
 /* List */
@@ -772,6 +771,54 @@
     color: #5f6368;
 }
 
+/* Thread Dropdown Menu */
+.thread-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 4px;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    z-index: 100;
+    min-width: 180px;
+    padding: 4px;
+    animation: fadeDropdown 0.15s ease-out;
+}
+
+@keyframes fadeDropdown {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.thread-dropdown button {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 14px;
+    border: none;
+    background: transparent;
+    color: #374151;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: background 0.1s;
+    text-align: left;
+}
+
+.thread-dropdown button:hover {
+    background: #f3f4f6;
+}
+
+.thread-dropdown button svg {
+    font-size: 14px;
+    color: #6b7280;
+    flex-shrink: 0;
+}
+
 .spinning {
     animation: rotate 1s linear infinite;
 }
@@ -919,11 +966,16 @@
     }
 
     .email-sidebar .nav-item.active {
-        background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%);
+        background: #eff6ff;
     }
 
     .email-sidebar .nav-item.active .nav-icon {
         color: #2B5EA7;
+    }
+
+    .email-sidebar .nav-item.active span:not(.nav-icon) {
+        color: #2B5EA7;
+        font-weight: 600;
     }
 
     /* Labels section */

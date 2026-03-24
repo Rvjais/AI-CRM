@@ -15,7 +15,7 @@ import { v2 as cloudinary } from 'cloudinary';
  */
 export const updateInfrastructure = asyncHandler(async (req, res) => {
     const userId = req.userId;
-    const { mongoURI, cloudinaryConfig } = req.body;
+    const { mongoURI, cloudinaryConfig, twilioConfig } = req.body;
 
     // 1. Validate MongoDB URI
     if (mongoURI) {
@@ -50,18 +50,31 @@ export const updateInfrastructure = asyncHandler(async (req, res) => {
         }
     }
 
-    // 3. Update User
-    const updateData = {};
-    if (mongoURI) updateData.mongoURI = mongoURI;
-    if (cloudinaryConfig) updateData.cloudinaryConfig = cloudinaryConfig;
+    // 3. Validate Twilio Config
+    if (twilioConfig) {
+        const { accountSid, authToken, phoneNumber } = twilioConfig;
+        if (accountSid && authToken) {
+            try {
+                const { verifyCredentials } = await import('../services/twilio.service.js');
+                await verifyCredentials(accountSid, authToken);
+            } catch (error) {
+                throw new Error(`Failed to verify Twilio credentials: ${error.message}`);
+            }
+        }
+    }
 
-    // Set infrastructureReady to true if both are present (or if one is present and other already exists)
-    // We fetch user to check existing state if needed, but for now let's just set it if we have data.
-    // Actually, let's fetch user to properly toggle infrastructureReady
-    const user = await User.findById(userId).select('+mongoURI +cloudinaryConfig.apiSecret');
+    // 4. Update User
+    const user = await User.findById(userId).select('+mongoURI +cloudinaryConfig.apiSecret +twilioConfig.accountSid +twilioConfig.authToken');
 
     if (mongoURI) user.mongoURI = mongoURI;
     if (cloudinaryConfig) user.cloudinaryConfig = cloudinaryConfig;
+    if (twilioConfig) {
+        user.twilioConfig = {
+            accountSid: twilioConfig.accountSid || user.twilioConfig?.accountSid,
+            authToken: twilioConfig.authToken || user.twilioConfig?.authToken,
+            phoneNumber: twilioConfig.phoneNumber || user.twilioConfig?.phoneNumber,
+        };
+    }
 
     if (user.mongoURI && user.cloudinaryConfig?.cloudName && user.cloudinaryConfig?.apiKey && user.cloudinaryConfig?.apiSecret) {
         user.infrastructureReady = true;
@@ -83,14 +96,16 @@ export const updateInfrastructure = asyncHandler(async (req, res) => {
  */
 export const getInfrastructure = asyncHandler(async (req, res) => {
     const userId = req.userId;
-    // We select mongoURI and apiSecret to show them back to user (masked or full? usually empty or masked)
-    // For now, let's just return what we have, but maybe mask the secret
-    const user = await User.findById(userId).select('+mongoURI +cloudinaryConfig.apiSecret');
+    const user = await User.findById(userId).select('+mongoURI +cloudinaryConfig.apiSecret +twilioConfig.accountSid +twilioConfig.authToken');
 
     const infrastructure = {
-        mongoURI: user.mongoURI, // In production, maybe mask this
+        mongoURI: user.mongoURI,
         cloudinaryConfig: user.cloudinaryConfig,
-        // Calculate readiness dynamically to handle legacy data correctly
+        twilioConfig: {
+            accountSid: user.twilioConfig?.accountSid || '',
+            authToken: user.twilioConfig?.authToken || '',
+            phoneNumber: user.twilioConfig?.phoneNumber || '',
+        },
         infrastructureReady: !!(user.mongoURI && user.cloudinaryConfig?.cloudName && user.cloudinaryConfig?.apiKey && user.cloudinaryConfig?.apiSecret)
     };
 

@@ -1,20 +1,13 @@
 .message {
     display: flex;
     width: 100%;
-    margin-bottom: 12px;
-    animation: fadeIn 0.3s ease-out;
+    margin-bottom: 6px;
+    animation: msgFadeIn 0.25s ease-out;
 }
 
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+@keyframes msgFadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .message.sent {
@@ -23,7 +16,7 @@
 
 .message.received {
     justify-content: flex-start;
-    gap: 8px;
+    gap: 6px;
 }
 
 .message.sent .message-content-wrapper {
@@ -39,24 +32,22 @@
 }
 
 .avatar-small {
-    width: 32px;
-    height: 32px;
+    width: 30px;
+    height: 30px;
     border-radius: 50%;
     background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
     color: white;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 600;
 }
 
 .message-bubble {
-    max-width: 70%;
-    /* Slightly narrower for readability */
-    padding: 10px 14px;
-    border-radius: 18px;
-    /* Rounder bubbles */
+    max-width: 65%;
+    padding: 8px 12px;
+    border-radius: 16px;
     position: relative;
     word-wrap: break-word;
     word-break: break-word;
@@ -64,114 +55,107 @@
     display: flex;
     flex-wrap: wrap;
     align-items: flex-end;
-    gap: 8px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-    /* Softer shadow */
+    gap: 6px;
     min-width: 0;
-    transition: transform 0.2s;
+    transition: transform 0.15s;
 }
 
 .message.sent .message-bubble {
-    background: linear-gradient(135deg, #4A9FF5 0%, #2E75E0 100%);
-    /* Premium Blue Gradient */
+    background: #2B5EA7;
     color: white;
     border-bottom-right-radius: 4px;
-    /* Subtle tail effect */
-    box-shadow: 0 4px 15px rgba(74, 159, 245, 0.2);
-    /* Colored glow */
+    box-shadow: 0 1px 4px rgba(43, 94, 167, 0.2);
 }
 
 .message.received .message-bubble {
     background: white;
     color: #111827;
     border-bottom-left-radius: 4px;
-    border: 1px solid rgba(0, 0, 0, 0.03);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
 .message-sender-name {
     font-size: 0.75rem;
     font-weight: 700;
-    color: #e58e34;
-    /* Orange-ish color similar to WhatsApp pattern */
-    margin-bottom: 2px;
+    color: #d97706;
+    margin-bottom: 1px;
     line-height: 1.2;
     padding-right: 4px;
 }
 
-/* Quoted Message in Bubble */
+/* Quoted Message */
 .quoted-message-preview {
-    border-left: 4px solid #4A9FF5;
-    background: rgba(0, 0, 0, 0.05);
-    padding: 6px 10px;
+    border-left: 3px solid rgba(255, 255, 255, 0.5);
+    background: rgba(0, 0, 0, 0.06);
+    padding: 5px 10px;
     border-radius: 6px;
-    margin-bottom: 6px;
-    font-size: 13px;
+    margin-bottom: 4px;
+    font-size: 12px;
     cursor: pointer;
     display: flex;
     flex-direction: column;
-    min-width: 150px;
+    min-width: 140px;
     max-width: 100%;
     width: 100%;
 }
 
 .message.sent .quoted-message-preview {
-    background: rgba(255, 255, 255, 0.15);
-    border-left-color: white;
+    background: rgba(255, 255, 255, 0.12);
+    border-left-color: rgba(255, 255, 255, 0.6);
+}
+
+.message.received .quoted-message-preview {
+    border-left-color: #2B5EA7;
 }
 
 .quoted-sender {
     font-weight: 700;
-    color: #4A9FF5;
-    font-size: 12px;
-    margin-bottom: 2px;
+    color: #2B5EA7;
+    font-size: 11px;
+    margin-bottom: 1px;
 }
 
 .message.sent .quoted-sender {
-    color: white;
+    color: rgba(255, 255, 255, 0.9);
 }
 
 .quoted-text {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    color: #4b5563;
-    font-size: 12px;
+    color: #6b7280;
+    font-size: 11px;
 }
 
 .message.sent .quoted-text {
-    color: rgba(255, 255, 255, 0.9);
+    color: rgba(255, 255, 255, 0.75);
 }
 
-
 .message-text {
-    font-size: 14.5px;
-    line-height: 1.5;
+    font-size: 14px;
+    line-height: 1.45;
     margin-bottom: 0;
-    /* Remove bottom margin */
     max-width: 100%;
 }
 
 .message-time {
-    font-size: 11px;
-    opacity: 0.7;
-    float: none;
-    /* Remove float */
+    font-size: 10px;
+    opacity: 0.65;
     margin-left: auto;
-    /* Push to right */
     margin-top: 0;
     line-height: 1;
     white-space: nowrap;
 }
 
 .message.sent .message-time {
-    color: rgba(255, 255, 255, 0.9);
+    color: rgba(255, 255, 255, 0.85);
 }
 
 .message.received .message-time {
-    color: #6b7280;
+    color: #9ca3af;
 }
 
-/* Media Styles */
+/* Media */
 .message-media {
     max-width: 100%;
     border-radius: 8px;
@@ -180,7 +164,7 @@
 }
 
 .message-audio {
-    max-width: 250px;
+    max-width: 240px;
     margin-bottom: 4px;
 }
 
@@ -209,54 +193,49 @@
     margin-bottom: 4px;
 }
 
-.doc-icon {
-    font-size: 20px;
-}
+.doc-icon { font-size: 18px; }
 
 .doc-link {
     color: inherit;
     text-decoration: none;
     font-weight: 500;
     word-break: break-all;
+    font-size: 13px;
 }
 
-.doc-link:hover {
-    text-decoration: underline;
-}
+.doc-link:hover { text-decoration: underline; }
 
 .message.sent .message-document {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.15);
 }
 
-.message.sent .doc-link {
-    color: white;
-}
+.message.sent .doc-link { color: white; }
 
 .media-placeholder {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 20px;
-    background: rgba(0, 0, 0, 0.05);
+    padding: 16px;
+    background: rgba(0, 0, 0, 0.04);
     border-radius: 8px;
     margin-bottom: 4px;
-    min-width: 150px;
-    min-height: 100px;
+    min-width: 140px;
+    min-height: 80px;
 }
 
 .media-placeholder.error {
-    background: rgba(255, 0, 0, 0.05);
+    background: rgba(239, 68, 68, 0.05);
     color: #ef4444;
 }
 
 .media-placeholder .icon {
-    font-size: 24px;
-    margin-bottom: 8px;
+    font-size: 22px;
+    margin-bottom: 6px;
 }
 
 .media-placeholder .text {
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 500;
 }
 
@@ -267,51 +246,39 @@
     flex-direction: column;
 }
 
-/* Reaction actions - now state-controlled via React */
 .reaction-actions {
     display: flex;
     position: absolute;
     top: 100%;
     margin-top: 2px;
     background: white;
-    padding: 4px;
-    border-radius: 20px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    gap: 4px;
+    padding: 3px;
+    border-radius: 16px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+    gap: 2px;
     z-index: 10;
-    animation: fadeIn 0.2s;
-    max-width: calc(100vw - 24px);
-    flex-wrap: wrap;
-    justify-content: center;
+    animation: msgFadeIn 0.15s;
 }
 
-/* Invisible bridge to prevent flickering when moving mouse to reactions */
 .reaction-actions::before {
     content: '';
     position: absolute;
-    top: -10px;
+    top: -8px;
     left: 0;
     right: 0;
-    height: 10px;
+    height: 8px;
     background: transparent;
 }
 
-.message.sent .reaction-actions {
-    right: 0;
-    left: auto;
-}
-
-.message.received .reaction-actions {
-    left: 0;
-    right: auto;
-}
+.message.sent .reaction-actions { right: 0; }
+.message.received .reaction-actions { left: 0; }
 
 .reaction-actions button {
     background: none;
     border: none;
-    font-size: 16px;
+    font-size: 15px;
     cursor: pointer;
-    padding: 4px;
+    padding: 3px;
     border-radius: 50%;
     transition: transform 0.1s;
 }
@@ -324,18 +291,17 @@
 .reaction-divider {
     width: 1px;
     height: 16px;
-    background: rgba(0, 0, 0, 0.1);
-    margin: 0 4px;
+    background: rgba(0, 0, 0, 0.08);
+    margin: 0 2px;
     flex-shrink: 0;
 }
 
 .message-reactions {
     display: flex;
     flex-wrap: wrap;
-    gap: 4px;
-    margin-top: 4px;
+    gap: 3px;
+    margin-top: 3px;
     justify-content: flex-end;
-    /* Or flex-start based on message type, but simplified for now */
 }
 
 .message.received .message-reactions {
@@ -344,247 +310,85 @@
 
 .reaction-bubble {
     background: white;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
     border-radius: 10px;
-    padding: 2px 6px;
+    padding: 1px 5px;
     font-size: 12px;
-    border: 1px solid #e5e7eb;
+    border: 1px solid #f3f4f6;
 }
 
 .message.sent .reaction-bubble {
     background: rgba(255, 255, 255, 0.9);
 }
 
-/* ============================================
-   MOBILE RESPONSIVE STYLES
-   ============================================ */
+/* Mobile */
 @media (max-width: 768px) {
-    .message {
-        margin-bottom: 8px;
-    }
+    .message { margin-bottom: 4px; }
 
     .message-bubble {
-        max-width: 85%;
-        padding: 10px 12px;
-        border-radius: 16px;
-        gap: 4px;
-        font-size: 13px;
-        line-height: 1.4;
-    }
-
-    .message.sent .message-bubble {
-        background: #2B5EA7;
-        color: white;
-    }
-
-    .message.received .message-bubble {
-        background: #f3f4f6;
-        color: #1f2937;
+        max-width: 80%;
+        padding: 7px 11px;
+        border-radius: 14px;
+        gap: 5px;
     }
 
     .message-text {
         font-size: 14px;
         line-height: 1.4;
-        word-wrap: break-word;
-        word-break: break-word;
     }
 
-    .message-time {
-        font-size: 11px;
-        opacity: 0.7;
-        margin-top: 2px;
-    }
+    .message-time { font-size: 10px; }
 
     .avatar-small {
-        width: 32px;
-        height: 32px;
-        font-size: 13px;
-        flex-shrink: 0;
+        width: 26px;
+        height: 26px;
+        font-size: 11px;
     }
 
-    /* Quoted message - truncate text */
     .quoted-message-preview {
-        padding: 6px 10px;
-        border-left: 3px solid currentColor;
+        padding: 4px 8px;
         border-radius: 4px;
-        margin-bottom: 6px;
-        font-size: 12px;
-        background: rgba(0, 0, 0, 0.05);
+        margin-bottom: 3px;
+        font-size: 11px;
         min-width: 100px;
-        max-width: 220px;
-    }
-
-    .message.sent .quoted-message-preview {
-        background: rgba(255, 255, 255, 0.15);
+        max-width: 200px;
     }
 
     .quoted-text {
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        max-width: 200px;
-        display: block;
-        font-size: 12px;
-        font-weight: 500;
-    }
-
-    .quoted-sender {
+        max-width: 180px;
         font-size: 11px;
-        opacity: 0.8;
     }
 
-    /* Media sizing */
-    .message-media {
-        max-width: 240px;
-        max-height: 320px;
-        border-radius: 10px;
-        margin-bottom: 4px;
-    }
+    .quoted-sender { font-size: 11px; }
 
-    .message-audio {
-        max-width: 220px;
-        margin-bottom: 4px;
-    }
-
-    .message-sticker {
-        max-width: 120px;
-        margin-bottom: 4px;
-    }
+    .message-media { max-width: 220px; }
+    .message-audio { max-width: 200px; }
+    .message-sticker { max-width: 100px; }
 
     .message-document {
-        padding: 8px 10px;
+        padding: 6px 10px;
         font-size: 12px;
-        border-radius: 8px;
-        margin-bottom: 4px;
-        gap: 6px;
     }
 
-    .doc-icon {
-        font-size: 18px;
-    }
-
-    .doc-link {
-        word-break: break-all;
-    }
-
-    /* Reactions */
-    .reaction-actions {
-        margin-top: 4px;
-        padding: 3px;
-        gap: 2px;
-        max-width: calc(100vw - 32px);
-        flex-wrap: wrap;
-        justify-content: center;
-    }
+    .doc-icon { font-size: 16px; }
 
     .reaction-actions button {
         font-size: 14px;
         padding: 2px;
-        min-width: 28px;
-        min-height: 28px;
-    }
-
-    .reaction-divider {
-        display: none;
     }
 
     .reaction-bubble {
         font-size: 11px;
-        padding: 2px 6px;
+        padding: 1px 4px;
     }
 
-    /* Text alignment on mobile */
     .message.sent .message-text {
         text-align: right;
+        width: 100%;
     }
 
     .message.received .message-text {
         text-align: left;
+        width: 100%;
     }
-
-    /* Message group spacing */
-    .message-group {
-        margin-bottom: 12px;
-    }
-}
-
-/* ============================================
-   FULLSCREEN MEDIA MODAL STYLES
-   ============================================ */
-.fullscreen-media-modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(0, 0, 0, 0.95);
-    z-index: 9999;
-    display: flex;
-    flex-direction: column;
-    animation: fadeIn 0.2s ease-out;
-}
-
-.modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 16px 20px;
-    padding-top: calc(16px + env(safe-area-inset-top, 0px));
-    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0) 100%);
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 10;
-}
-
-.modal-btn {
-    background: rgba(255, 255, 255, 0.1);
-    border: none;
-    color: white;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 18px;
-    cursor: pointer;
-    backdrop-filter: blur(4px);
-    transition: all 0.2s;
-}
-
-.modal-btn:hover {
-    background: rgba(255, 255, 255, 0.2);
-    transform: scale(1.05);
-}
-
-.modal-content {
-    flex: 1;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 0;
-    margin: 0;
-    overflow: hidden;
-    position: relative;
-    height: 100%;
-}
-
-.modal-image {
-    max-width: 100%;
-    max-height: 100vh;
-    object-fit: contain;
-    user-select: none;
-    -webkit-user-select: none;
-}
-
-/* Make images in chat clickable */
-.message-media-clickable {
-    cursor: pointer;
-    transition: opacity 0.2s;
-}
-
-.message-media-clickable:active {
-    opacity: 0.8;
 }

@@ -2,10 +2,8 @@ import { useState, useEffect } from 'react';
 import { IonPage, IonContent } from '@ionic/react';
 import api from '../utils/apiClient';
 import ChatWindow from './ChatWindow';
-import { IoClose } from 'react-icons/io5';
-import { FaRegCommentDots, FaExternalLinkAlt } from 'react-icons/fa';
+import { FaRegCommentDots, FaExternalLinkAlt, FaWhatsapp, FaEnvelope, FaPhone, FaRobot, FaWpforms, FaArrowUp, FaArrowDown, FaLock } from 'react-icons/fa';
 import './Dashboard.css';
-import Loader from './Loader';
 
 function Dashboard() {
     const [stats, setStats] = useState({
@@ -18,11 +16,25 @@ function Dashboard() {
     const [chatMessages, setChatMessages] = useState([]);
     const [expandedForm, setExpandedForm] = useState(null);
     const [sheetLeads, setSheetLeads] = useState({ rows: [], spreadsheetId: null, loading: true });
+    const [aiConfigured, setAiConfigured] = useState(true);
 
     useEffect(() => {
         fetchDashboardData();
         fetchSheetLeads();
+        checkAiStatus();
     }, []);
+
+    const checkAiStatus = async () => {
+        try {
+            const res = await api.get('/api/ai/config');
+            if (res.success && res.data) {
+                const hasKey = res.data.keysConfigured?.[res.data.provider];
+                setAiConfigured(!!hasKey);
+            }
+        } catch {
+            setAiConfigured(false);
+        }
+    };
 
     const fetchSheetLeads = async () => {
         try {
@@ -38,14 +50,13 @@ function Dashboard() {
     const fetchDashboardData = async () => {
         try {
             const data = await api.get('/api/dashboard/stats');
-
             if (data.success) {
                 setStats({
                     chatCount: data.data.whatsapp.totalChats || 0,
                     aiInteractions: data.data.ai.interactions || 0,
-                    leads: data.data.whatsapp.leads, // Leads stats
-                    voiceBot: data.data.voiceBot, // Dummy voice bot stats
-                    forms: data.data.forms, // Forms stats
+                    leads: data.data.whatsapp.leads,
+                    twilio: data.data.twilio,
+                    forms: data.data.forms,
                     email: data.data.email,
                     isConnected: data.data.whatsapp?.connected || false
                 });
@@ -61,14 +72,7 @@ function Dashboard() {
         setExpandedForm(prev => prev === formId ? null : formId);
     };
 
-    const handleSubmissionClick = (submission) => {
-        console.log("Clicked submission:", submission);
-        // Placeholder for navigation or modal
-        // For now, maybe just alert or log
-    };
-
     const handleChatClick = (chat) => {
-        // Normalize chat object for ChatWindow
         const normalizedChat = {
             ...chat,
             jid: chat.chatJid,
@@ -76,23 +80,19 @@ function Dashboard() {
             phone: chat.phoneNumber
         };
         setActiveChat(normalizedChat);
-        setChatMessages([]); // ChatWindow will fetch messages itself via useEffect when selectedChat changes
+        setChatMessages([]);
     };
 
     const handleCloseChat = () => {
         setActiveChat(null);
         setChatMessages([]);
-        // Refresh dashboard stats when closing to show updated unread counts/sentiment
         fetchDashboardData();
     };
 
     const handleChatUpdate = (updatedChat) => {
-        // Update the active chat state locally
         setActiveChat(prev => ({ ...prev, ...updatedChat }));
     };
 
-    // Dummy handler for message updates from ChatWindow (it fetches its own, but we pass setter)
-    // Actually ChatWindow calls setMessages(data, chatId). We just update our local state.
     const handleMessagesUpdate = (msgs) => {
         setChatMessages(msgs);
     };
@@ -101,7 +101,10 @@ function Dashboard() {
         return (
             <IonPage>
                 <IonContent className="ion-padding">
-                    <div className="loading">Loading dashboard...</div>
+                    <div className="dash-loading">
+                        <div className="dash-loading-spinner"></div>
+                        <p>Loading dashboard...</p>
+                    </div>
                 </IonContent>
             </IonPage>
         );
@@ -109,184 +112,141 @@ function Dashboard() {
 
     return (
         <IonPage>
-            <IonContent className="ion-padding dashboard-view-content">
-                <div className="dashboard-view">
-                    <div className="header-card">
-                        <div className="view-header centered">
+            <IonContent className="ion-padding">
+                <div className="dash-inner">
+                    <header className="dash-header">
+                        <div>
                             <h1>Dashboard</h1>
                             <p>Overview of your business metrics</p>
-                            <div className="header-divider"></div>
+                        </div>
+                    </header>
+
+                    <div className="dash-stats-row">
+                        <div className="dash-stat-card">
+                            <div className="dash-stat-icon whatsapp"><FaWhatsapp /></div>
+                            <div className="dash-stat-body">
+                                <span className="dash-stat-label">WhatsApp</span>
+                                <span className="dash-stat-value">{stats.isConnected ? stats.chatCount : '--'}</span>
+                                <span className="dash-stat-sub">{stats.isConnected ? 'Total chats' : 'Not connected'}</span>
+                            </div>
+                        </div>
+
+                        <div className="dash-stat-card">
+                            <div className="dash-stat-icon email"><FaEnvelope /></div>
+                            <div className="dash-stat-body">
+                                <span className="dash-stat-label">Email</span>
+                                <span className="dash-stat-value">{stats.email?.connected ? stats.email.total : '--'}</span>
+                                <span className="dash-stat-sub">{stats.email?.connected ? `${stats.email.unread} priority` : 'Not connected'}</span>
+                            </div>
+                        </div>
+
+                        <div className="dash-stat-card">
+                            <div className="dash-stat-icon calls"><FaPhone /></div>
+                            <div className="dash-stat-body">
+                                <span className="dash-stat-label">Phone Calls</span>
+                                <span className="dash-stat-value">{stats.twilio?.connected ? stats.twilio.totalCalls : '--'}</span>
+                                <span className="dash-stat-sub">{stats.twilio?.connected ? `${stats.twilio.completedCalls} completed` : 'Not connected'}</span>
+                            </div>
+                        </div>
+
+                        <div className={`dash-stat-card ${!aiConfigured ? 'dash-disabled-card' : ''}`}>
+                            {!aiConfigured && (
+                                <div className="dash-card-overlay">
+                                    <FaLock />
+                                    <span>AI not configured</span>
+                                </div>
+                            )}
+                            <div className="dash-stat-icon ai"><FaRobot /></div>
+                            <div className="dash-stat-body">
+                                <span className="dash-stat-label">AI Messages</span>
+                                <span className="dash-stat-value">{stats.aiInteractions}</span>
+                                <span className="dash-stat-sub">Auto-replies sent</span>
+                            </div>
                         </div>
                     </div>
 
-                    <div className="dashboard-grid">
-                        {/* Leads Section (WhatsApp Sentiment) */}
-                        <div className="stat-card leads-card">
-                            <div className="leads-card-inner">
-                                <div className="stat-header">
-                                    <div className="stat-icon whatsapp">📱</div>
-                                    <div className="stat-info">
-                                        <h3>WhatsApp Leads</h3>
-                                        {stats.isConnected ? (
-                                            <div className="leads-summary">
-                                                <span className="lead-tag pos">{stats.leads?.positive || 0} POSITIVE</span>
-                                                <span className="lead-tag neg">{stats.leads?.negative || 0} NEGATIVE</span>
-                                            </div>
+                    {stats.isConnected && (
+                        <div className={`dash-leads-section ${!aiConfigured ? 'dash-disabled-section' : ''}`}>
+                            {!aiConfigured && (
+                                <div className="dash-section-overlay">
+                                    <FaLock className="dash-overlay-icon" />
+                                    <span className="dash-overlay-title">AI Not Configured</span>
+                                    <span className="dash-overlay-sub">Configure your AI provider in AI Config to enable sentiment analysis.</span>
+                                </div>
+                            )}
+                            <div className="dash-section-header">
+                                <h2>WhatsApp Leads</h2>
+                                <div className="dash-leads-tags">
+                                    <span className="dash-tag positive">{stats.leads?.positive || 0} Positive</span>
+                                    <span className="dash-tag negative">{stats.leads?.negative || 0} Negative</span>
+                                </div>
+                            </div>
+                            <div className="dash-leads-grid">
+                                <div className="dash-lead-column positive">
+                                    <h4><FaArrowUp /> Positive</h4>
+                                    <div className="dash-lead-list">
+                                        {stats.leads?.positiveList?.length > 0 ? (
+                                            stats.leads.positiveList.map(chat => (
+                                                <div key={chat._id} className="dash-lead-item" onClick={() => handleChatClick(chat)}>
+                                                    <div className="dash-lead-avatar positive">
+                                                        {(chat.contactName || chat.phoneNumber || '?').charAt(0)}
+                                                    </div>
+                                                    <div className="dash-lead-info">
+                                                        <span className="dash-lead-name">{chat.contactName || chat.phoneNumber}</span>
+                                                        <span className="dash-lead-time">{new Date(chat.lastMessageAt).toLocaleDateString()}</span>
+                                                    </div>
+                                                    <FaRegCommentDots className="dash-lead-action" />
+                                                </div>
+                                            ))
                                         ) : (
-                                            <p className="stat-value">Not Connected</p>
+                                            <p className="dash-empty-text">No positive leads yet</p>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="dash-lead-column negative">
+                                    <h4><FaArrowDown /> Negative</h4>
+                                    <div className="dash-lead-list">
+                                        {stats.leads?.negativeList?.length > 0 ? (
+                                            stats.leads.negativeList.map(chat => (
+                                                <div key={chat._id} className="dash-lead-item" onClick={() => handleChatClick(chat)}>
+                                                    <div className="dash-lead-avatar negative">
+                                                        {(chat.contactName || chat.phoneNumber || '?').charAt(0)}
+                                                    </div>
+                                                    <div className="dash-lead-info">
+                                                        <span className="dash-lead-name">{chat.contactName || chat.phoneNumber}</span>
+                                                        <span className="dash-lead-time">{new Date(chat.lastMessageAt).toLocaleDateString()}</span>
+                                                    </div>
+                                                    <FaRegCommentDots className="dash-lead-action" />
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <p className="dash-empty-text">No negative leads yet</p>
                                         )}
                                     </div>
                                 </div>
                             </div>
-
-                            {stats.isConnected && (
-                                <div className="leads-lists-container">
-                                    <div className="lead-column positive-container">
-                                        <h4>POSITIVE INTERACTIONS</h4>
-                                        <div className="lead-list">
-                                            {stats.leads?.positiveList?.length > 0 ? (
-                                                stats.leads.positiveList.map(chat => (
-                                                    <div key={chat._id} className="lead-chat-item" onClick={() => handleChatClick(chat)}>
-                                                        <div className="lead-avatar positive">
-                                                            {(chat.contactName || chat.phoneNumber || '?').charAt(0)}
-                                                        </div>
-                                                        <div className="lead-details">
-                                                            <span className="lead-name">{chat.contactName || chat.phoneNumber}</span>
-                                                            <span className="lead-time">{new Date(chat.lastMessageAt).toLocaleDateString()}</span>
-                                                        </div>
-                                                        <button className="lead-chat-btn">
-                                                            <FaRegCommentDots />
-                                                        </button>
-                                                    </div>
-                                                ))
-                                            ) : (
-                                                <p className="empty-lead-list">No positive leads yet</p>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    <div className="lead-column negative-container">
-                                        <h4 className="negative-header">NEGATIVE INTERACTIONS</h4>
-                                        <div className="lead-list">
-                                            {stats.leads?.negativeList?.length > 0 ? (
-                                                stats.leads.negativeList.map(chat => (
-                                                    <div key={chat._id} className="lead-chat-item" onClick={() => handleChatClick(chat)}>
-                                                        <div className="negative-indicator"></div>
-                                                        <div className="lead-avatar negative">
-                                                            {(chat.contactName || chat.phoneNumber || '?').charAt(0)}
-                                                        </div>
-                                                        <div className="lead-details">
-                                                            <span className="lead-name">{chat.contactName || chat.phoneNumber}</span>
-                                                            <span className="lead-time">{new Date(chat.lastMessageAt).toLocaleDateString()}</span>
-                                                        </div>
-                                                        <button className="lead-chat-btn">
-                                                            <FaRegCommentDots />
-                                                        </button>
-                                                    </div>
-                                                ))
-                                            ) : (
-                                                <p className="empty-lead-list">No negative leads yet</p>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
                         </div>
+                    )}
 
-                        {/* Email Insights Section */}
-                        <div className="stat-card email-card">
-                            <div className="stat-header">
-                                <div className="stat-icon email">📧</div>
-                                <div className="stat-info">
-                                    <h3>Email Insights</h3>
-                                    {stats.email?.connected ? (
-                                        <div className="email-stats-row">
-                                            <div className="estat">
-                                                <span className="estat-val">{stats.email.unread}</span>
-                                                <span className="estat-label">Unread</span>
-                                            </div>
-                                            <div className="estat">
-                                                <span className="estat-val">{stats.email.total}</span>
-                                                <span className="estat-label">Total</span>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div className="connect-prompt">
-                                            <p>Connect your Gmail to see AI insights.</p>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-
-                        </div>
-
-                        {/* Voice AI Agent Section */}
-                        <div className="stat-card">
-                            <div className="stat-icon voice">🎙️</div>
-                            <div className="stat-info">
-                                <h3>Voice AI Agent</h3>
-                                {stats.voiceBot?.connected ? (
-                                    <div className="voice-stats">
-                                        <div className="voice-row">
-                                            <span className="v-label">Total Executions:</span>
-                                            <span className="v-value">{stats.voiceBot?.totalCalls || 0}</span>
-                                        </div>
-                                        <div className="voice-row">
-                                            <span className="v-label">Time Talked:</span>
-                                            <span className="v-value">{stats.voiceBot?.totalDurationFormatted || '0m 0s'}</span>
-                                        </div>
-                                        <div className="voice-row">
-                                            <span className="v-label">Total Cost:</span>
-                                            <span className="v-value highlight-red">{stats.voiceBot?.cost || '$0.00'}</span>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="connect-prompt">
-                                        <p>Agent isn't connected</p>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* AI Interactions */}
-                        <div className="stat-card">
-                            <div className="stat-icon ai">🤖</div>
-                            <div className="stat-info">
-                                <h3>AI Interactions</h3>
-                                <p className="stat-value">{stats.aiInteractions}</p>
-                                <p className="stat-subtext">Messages sent by assistant</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Priority Inbox Section */}
                     {stats.email?.connected && stats.email?.priorityList?.length > 0 && (
-                        <div className="priority-section">
-                            <h2>Priority Email Inbox</h2>
-                            <div className="priority-list-scroll">
+                        <div className="dash-section">
+                            <div className="dash-section-header">
+                                <h2>Priority Emails</h2>
+                            </div>
+                            <div className="dash-priority-list">
                                 {stats.email.priorityList.map((email) => (
-                                    <div key={email.id} className="priority-item">
-                                        <div className="pi-left">
-                                            <div className="score-wrapper">
-                                                <div className={`pi-score-circle ${email.score >= 8 ? 'high' : email.score >= 4 ? 'medium' : 'low'}`}>
-                                                    {email.score}
-                                                </div>
-                                                {email.score >= 8 && <span className="score-label">Label</span>}
-                                            </div>
+                                    <div key={email.id} className="dash-priority-item">
+                                        <div className={`dash-priority-score ${email.score >= 8 ? 'high' : email.score >= 4 ? 'medium' : 'low'}`}>
+                                            {email.score}
                                         </div>
-                                        <div className="pi-content">
-                                            <div className="pi-header">
-                                                <span className="pi-subject">{email.subject}</span>
-                                                <span className="pi-date">{new Date(email.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                                        <div className="dash-priority-content">
+                                            <div className="dash-priority-top">
+                                                <span className="dash-priority-subject">{email.subject}</span>
+                                                <span className="dash-priority-date">{new Date(email.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                                             </div>
-                                            <div className="pi-from">{email.from}</div>
-                                            <div className="pi-reason">
-                                                <div className="ai-badge">
-                                                    <span className="ai-icon">✨</span>
-                                                    <span className="ai-label">AI INSIGHT</span>
-                                                </div>
-                                                {email.reason}
-                                            </div>
+                                            <span className="dash-priority-from">{email.from}</span>
+                                            <span className="dash-priority-reason">{email.reason}</span>
                                         </div>
                                     </div>
                                 ))}
@@ -294,25 +254,19 @@ function Dashboard() {
                         </div>
                     )}
 
-                    {/* Sheet Leads Section */}
                     {sheetLeads.spreadsheetId && (
-                        <div className="sheet-leads-section">
-                            <div className="sheet-leads-header">
+                        <div className="dash-section">
+                            <div className="dash-section-header">
                                 <h2>Recent Extracted Leads</h2>
-                                <a
-                                    href={`https://docs.google.com/spreadsheets/d/${sheetLeads.spreadsheetId}/edit`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="sheet-open-btn"
-                                >
+                                <a href={`https://docs.google.com/spreadsheets/d/${sheetLeads.spreadsheetId}/edit`} target="_blank" rel="noopener noreferrer" className="dash-link-btn">
                                     <FaExternalLinkAlt /> Open Sheet
                                 </a>
                             </div>
                             {sheetLeads.loading ? (
-                                <div className="sheet-leads-loading">Loading sheet data...</div>
+                                <p className="dash-empty-text">Loading sheet data...</p>
                             ) : sheetLeads.rows.length > 0 ? (
-                                <div className="sheet-leads-scroll">
-                                    <table className="sheet-leads-table">
+                                <div className="dash-table-wrap">
+                                    <table className="dash-table">
                                         <thead>
                                             <tr>
                                                 {Object.keys(sheetLeads.rows[0]).map(header => (
@@ -332,70 +286,65 @@ function Dashboard() {
                                     </table>
                                 </div>
                             ) : (
-                                <div className="sheet-leads-empty">No leads extracted yet.</div>
+                                <p className="dash-empty-text">No leads extracted yet.</p>
                             )}
                         </div>
                     )}
 
-                    {/* Forms Section */}
-                    <div className="forms-section">
-                        <h2>Forms Overview</h2>
-                        <div className="forms-list">
-                            {stats.forms && stats.forms.length > 0 ? (
-                                stats.forms.map((form) => (
-                                    <div className="form-card" key={form._id}>
-                                        <div className="form-header" onClick={() => toggleFormExpand(form._id)}>
-                                            <div className="form-title-row">
+                    {stats.forms && stats.forms.length > 0 && (
+                        <div className="dash-section">
+                            <div className="dash-section-header">
+                                <h2>Forms</h2>
+                            </div>
+                            <div className="dash-forms-list">
+                                {stats.forms.map((form) => (
+                                    <div className="dash-form-card" key={form._id}>
+                                        <div className="dash-form-header" onClick={() => toggleFormExpand(form._id)}>
+                                            <div className="dash-form-title">
+                                                <FaWpforms className="dash-form-icon" />
                                                 <h3>{form.title}</h3>
-                                                <span className="form-count-badge">{form.totalSubmissions} Submissions</span>
                                             </div>
-                                            <span className="expand-icon">{expandedForm === form._id ? '▼' : '▶'}</span>
+                                            <div className="dash-form-right">
+                                                <span className="dash-form-badge">{form.totalSubmissions}</span>
+                                                <span className="dash-expand">{expandedForm === form._id ? '\u25BC' : '\u25B6'}</span>
+                                            </div>
                                         </div>
-
                                         {expandedForm === form._id && (
-                                            <div className="form-submissions-list">
-                                                <h4>Last 5 Submissions</h4>
+                                            <div className="dash-form-submissions">
                                                 {form.recentSubmissions && form.recentSubmissions.length > 0 ? (
-                                                    <ul className="submissions-list">
+                                                    <div className="dash-submissions-list">
                                                         {form.recentSubmissions.map(sub => (
-                                                            <li key={sub._id} onClick={() => handleSubmissionClick(sub)} className="submission-item">
-                                                                <div className="sub-info">
+                                                            <div key={sub._id} className="dash-submission-item">
+                                                                <div className="dash-sub-data">
                                                                     {sub.data ? (
-                                                                        <div className="sub-data-grid">
-                                                                            {Object.entries(sub.data).map(([key, value]) => (
-                                                                                <div key={key} className="sub-field">
-                                                                                    <span className="sub-key">{key}:</span>
-                                                                                    <span className="sub-value">{String(value)}</span>
-                                                                                </div>
-                                                                            ))}
-                                                                        </div>
+                                                                        Object.entries(sub.data).map(([key, value]) => (
+                                                                            <div key={key} className="dash-sub-field">
+                                                                                <span className="dash-sub-key">{key}:</span>
+                                                                                <span className="dash-sub-val">{String(value)}</span>
+                                                                            </div>
+                                                                        ))
                                                                     ) : (
-                                                                        <span className="sub-email">{sub.email}</span>
+                                                                        <span>{sub.email}</span>
                                                                     )}
                                                                 </div>
-                                                                <span className="sub-date">{new Date(sub.submittedAt).toLocaleDateString()}</span>
-                                                            </li>
+                                                                <span className="dash-sub-date">{new Date(sub.submittedAt).toLocaleDateString()}</span>
+                                                            </div>
                                                         ))}
-                                                    </ul>
+                                                    </div>
                                                 ) : (
-                                                    <p className="no-subs">No submissions yet.</p>
+                                                    <p className="dash-empty-text">No submissions yet.</p>
                                                 )}
                                             </div>
                                         )}
                                     </div>
-                                ))
-                            ) : (
-                                <div className="no-forms">
-                                    <p>No forms created yet.</p>
-                                </div>
-                            )}
+                                ))}
+                            </div>
                         </div>
-                    </div>
+                    )}
 
-                    {/* Quick Chat Modal */}
                     {activeChat && (
-                        <div className="modal-overlay" onClick={handleCloseChat}>
-                            <div className="quick-chat-modal" onClick={(e) => e.stopPropagation()}>
+                        <div className="dash-modal-overlay" onClick={handleCloseChat}>
+                            <div className="dash-chat-modal" onClick={(e) => e.stopPropagation()}>
                                 <ChatWindow
                                     selectedChat={activeChat}
                                     messages={chatMessages}

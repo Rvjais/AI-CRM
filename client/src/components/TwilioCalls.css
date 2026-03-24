@@ -1,0 +1,629 @@
+/* ============================================================
+   TWILIO CALLS — Professional UI
+   ============================================================ */
+
+.tc-container {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: #f8fafc;
+    overflow: hidden;
+}
+
+/* ── Loading & Empty States ── */
+.tc-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: 1rem;
+    color: #6b7280;
+}
+
+.tc-spinner {
+    animation: tc-spin 1s linear infinite;
+    font-size: 1.2rem;
+}
+
+@keyframes tc-spin {
+    to { transform: rotate(360deg); }
+}
+
+.tc-not-connected {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: 1rem;
+    text-align: center;
+    padding: 2rem;
+}
+
+.tc-not-connected-icon {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: #fef2f2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    color: #ef4444;
+}
+
+.tc-not-connected h2 {
+    margin: 0;
+    color: #1f2937;
+    font-size: 1.5rem;
+}
+
+.tc-not-connected p {
+    color: #6b7280;
+    max-width: 400px;
+}
+
+/* ── Header ── */
+.tc-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.5rem 2rem;
+    background: #fff;
+    border-bottom: 1px solid #e5e7eb;
+    flex-shrink: 0;
+}
+
+.tc-header-left h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #111827;
+}
+
+.tc-header-left p {
+    margin: 0.25rem 0 0;
+    font-size: 0.875rem;
+    color: #6b7280;
+}
+
+.tc-tabs {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.tc-tab {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1.2rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    background: #fff;
+    color: #6b7280;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.tc-tab:hover {
+    background: #f9fafb;
+    color: #111827;
+}
+
+.tc-tab.active {
+    background: #2B5EA7;
+    color: #fff;
+    border-color: #2B5EA7;
+}
+
+/* ── Content ── */
+.tc-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1.5rem 2rem;
+}
+
+/* ── Dialer Layout ── */
+.tc-dialer-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.tc-dialer-card {
+    background: #fff;
+    border-radius: 20px;
+    padding: 2rem;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    border: 1px solid #e5e7eb;
+}
+
+.tc-dialer-card h3 {
+    margin: 0 0 1.5rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #111827;
+}
+
+.tc-phone-input-wrapper {
+    margin-bottom: 1.5rem;
+}
+
+.tc-phone-input {
+    width: 100%;
+    padding: 1rem;
+    font-size: 1.4rem;
+    font-weight: 600;
+    text-align: center;
+    border: 2px solid #e5e7eb;
+    border-radius: 14px;
+    background: #f9fafb;
+    color: #111827;
+    letter-spacing: 1px;
+    transition: border-color 0.2s;
+}
+
+.tc-phone-input:focus {
+    outline: none;
+    border-color: #2B5EA7;
+    background: #fff;
+}
+
+/* ── Dial Pad ── */
+.tc-dialpad {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.tc-dialpad-row {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+}
+
+.tc-dialpad-key {
+    width: 64px;
+    height: 52px;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    background: #fff;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #1f2937;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tc-dialpad-key:hover {
+    background: #f3f4f6;
+    border-color: #d1d5db;
+}
+
+.tc-dialpad-key:active {
+    background: #e5e7eb;
+    transform: scale(0.95);
+}
+
+/* ── Call Button ── */
+.tc-call-btn {
+    width: 100%;
+    padding: 0.9rem;
+    border: none;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    transition: all 0.2s;
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+}
+
+.tc-call-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+}
+
+.tc-call-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* ── Call Result ── */
+.tc-result {
+    margin-top: 1rem;
+    padding: 0.75rem 1rem;
+    border-radius: 10px;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.tc-result.success {
+    background: #ecfdf5;
+    color: #065f46;
+    border: 1px solid #a7f3d0;
+}
+
+.tc-result.error {
+    background: #fef2f2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+}
+
+/* ── Recent Calls Sidebar ── */
+.tc-recent-sidebar {
+    background: #fff;
+    border-radius: 20px;
+    padding: 2rem;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    border: 1px solid #e5e7eb;
+}
+
+.tc-recent-sidebar h3 {
+    margin: 0 0 1rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #111827;
+}
+
+.tc-empty {
+    color: #9ca3af;
+    text-align: center;
+    padding: 2rem 0;
+    font-size: 0.875rem;
+}
+
+.tc-recent-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.tc-recent-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.tc-recent-item:hover {
+    background: #f9fafb;
+}
+
+.tc-recent-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 0.8rem;
+}
+
+.tc-inbound {
+    color: #2B5EA7;
+}
+
+.tc-outbound {
+    color: #10b981;
+}
+
+.tc-recent-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.tc-recent-number {
+    display: block;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #111827;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tc-recent-meta {
+    display: block;
+    font-size: 0.75rem;
+    color: #9ca3af;
+    text-transform: capitalize;
+}
+
+.tc-recent-time {
+    font-size: 0.75rem;
+    color: #9ca3af;
+    flex-shrink: 0;
+}
+
+/* ── Call History Tab ── */
+.tc-history {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.tc-history-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.tc-search-box {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 0.6rem 1rem;
+    flex: 1;
+    min-width: 200px;
+}
+
+.tc-search-icon {
+    color: #9ca3af;
+    font-size: 0.85rem;
+}
+
+.tc-search-box input {
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 0.875rem;
+    color: #111827;
+    width: 100%;
+}
+
+.tc-filter-pills {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.tc-pill {
+    padding: 0.5rem 1rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 20px;
+    background: #fff;
+    color: #6b7280;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.tc-pill:hover {
+    border-color: #2B5EA7;
+    color: #2B5EA7;
+}
+
+.tc-pill.active {
+    background: #2B5EA7;
+    color: #fff;
+    border-color: #2B5EA7;
+}
+
+.tc-loading-inline {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 3rem;
+    color: #6b7280;
+}
+
+.tc-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem;
+    color: #9ca3af;
+    gap: 0.75rem;
+}
+
+.tc-empty-icon {
+    font-size: 2.5rem;
+    opacity: 0.4;
+}
+
+/* ── Table ── */
+.tc-call-table {
+    background: #fff;
+    border-radius: 16px;
+    border: 1px solid #e5e7eb;
+    overflow: hidden;
+}
+
+.tc-table-header {
+    display: grid;
+    grid-template-columns: 80px 1.5fr 100px 100px 100px 1fr;
+    padding: 0.75rem 1.25rem;
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.tc-table-row {
+    display: grid;
+    grid-template-columns: 80px 1.5fr 100px 100px 100px 1fr;
+    padding: 0.85rem 1.25rem;
+    border-bottom: 1px solid #f3f4f6;
+    font-size: 0.875rem;
+    color: #374151;
+    align-items: center;
+    transition: background 0.1s;
+}
+
+.tc-table-row:hover {
+    background: #f9fafb;
+}
+
+.tc-table-row:last-child {
+    border-bottom: none;
+}
+
+.tc-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.25rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.tc-badge.inbound {
+    background: #eff6ff;
+    color: #2B5EA7;
+}
+
+.tc-badge.outbound {
+    background: #ecfdf5;
+    color: #059669;
+}
+
+.tc-number {
+    font-weight: 600;
+    color: #111827;
+}
+
+.tc-status-badge {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.tc-status-badge.completed {
+    background: #ecfdf5;
+    color: #059669;
+}
+
+.tc-status-badge.in-progress,
+.tc-status-badge.ringing,
+.tc-status-badge.queued {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.tc-status-badge.failed,
+.tc-status-badge.busy {
+    background: #fef2f2;
+    color: #dc2626;
+}
+
+.tc-status-badge.no-answer,
+.tc-status-badge.canceled {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+.tc-cost {
+    font-weight: 500;
+    font-size: 0.8rem;
+}
+
+.tc-date {
+    font-size: 0.8rem;
+    color: #6b7280;
+}
+
+/* ── Stats Tab ── */
+.tc-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1.25rem;
+}
+
+.tc-stat-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 1.5rem;
+    border: 1px solid #e5e7eb;
+    border-top: 3px solid;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.tc-stat-label {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.tc-stat-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+    .tc-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .tc-tabs {
+        width: 100%;
+        overflow-x: auto;
+    }
+
+    .tc-dialer-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .tc-table-header,
+    .tc-table-row {
+        grid-template-columns: 60px 1fr 80px 70px;
+    }
+
+    .tc-table-header span:nth-child(5),
+    .tc-table-header span:nth-child(6),
+    .tc-table-row span:nth-child(5),
+    .tc-table-row span:nth-child(6) {
+        display: none;
+    }
+
+    .tc-content {
+        padding: 1rem;
+    }
+
+    .tc-history-toolbar {
+        flex-direction: column;
+    }
+
+    .tc-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}

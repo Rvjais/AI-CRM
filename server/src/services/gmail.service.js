@@ -209,7 +209,6 @@ export const listLabels = async (userId) => {
 
 /**
  * Get unread email stats
- * @param {string} userId 
  */
 export const getUnreadStats = async (userId) => {
     const gmail = await getClientForUser(userId);
@@ -222,4 +221,222 @@ export const getUnreadStats = async (userId) => {
         messagesUnread: response.data.messagesUnread,
         threadsUnread: response.data.threadsUnread
     };
+};
+
+/**
+ * Untrash a thread
+ */
+export const untrashThread = async (userId, threadId) => {
+    const gmail = await getClientForUser(userId);
+    const response = await gmail.users.threads.untrash({
+        userId: 'me',
+        id: threadId
+    });
+    return response.data;
+};
+
+/**
+ * Modify thread labels (add/remove)
+ */
+export const modifyThreadLabels = async (userId, threadId, addLabelIds = [], removeLabelIds = []) => {
+    const gmail = await getClientForUser(userId);
+    const response = await gmail.users.threads.modify({
+        userId: 'me',
+        id: threadId,
+        requestBody: {
+            addLabelIds,
+            removeLabelIds
+        }
+    });
+    return response.data;
+};
+
+/**
+ * Star a thread (add STARRED label)
+ */
+export const starThread = async (userId, threadId) => {
+    return modifyThreadLabels(userId, threadId, ['STARRED'], []);
+};
+
+/**
+ * Unstar a thread (remove STARRED label)
+ */
+export const unstarThread = async (userId, threadId) => {
+    return modifyThreadLabels(userId, threadId, [], ['STARRED']);
+};
+
+/**
+ * Archive a thread (remove INBOX label)
+ */
+export const archiveThread = async (userId, threadId) => {
+    return modifyThreadLabels(userId, threadId, [], ['INBOX']);
+};
+
+/**
+ * Unarchive / move to inbox
+ */
+export const unarchiveThread = async (userId, threadId) => {
+    return modifyThreadLabels(userId, threadId, ['INBOX'], []);
+};
+
+/**
+ * Mark thread as read (remove UNREAD label)
+ */
+export const markThreadRead = async (userId, threadId) => {
+    return modifyThreadLabels(userId, threadId, [], ['UNREAD']);
+};
+
+/**
+ * Mark thread as unread (add UNREAD label)
+ */
+export const markThreadUnread = async (userId, threadId) => {
+    return modifyThreadLabels(userId, threadId, ['UNREAD'], []);
+};
+
+/**
+ * Modify message labels (for single message operations)
+ */
+export const modifyMessageLabels = async (userId, messageId, addLabelIds = [], removeLabelIds = []) => {
+    const gmail = await getClientForUser(userId);
+    const response = await gmail.users.messages.modify({
+        userId: 'me',
+        id: messageId,
+        requestBody: {
+            addLabelIds,
+            removeLabelIds
+        }
+    });
+    return response.data;
+};
+
+/**
+ * Trash a single message
+ */
+export const trashMessage = async (userId, messageId) => {
+    const gmail = await getClientForUser(userId);
+    const response = await gmail.users.messages.trash({
+        userId: 'me',
+        id: messageId
+    });
+    return response.data;
+};
+
+/**
+ * Untrash a single message
+ */
+export const untrashMessage = async (userId, messageId) => {
+    const gmail = await getClientForUser(userId);
+    const response = await gmail.users.messages.untrash({
+        userId: 'me',
+        id: messageId
+    });
+    return response.data;
+};
+
+/**
+ * Get a single message
+ */
+export const getMessage = async (userId, messageId, format = 'full') => {
+    const gmail = await getClientForUser(userId);
+    const response = await gmail.users.messages.get({
+        userId: 'me',
+        id: messageId,
+        format
+    });
+    return response.data;
+};
+
+/**
+ * Get message attachment
+ */
+export const getAttachment = async (userId, messageId, attachmentId) => {
+    const gmail = await getClientForUser(userId);
+    const response = await gmail.users.messages.attachments.get({
+        userId: 'me',
+        messageId,
+        id: attachmentId
+    });
+    return response.data;
+};
+
+/**
+ * List drafts
+ */
+export const listDrafts = async (userId, options = {}) => {
+    const gmail = await getClientForUser(userId);
+    const response = await gmail.users.drafts.list({
+        userId: 'me',
+        maxResults: options.maxResults || 20,
+        pageToken: options.pageToken
+    });
+    return response.data;
+};
+
+/**
+ * Delete a draft permanently
+ */
+export const deleteDraft = async (userId, draftId) => {
+    const gmail = await getClientForUser(userId);
+    await gmail.users.drafts.delete({
+        userId: 'me',
+        id: draftId
+    });
+    return { deleted: true };
+};
+
+/**
+ * Get a specific draft
+ */
+export const getDraft = async (userId, draftId) => {
+    const gmail = await getClientForUser(userId);
+    const response = await gmail.users.drafts.get({
+        userId: 'me',
+        id: draftId,
+        format: 'full'
+    });
+    return response.data;
+};
+
+/**
+ * Batch modify messages (add/remove labels on multiple messages)
+ */
+export const batchModifyMessages = async (userId, messageIds, addLabelIds = [], removeLabelIds = []) => {
+    const gmail = await getClientForUser(userId);
+    await gmail.users.messages.batchModify({
+        userId: 'me',
+        requestBody: {
+            ids: messageIds,
+            addLabelIds,
+            removeLabelIds
+        }
+    });
+    return { modified: true };
+};
+
+/**
+ * Batch delete messages permanently
+ */
+export const batchDeleteMessages = async (userId, messageIds) => {
+    const gmail = await getClientForUser(userId);
+    await gmail.users.messages.batchDelete({
+        userId: 'me',
+        requestBody: {
+            ids: messageIds
+        }
+    });
+    return { deleted: true };
+};
+
+/**
+ * List message history
+ */
+export const listHistory = async (userId, startHistoryId, options = {}) => {
+    const gmail = await getClientForUser(userId);
+    const response = await gmail.users.history.list({
+        userId: 'me',
+        startHistoryId,
+        maxResults: options.maxResults || 100,
+        pageToken: options.pageToken
+    });
+    return response.data;
 };

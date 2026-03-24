@@ -32,7 +32,7 @@ import ImportManager from './components/ImportManager';
 import FormBuilder from './components/FormBuilder';
 import InfrastructureConfig from './components/InfrastructureConfig';
 import ComingSoon from './components/ComingSoon';
-import VoiceAgent from './components/VoiceAgent';
+import TwilioCalls from './components/TwilioCalls';
 import Login from './components/Login';
 import Settings from './components/Settings';
 import Loader from './components/Loader';
@@ -157,8 +157,8 @@ function App() {
                 <Route path="/forms" exact={true}>
                   <FormBuilder />
                 </Route>
-                <Route path="/voiceagent" exact={true}>
-                  <VoiceAgent token={token} />
+                <Route path="/calls" exact={true}>
+                  <TwilioCalls token={token} />
                 </Route>
                 <Route path="/aiconfig" exact={true}>
                   <AIConfig token={token} />

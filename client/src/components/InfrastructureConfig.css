@@ -107,6 +107,11 @@
     justify-content: center;
 }
 
+.section-icon.twilio-icon {
+    color: #F22F46;
+    background: rgba(242, 47, 70, 0.1);
+}
+
 .section-header h2 {
     font-size: 1.25rem;
     margin: 0;

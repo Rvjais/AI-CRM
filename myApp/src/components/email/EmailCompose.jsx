@@ -1,15 +1,23 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FaTimes, FaMinus, FaExpandAlt, FaTrash, FaPaperPlane } from 'react-icons/fa';
 import api from '../../utils/apiClient';
 
-function EmailCompose({ onClose, onSuccess }) {
+function EmailCompose({ onClose, onSuccess, replyData }) {
     const [to, setTo] = useState('');
     const [subject, setSubject] = useState('');
     const [body, setBody] = useState('');
     const [sending, setSending] = useState(false);
 
+    useEffect(() => {
+        if (replyData) {
+            setTo(replyData.to || '');
+            setSubject(replyData.subject || '');
+            setBody(replyData.body || '');
+        }
+    }, [replyData]);
+
     const handleSend = async (e) => {
-        e.preventDefault();
+        if (e) e.preventDefault();
         if (!to) {
             alert('Please specify at least one recipient.');
             return;
@@ -17,7 +25,11 @@ function EmailCompose({ onClose, onSuccess }) {
 
         setSending(true);
         try {
-            const data = await api.post('/api/emails/send', { to, subject, body });
+            const payload = { to, subject, body };
+            if (replyData?.threadId) {
+                payload.threadId = replyData.threadId;
+            }
+            const data = await api.post('/api/emails/send', payload);
             if (data.success) {
                 onSuccess();
                 onClose();
@@ -39,21 +51,23 @@ function EmailCompose({ onClose, onSuccess }) {
         }
     };
 
+    const title = replyData?.mode === 'forward' ? 'Forward' : replyData?.threadId ? 'Reply' : 'New Message';
+
     return (
         <div className="email-compose-overlay">
             <div className="compose-modal">
                 <div className="compose-header">
-                    <h3>New Message</h3>
+                    <h3>{title}</h3>
                     <div className="compose-actions">
                         <button className="icon-btn mobile-close-btn" onClick={onClose}>
                             <FaTimes />
                         </button>
-                        <button className="icon-btn mobile-send-btn" onClick={handleSend}>
+                        <button className="icon-btn mobile-send-btn" onClick={handleSend} disabled={sending}>
                             <FaPaperPlane />
                         </button>
                         <div className="desktop-actions">
-                            <button className="icon-btn"><FaMinus /></button>
-                            <button className="icon-btn"><FaExpandAlt /></button>
+                            <button className="icon-btn" type="button"><FaMinus /></button>
+                            <button className="icon-btn" type="button"><FaExpandAlt /></button>
                         </div>
                         <button className="icon-btn" onClick={onClose}><FaTimes /></button>
                     </div>

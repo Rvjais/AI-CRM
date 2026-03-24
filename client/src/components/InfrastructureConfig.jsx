@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FaDatabase, FaCloud, FaSave, FaCheckCircle, FaExclamationTriangle, FaLock } from 'react-icons/fa';
+import { FaDatabase, FaCloud, FaSave, FaCheckCircle, FaExclamationTriangle, FaLock, FaPhone } from 'react-icons/fa';
 import api from '../utils/apiClient';
 import './InfrastructureConfig.css';
 
@@ -9,6 +9,11 @@ function InfrastructureConfig({ token, onConfigSaved }) {
         cloudName: '',
         apiKey: '',
         apiSecret: ''
+    });
+    const [twilioConfig, setTwilioConfig] = useState({
+        accountSid: '',
+        authToken: '',
+        phoneNumber: ''
     });
 
     const [loading, setLoading] = useState(true);
@@ -30,7 +35,14 @@ function InfrastructureConfig({ token, onConfigSaved }) {
                     setCloudinaryConfig({
                         cloudName: data.data.cloudinaryConfig.cloudName || '',
                         apiKey: data.data.cloudinaryConfig.apiKey || '',
-                        apiSecret: data.data.cloudinaryConfig.apiSecret || '' // Might be masked or empty
+                        apiSecret: data.data.cloudinaryConfig.apiSecret || ''
+                    });
+                }
+                if (data.data.twilioConfig) {
+                    setTwilioConfig({
+                        accountSid: data.data.twilioConfig.accountSid || '',
+                        authToken: data.data.twilioConfig.authToken || '',
+                        phoneNumber: data.data.twilioConfig.phoneNumber || ''
                     });
                 }
                 setInfrastructureReady(data.data.infrastructureReady);
@@ -55,6 +67,11 @@ function InfrastructureConfig({ token, onConfigSaved }) {
                 cloudinaryConfig
             };
 
+            // Only include twilioConfig if at least one field is filled
+            if (twilioConfig.accountSid || twilioConfig.authToken || twilioConfig.phoneNumber) {
+                payload.twilioConfig = twilioConfig;
+            }
+
             const data = await api.put('/api/user/infrastructure', payload);
 
             if (data.success) {
@@ -66,7 +83,7 @@ function InfrastructureConfig({ token, onConfigSaved }) {
             }
         } catch (err) {
             console.error('Error saving settings:', err);
-            setError(err.response?.data?.message || 'Failed to save settings. Please check your credentials.');
+            setError(err.response?.data?.message || err.message || 'Failed to save settings. Please check your credentials.');
         } finally {
             setSaving(false);
         }
@@ -78,7 +95,7 @@ function InfrastructureConfig({ token, onConfigSaved }) {
         <div className="infra-config-view">
             <div className="view-header">
                 <h1>Infrastructure Settings</h1>
-                <p>Connect your own database and storage to power your RainCRM instance.</p>
+                <p>Connect your own database, storage, and telephony to power your RainCRM instance.</p>
             </div>
 
             <div className="status-banner">
@@ -161,7 +178,7 @@ function InfrastructureConfig({ token, onConfigSaved }) {
                                 type="password"
                                 value={cloudinaryConfig.apiSecret}
                                 onChange={(e) => setCloudinaryConfig({ ...cloudinaryConfig, apiSecret: e.target.value })}
-                                placeholder="••••••••••••••••"
+                                placeholder="Enter API Secret"
                                 required
                                 className="input-field"
                             />
@@ -169,8 +186,48 @@ function InfrastructureConfig({ token, onConfigSaved }) {
                     </div>
                 </div>
 
-                {/* Visual spacer */}
-                <div style={{ marginBottom: '1rem' }}></div>
+                <div className="form-section">
+                    <div className="section-header">
+                        <FaPhone className="section-icon twilio-icon" />
+                        <h2>Twilio Configuration</h2>
+                    </div>
+                    <p className="section-desc">Connect your Twilio account to enable voice calling features. Get your credentials from the Twilio Console.</p>
+
+                    <div className="form-group">
+                        <label>Account SID</label>
+                        <input
+                            type="text"
+                            value={twilioConfig.accountSid}
+                            onChange={(e) => setTwilioConfig({ ...twilioConfig, accountSid: e.target.value })}
+                            placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                            className="input-field"
+                        />
+                    </div>
+
+                    <div className="form-group">
+                        <label>Auth Token</label>
+                        <input
+                            type="password"
+                            value={twilioConfig.authToken}
+                            onChange={(e) => setTwilioConfig({ ...twilioConfig, authToken: e.target.value })}
+                            placeholder="Enter Auth Token"
+                            className="input-field"
+                        />
+                        <small className="hint"><FaLock size={10} /> Your token is encrypted at rest.</small>
+                    </div>
+
+                    <div className="form-group">
+                        <label>Twilio Phone Number</label>
+                        <input
+                            type="tel"
+                            value={twilioConfig.phoneNumber}
+                            onChange={(e) => setTwilioConfig({ ...twilioConfig, phoneNumber: e.target.value })}
+                            placeholder="+1234567890"
+                            className="input-field"
+                        />
+                        <small className="hint">Your Twilio phone number in E.164 format (e.g., +1234567890)</small>
+                    </div>
+                </div>
 
                 {error && <div className="alert error">{error}</div>}
                 {success && <div className="alert success">{success}</div>}

@@ -19,6 +19,7 @@ import formRoutes from './form.routes.js';
 import bolnaRoutes from './bolna.routes.js';
 import agentRoutes from './agent.routes.js';
 import executionRoutes from './execution.routes.js';
+import twilioRoutes from './twilio.routes.js';
 
 const router = express.Router();
 
@@ -47,6 +48,7 @@ router.use('/forms', formRoutes);
 router.use('/bolna', bolnaRoutes);
 router.use('/agents', agentRoutes);
 router.use('/executions', executionRoutes);
+router.use('/twilio', twilioRoutes);
 
 // Health check endpoint
 router.get('/health', (req, res) => {

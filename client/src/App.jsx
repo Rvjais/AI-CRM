@@ -17,7 +17,7 @@ import ImportManager from './components/ImportManager';
 import FormBuilder from './components/FormBuilder';
 import InfrastructureConfig from './components/InfrastructureConfig';
 import ComingSoon from './components/ComingSoon';
-import VoiceAgent from './components/VoiceAgent';
+import TwilioCalls from './components/TwilioCalls';
 import Login from './components/Login';
 import Settings from './components/Settings';
 import './App.css';
@@ -74,8 +74,8 @@ function App() {
           <FormBuilder />
         </div>
 
-        <div className={activeView === 'voiceagent' ? 'view-active' : 'view-hidden'}>
-          <VoiceAgent token={token} />
+        <div className={activeView === 'calls' ? 'view-active' : 'view-hidden'}>
+          <TwilioCalls token={token} />
         </div>
         <div className={activeView === 'aiconfig' ? 'view-active' : 'view-hidden'}>
           <AIConfig token={token} />

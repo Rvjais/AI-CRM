@@ -155,6 +155,12 @@ const userSchema = new mongoose.Schema(
             type: Boolean,
             default: false // BYOD: False until configured
         },
+        // Twilio Configuration (per-user)
+        twilioConfig: {
+            accountSid: { type: String, select: false },
+            authToken: { type: String, select: false },
+            phoneNumber: { type: String }, // Twilio phone number
+        },
         // Feature Toggles
         featureFlags: {
             aiBot: { type: Boolean, default: true },

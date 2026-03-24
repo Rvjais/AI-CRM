@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import {
-    FaWhatsapp, FaEnvelope, FaMicrophone, FaBrain,
+    FaWhatsapp, FaEnvelope, FaPhone, FaBrain,
     FaTachometerAlt, FaCog, FaSignOutAlt, FaChevronLeft,
     FaChevronRight, FaTable, FaDatabase, FaCoins,
     FaPaperPlane, FaUsers, FaWpforms, FaBars, FaTimes
@@ -40,7 +40,7 @@ function Sidebar({ activeView, onViewChange, onLogout, isCollapsed, setIsCollaps
         { id: 'forms', icon: FaWpforms, label: 'Forms' },
         { id: 'sheets', icon: FaTable, label: 'Sheets' },
         { id: 'infrastructure', icon: FaDatabase, label: 'Infrastructure' },
-        { id: 'voiceagent', icon: FaMicrophone, label: 'Voice Agent' },
+        { id: 'calls', icon: FaPhone, label: 'Calls' },
         { id: 'aiconfig', icon: FaBrain, label: 'AI Config' },
     ];
 
@@ -51,65 +51,45 @@ function Sidebar({ activeView, onViewChange, onLogout, isCollapsed, setIsCollaps
 
     return (
         <>
-            {/* ── Mobile top bar with hamburger ── */}
+            {/* Mobile top bar */}
             <div className="mobile-topbar">
-                <button
-                    className="hamburger-btn"
-                    onClick={() => setDrawerOpen(true)}
-                    aria-label="Open menu"
-                >
+                <button className="hamburger-btn" onClick={() => setDrawerOpen(true)} aria-label="Open menu">
                     <FaBars />
                 </button>
                 <div className="mobile-topbar-title">
-                    <img
-                        src="/aicrmz-transparent.webp"
-                        alt="AI CRM"
-                        style={{ height: '32px', width: 'auto', objectFit: 'contain' }}
-                    />
+                    <span className="mobile-brand">RainCRM</span>
                 </div>
-                {/* Credits badge in top bar */}
                 {credits !== null && (
                     <div className="mobile-credits-badge">
-                        <FaCoins style={{ fontSize: '13px' }} />
+                        <FaCoins />
                         <span>{credits}</span>
                     </div>
                 )}
             </div>
 
-            {/* ── Backdrop (mobile only) ── */}
-            {drawerOpen && (
-                <div className="sidebar-backdrop" onClick={closeDrawer} />
-            )}
+            {/* Backdrop (mobile) */}
+            {drawerOpen && <div className="sidebar-backdrop" onClick={closeDrawer} />}
 
-            {/* ── Sidebar / Drawer ── */}
+            {/* Sidebar */}
             <div className={`sidebar ${isCollapsed ? 'collapsed' : ''} ${drawerOpen ? 'drawer-open' : ''}`}>
-
-                {/* Close button inside drawer (mobile) */}
                 <button className="drawer-close-btn" onClick={closeDrawer} aria-label="Close menu">
                     <FaTimes />
                 </button>
 
                 <div className="sidebar-header">
                     <div className="logo">
-                        <div className="logo-icon">
-                            <img
-                                src="/aicrmz-transparent.webp"
-                                alt="AI CRM Logo"
-                                style={{ width: 'auto', height: '60px', borderRadius: '4px', objectFit: 'contain' }}
-                            />
-                        </div>
+                        <div className="logo-mark">R</div>
                         {!isCollapsed && (
                             <div className="logo-text">
-                                <h1>AI Powered</h1>
-                                <p>CRM</p>
+                                <span className="logo-name">RainCRM</span>
+                                <span className="logo-tag">AI Powered</span>
                             </div>
                         )}
                     </div>
-                    {/* Desktop collapse toggle */}
                     <button
                         className="sidebar-toggle"
                         onClick={() => setIsCollapsed(!isCollapsed)}
-                        title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+                        title={isCollapsed ? "Expand" : "Collapse"}
                     >
                         {isCollapsed ? <FaChevronRight /> : <FaChevronLeft />}
                     </button>
@@ -123,6 +103,7 @@ function Sidebar({ activeView, onViewChange, onLogout, isCollapsed, setIsCollaps
                                 key={item.id}
                                 className={`nav-item ${activeView === item.id ? 'active' : ''}`}
                                 onClick={() => handleNavClick(item.id)}
+                                title={isCollapsed ? item.label : undefined}
                             >
                                 <Icon className="nav-icon" />
                                 <span className="nav-label">{item.label}</span>
@@ -133,7 +114,7 @@ function Sidebar({ activeView, onViewChange, onLogout, isCollapsed, setIsCollaps
 
                 <div className="sidebar-footer">
                     {credits !== null && (
-                        <div className="credits-display" title="AI Credits Remaining">
+                        <div className="credits-display">
                             <FaCoins className="credits-icon" />
                             <span className="credits-text">{credits} Credits</span>
                         </div>
@@ -156,4 +137,3 @@ function Sidebar({ activeView, onViewChange, onLogout, isCollapsed, setIsCollaps
 }
 
 export default Sidebar;
-

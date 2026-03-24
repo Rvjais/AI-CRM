@@ -22,6 +22,7 @@ function EmailLayout({
     const [labels, setLabels] = useState([]);
     const [isComposeOpen, setIsComposeOpen] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [composeData, setComposeData] = useState(null);
 
     useEffect(() => {
         fetchLabels();
@@ -49,12 +50,31 @@ function EmailLayout({
 
     const handleLabelSelect = (label) => {
         onLabelSelect(label);
-        setIsSidebarOpen(false); // Close sidebar on mobile after selection
+        setIsSidebarOpen(false);
+    };
+
+    const handleCompose = () => {
+        setComposeData(null);
+        setIsComposeOpen(true);
+    };
+
+    const handleReply = (replyData) => {
+        setComposeData(replyData);
+        setIsComposeOpen(true);
+    };
+
+    const handleForward = (forwardData) => {
+        setComposeData(forwardData);
+        setIsComposeOpen(true);
+    };
+
+    const handleComposeClose = () => {
+        setIsComposeOpen(false);
+        setComposeData(null);
     };
 
     return (
         <div className={`email-layout ${selectedThreadId ? 'thread-active' : ''}`}>
-            {/* Overlay for sidebar */}
             <div
                 className={`sidebar-overlay ${isSidebarOpen ? 'visible' : ''}`}
                 onClick={() => setIsSidebarOpen(false)}
@@ -64,7 +84,7 @@ function EmailLayout({
                 labels={labels}
                 activeLabel={activeLabel}
                 onLabelSelect={handleLabelSelect}
-                onComposeClick={() => setIsComposeOpen(true)}
+                onComposeClick={handleCompose}
                 isOpen={isSidebarOpen}
                 onClose={() => setIsSidebarOpen(false)}
                 onDisconnect={onDisconnect}
@@ -87,11 +107,12 @@ function EmailLayout({
                         threadId={selectedThreadId}
                         onClose={() => setSelectedThreadId(null)}
                         onRefresh={handleRefresh}
+                        onReply={handleReply}
+                        onForward={handleForward}
                     />
                 ) : (
                     <div className="empty-detail">
                         <div className="empty-content">
-                            <img src="/email-empty.svg" alt="No selection" style={{ width: '200px', opacity: 0.5 }} />
                             <h3>Select an email to read</h3>
                             <p>Nothing is selected. Pick one from the list.</p>
                         </div>
@@ -101,8 +122,9 @@ function EmailLayout({
 
             {isComposeOpen && (
                 <EmailCompose
-                    onClose={() => setIsComposeOpen(false)}
+                    onClose={handleComposeClose}
                     onSuccess={handleRefresh}
+                    replyData={composeData}
                 />
             )}
         </div>
