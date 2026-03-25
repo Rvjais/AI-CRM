@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
+import { Preferences } from '@capacitor/preferences';
 import { FaQrcode, FaRedo } from 'react-icons/fa';
 import api from '../utils/apiClient';
 import './QRScanner.css';
@@ -36,8 +37,15 @@ function QRScanner({ token, onConnected, onLogout }) {
             setQrCode(null);
         });
 
-        newSocket.on('connect_error', (err) => {
+        newSocket.on('connect_error', async (err) => {
             console.error(`Socket error: ${err.message}`);
+            if (err.message && err.message.includes('Authentication')) {
+                const { value: freshToken } = await Preferences.get({ key: 'token' });
+                if (freshToken && freshToken !== newSocket.auth.token) {
+                    newSocket.auth = { token: freshToken };
+                    newSocket.connect();
+                }
+            }
         });
 
         setSocket(newSocket);

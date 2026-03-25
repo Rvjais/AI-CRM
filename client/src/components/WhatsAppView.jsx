@@ -53,7 +53,19 @@ function WhatsAppView({ token, onLogout, isActive }) {
         socketRef.current = newSocket;
 
         newSocket.on('connect', () => {
-            console.log('🔌 Socket connected');
+            console.log('Socket connected');
+        });
+
+        // On auth error, refresh the token in socket auth and retry
+        newSocket.on('connect_error', (err) => {
+            if (err.message && err.message.includes('Authentication')) {
+                const freshToken = localStorage.getItem('token');
+                if (freshToken && freshToken !== newSocket.auth.token) {
+                    newSocket.auth = { token: freshToken };
+                    newSocket.io.opts.query = { token: freshToken };
+                    newSocket.connect();
+                }
+            }
         });
 
         newSocket.on('message:new', (data) => {

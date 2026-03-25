@@ -15,41 +15,44 @@ const getAuthHeaders = () => {
 };
 
 // --- Silent Token Refresh Logic ---
-let isRefreshing = false;
+let refreshPromise = null;
 
 const forceLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('refreshToken');
-    window.location.href = '/';
+    localStorage.clear();
+    window.dispatchEvent(new CustomEvent('auth:forceLogout'));
 };
 
 const tryRefreshToken = async () => {
-    if (isRefreshing) return false;
-    isRefreshing = true;
-    try {
-        const refreshToken = localStorage.getItem('refreshToken');
-        if (!refreshToken) return false;
+    if (refreshPromise) return refreshPromise;
 
-        const response = await fetch(`${API_BASE_URL}/api/auth/refresh-token`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ refreshToken }),
-        });
+    refreshPromise = (async () => {
+        try {
+            const refreshToken = localStorage.getItem('refreshToken');
+            if (!refreshToken) return false;
 
-        const data = await response.json();
-        if (response.ok && data.success && data.data.accessToken) {
-            localStorage.setItem('token', data.data.accessToken);
-            if (data.data.refreshToken) {
-                localStorage.setItem('refreshToken', data.data.refreshToken);
+            const response = await fetch(`${API_BASE_URL}/api/auth/refresh-token`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ refreshToken }),
+            });
+
+            const data = await response.json();
+            if (response.ok && data.success && data.data.accessToken) {
+                localStorage.setItem('token', data.data.accessToken);
+                if (data.data.refreshToken) {
+                    localStorage.setItem('refreshToken', data.data.refreshToken);
+                }
+                return true;
             }
-            return true;
+            return false;
+        } catch {
+            return false;
+        } finally {
+            refreshPromise = null;
         }
-        return false;
-    } catch {
-        return false;
-    } finally {
-        isRefreshing = false;
-    }
+    })();
+
+    return refreshPromise;
 };
 
 /**

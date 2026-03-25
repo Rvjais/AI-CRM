@@ -47,6 +47,13 @@ function App() {
     setToken(null);
   };
 
+  // Listen for forced logout from apiClient (e.g. refresh token expired)
+  useEffect(() => {
+    const onForceLogout = () => setToken(null);
+    window.addEventListener('auth:forceLogout', onForceLogout);
+    return () => window.removeEventListener('auth:forceLogout', onForceLogout);
+  }, []);
+
   const renderView = () => {
     return (
       <ErrorBoundary>

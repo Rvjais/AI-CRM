@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { IonPage, IonContent } from '@ionic/react';
+import { Preferences } from '@capacitor/preferences';
 import { io } from 'socket.io-client';
 import ChatList from './ChatList';
 import ChatWindow from './ChatWindow';
@@ -48,7 +49,7 @@ function WhatsAppView({ token, onLogout, isActive }) {
     useEffect(() => {
         if (!token) return;
 
-        // Initialize socket
+        // Initialize socket with fresh token on each reconnect attempt
         const socketUrl = import.meta.env.VITE_API_URL || 'https://api.aicrmz.com';
         const newSocket = io(socketUrl, {
             auth: { token },
@@ -58,7 +59,19 @@ function WhatsAppView({ token, onLogout, isActive }) {
         socketRef.current = newSocket;
 
         newSocket.on('connect', () => {
-            console.log('🔌 Socket connected');
+            console.log('Socket connected');
+        });
+
+        // On auth error, refresh the token in socket auth and retry
+        newSocket.on('connect_error', async (err) => {
+            if (err.message && err.message.includes('Authentication')) {
+                const { value: freshToken } = await Preferences.get({ key: 'token' });
+                if (freshToken && freshToken !== newSocket.auth.token) {
+                    newSocket.auth = { token: freshToken };
+                    newSocket.io.opts.query = { token: freshToken };
+                    newSocket.connect();
+                }
+            }
         });
 
         newSocket.on('message:new', (data) => {

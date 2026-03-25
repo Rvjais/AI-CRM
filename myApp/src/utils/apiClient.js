@@ -16,42 +16,45 @@ const getAuthHeaders = async () => {
 };
 
 // --- Silent Token Refresh Logic ---
-let isRefreshing = false;
+let refreshPromise = null;
 
 const forceLogout = async () => {
     await Preferences.clear();
-    window.location.href = '/';
+    window.dispatchEvent(new CustomEvent('auth:forceLogout'));
 };
 
 const tryRefreshToken = async () => {
-    if (isRefreshing) return false; // Already in progress, bail out
-    isRefreshing = true;
-    try {
-        const { value: refreshToken } = await Preferences.get({ key: 'refreshToken' });
-        if (!refreshToken) return false;
+    // If a refresh is already in progress, wait for it instead of bailing out
+    if (refreshPromise) return refreshPromise;
 
-        const response = await fetch(`${API_BASE_URL}/api/auth/refresh-token`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ refreshToken }),
-        });
+    refreshPromise = (async () => {
+        try {
+            const { value: refreshToken } = await Preferences.get({ key: 'refreshToken' });
+            if (!refreshToken) return false;
 
-        const data = await response.json();
-        if (response.ok && data.success && data.data.accessToken) {
-            // Save the new access token
-            await Preferences.set({ key: 'token', value: data.data.accessToken });
-            // Save new refresh token if one was issued
-            if (data.data.refreshToken) {
-                await Preferences.set({ key: 'refreshToken', value: data.data.refreshToken });
+            const response = await fetch(`${API_BASE_URL}/api/auth/refresh-token`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ refreshToken }),
+            });
+
+            const data = await response.json();
+            if (response.ok && data.success && data.data.accessToken) {
+                await Preferences.set({ key: 'token', value: data.data.accessToken });
+                if (data.data.refreshToken) {
+                    await Preferences.set({ key: 'refreshToken', value: data.data.refreshToken });
+                }
+                return true;
             }
-            return true; // Refresh succeeded
+            return false;
+        } catch {
+            return false;
+        } finally {
+            refreshPromise = null;
         }
-        return false; // Refresh failed
-    } catch {
-        return false;
-    } finally {
-        isRefreshing = false;
-    }
+    })();
+
+    return refreshPromise;
 };
 
 /**

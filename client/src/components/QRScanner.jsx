@@ -37,6 +37,13 @@ function QRScanner({ token, onConnected, onLogout }) {
 
         newSocket.on('connect_error', (err) => {
             console.error(`Socket error: ${err.message}`);
+            if (err.message && err.message.includes('Authentication')) {
+                const freshToken = localStorage.getItem('token');
+                if (freshToken && freshToken !== newSocket.auth.token) {
+                    newSocket.auth = { token: freshToken };
+                    newSocket.connect();
+                }
+            }
         });
 
         setSocket(newSocket);
