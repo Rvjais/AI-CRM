@@ -1,36 +1,37 @@
 /* ============================================================
-   TWILIO CALLS — Professional UI
+   GOOGLE DIALER — Android-Native Phone UI
    ============================================================ */
 
-.tc-container {
+.gd-container {
     height: 100%;
     display: flex;
     flex-direction: column;
-    background: #f8fafc;
+    background: #f8f9fa;
     overflow: hidden;
+    position: relative;
 }
 
 /* ── Loading & Empty States ── */
-.tc-loading {
+.gd-loading {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     height: 100%;
     gap: 1rem;
-    color: #6b7280;
+    color: #5f6368;
 }
 
-.tc-spinner {
-    animation: tc-spin 1s linear infinite;
+.gd-spinner {
+    animation: gd-spin 1s linear infinite;
     font-size: 1.2rem;
 }
 
-@keyframes tc-spin {
+@keyframes gd-spin {
     to { transform: rotate(360deg); }
 }
 
-.tc-not-connected {
+.gd-not-connected {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -41,589 +42,818 @@
     padding: 2rem;
 }
 
-.tc-not-connected-icon {
+.gd-not-connected-icon {
     width: 80px;
     height: 80px;
     border-radius: 50%;
-    background: #fef2f2;
+    background: #fce8e6;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 2rem;
-    color: #ef4444;
+    color: #d93025;
 }
 
-.tc-not-connected h2 {
+.gd-not-connected h2 {
     margin: 0;
-    color: #1f2937;
-    font-size: 1.5rem;
+    color: #202124;
+    font-size: 1.4rem;
+    font-weight: 500;
 }
 
-.tc-not-connected p {
-    color: #6b7280;
-    max-width: 400px;
+.gd-not-connected p {
+    color: #5f6368;
+    max-width: 320px;
+    line-height: 1.5;
 }
 
-/* ── Header ── */
-.tc-header {
+/* ── Tab Content ── */
+.gd-tab-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* ============================================================
+   BOTTOM TAB BAR — Material You style
+   ============================================================ */
+.gd-bottom-tabs {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    background: #ffffff;
+    border-top: 1px solid #e8eaed;
+    padding: 6px 0;
+    padding-bottom: max(6px, env(safe-area-inset-bottom, 0px));
+    flex-shrink: 0;
+    position: relative;
+    z-index: 10;
+}
+
+.gd-bottom-tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 8px 20px;
+    border: none;
+    background: none;
+    color: #5f6368;
+    font-size: 0.7rem;
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: 20px;
+    transition: all 0.2s ease;
+    position: relative;
+    -webkit-tap-highlight-color: transparent;
+    min-width: 64px;
+}
+
+.gd-bottom-tab svg {
+    font-size: 1.3rem;
+    transition: all 0.2s ease;
+}
+
+.gd-bottom-tab.active {
+    color: #1a73e8;
+}
+
+.gd-bottom-tab.active::before {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 56px;
+    height: 30px;
+    background: #d3e3fd;
+    border-radius: 16px;
+    z-index: -1;
+}
+
+.gd-bottom-tab.active svg {
+    font-size: 1.3rem;
+}
+
+/* ============================================================
+   DIALER TAB — Google Phone App
+   ============================================================ */
+.gd-dialer {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 0;
+    background: #ffffff;
+}
+
+/* Number Display */
+.gd-number-display {
+    flex: 1;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 24px 32px 16px;
+    min-height: 80px;
+}
+
+.gd-number-text {
+    font-size: 2.6rem;
+    font-weight: 400;
+    color: #202124;
+    letter-spacing: 1.5px;
+    text-align: center;
+    word-break: break-all;
+    line-height: 1.2;
+    font-family: 'Google Sans', 'Roboto', -apple-system, sans-serif;
+}
+
+.gd-number-placeholder {
+    color: #bdc1c6;
+    font-size: 1.4rem;
+    letter-spacing: 0;
+}
+
+/* Toast Notification */
+.gd-toast {
+    margin: 0 24px 8px;
+    padding: 12px 16px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 500;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 1.5rem 2rem;
-    background: #fff;
-    border-bottom: 1px solid #e5e7eb;
-    flex-shrink: 0;
+    animation: gd-slideUp 0.3s ease;
 }
 
-.tc-header-left h1 {
-    margin: 0;
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: #111827;
+.gd-toast.success {
+    background: #e6f4ea;
+    color: #137333;
 }
 
-.tc-header-left p {
-    margin: 0.25rem 0 0;
-    font-size: 0.875rem;
-    color: #6b7280;
+.gd-toast.error {
+    background: #fce8e6;
+    color: #c5221f;
 }
 
-.tc-tabs {
-    display: flex;
-    gap: 0.5rem;
-}
-
-.tc-tab {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.6rem 1.2rem;
-    border: 1px solid #e5e7eb;
-    border-radius: 10px;
-    background: #fff;
-    color: #6b7280;
-    font-size: 0.875rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.tc-tab:hover {
-    background: #f9fafb;
-    color: #111827;
-}
-
-.tc-tab.active {
-    background: #2B5EA7;
-    color: #fff;
-    border-color: #2B5EA7;
-}
-
-/* ── Content ── */
-.tc-content {
-    flex: 1;
-    overflow-y: auto;
-    padding: 1.5rem 2rem;
-}
-
-/* ── Dialer Layout ── */
-.tc-dialer-layout {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 2rem;
-    max-width: 900px;
-    margin: 0 auto;
-}
-
-.tc-dialer-card {
-    background: #fff;
-    border-radius: 20px;
-    padding: 2rem;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-    border: 1px solid #e5e7eb;
-}
-
-.tc-dialer-card h3 {
-    margin: 0 0 1.5rem;
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #111827;
-}
-
-.tc-phone-input-wrapper {
-    margin-bottom: 1.5rem;
-}
-
-.tc-phone-input {
-    width: 100%;
-    padding: 1rem;
-    font-size: 1.4rem;
-    font-weight: 600;
-    text-align: center;
-    border: 2px solid #e5e7eb;
-    border-radius: 14px;
-    background: #f9fafb;
-    color: #111827;
-    letter-spacing: 1px;
-    transition: border-color 0.2s;
-}
-
-.tc-phone-input:focus {
-    outline: none;
-    border-color: #2B5EA7;
-    background: #fff;
-}
-
-/* ── Dial Pad ── */
-.tc-dialpad {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    margin-bottom: 1.5rem;
-}
-
-.tc-dialpad-row {
-    display: flex;
-    gap: 0.75rem;
-    justify-content: center;
-}
-
-.tc-dialpad-key {
-    width: 64px;
-    height: 52px;
-    border-radius: 12px;
-    border: 1px solid #e5e7eb;
-    background: #fff;
-    font-size: 1.2rem;
-    font-weight: 600;
-    color: #1f2937;
-    cursor: pointer;
-    transition: all 0.15s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.tc-dialpad-key:hover {
-    background: #f3f4f6;
-    border-color: #d1d5db;
-}
-
-.tc-dialpad-key:active {
-    background: #e5e7eb;
-    transform: scale(0.95);
-}
-
-/* ── Call Button ── */
-.tc-call-btn {
-    width: 100%;
-    padding: 0.9rem;
+.gd-toast-close {
+    background: none;
     border: none;
-    border-radius: 14px;
-    background: linear-gradient(135deg, #10b981, #059669);
-    color: #fff;
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    transition: all 0.2s;
-    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
-}
-
-.tc-call-btn:hover:not(:disabled) {
-    transform: translateY(-1px);
-    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
-}
-
-.tc-call-btn:disabled {
+    color: inherit;
     opacity: 0.6;
-    cursor: not-allowed;
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
 }
 
-/* ── Call Result ── */
-.tc-result {
-    margin-top: 1rem;
-    padding: 0.75rem 1rem;
-    border-radius: 10px;
-    font-size: 0.875rem;
-    font-weight: 500;
+@keyframes gd-slideUp {
+    from { transform: translateY(8px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
 }
 
-.tc-result.success {
-    background: #ecfdf5;
-    color: #065f46;
-    border: 1px solid #a7f3d0;
+/* Dial Pad */
+.gd-dialpad {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+    padding: 8px 36px;
+    max-width: 360px;
+    margin: 0 auto;
+    width: 100%;
 }
 
-.tc-result.error {
-    background: #fef2f2;
-    color: #991b1b;
-    border: 1px solid #fecaca;
-}
-
-/* ── Recent Calls Sidebar ── */
-.tc-recent-sidebar {
-    background: #fff;
-    border-radius: 20px;
-    padding: 2rem;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-    border: 1px solid #e5e7eb;
-}
-
-.tc-recent-sidebar h3 {
-    margin: 0 0 1rem;
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #111827;
-}
-
-.tc-empty {
-    color: #9ca3af;
-    text-align: center;
-    padding: 2rem 0;
-    font-size: 0.875rem;
-}
-
-.tc-recent-list {
+.gd-key {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
-}
-
-.tc-recent-item {
-    display: flex;
     align-items: center;
-    gap: 0.75rem;
-    padding: 0.75rem;
-    border-radius: 12px;
+    justify-content: center;
+    height: 68px;
+    border: none;
+    background: transparent;
+    border-radius: 50%;
     cursor: pointer;
     transition: background 0.15s;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    position: relative;
 }
 
-.tc-recent-item:hover {
-    background: #f9fafb;
+.gd-key:active {
+    background: #e8eaed;
 }
 
-.tc-recent-icon {
-    width: 36px;
-    height: 36px;
+.gd-key-digit {
+    font-size: 1.75rem;
+    font-weight: 400;
+    color: #202124;
+    line-height: 1;
+    font-family: 'Google Sans', 'Roboto', -apple-system, sans-serif;
+}
+
+.gd-key-letters {
+    font-size: 0.6rem;
+    font-weight: 500;
+    color: #5f6368;
+    letter-spacing: 2px;
+    margin-top: 2px;
+    text-transform: uppercase;
+}
+
+/* Action Row */
+.gd-action-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px 36px 28px;
+    gap: 0;
+    max-width: 360px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+.gd-action-spacer {
+    flex: 1;
+}
+
+.gd-action-right {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+}
+
+/* Call FAB */
+.gd-call-fab {
+    width: 68px;
+    height: 68px;
+    border-radius: 50%;
+    border: none;
+    background: #34a853;
+    color: #fff;
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 12px rgba(52, 168, 83, 0.4);
+    transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.gd-call-fab:active:not(:disabled) {
+    transform: scale(0.94);
+    box-shadow: 0 1px 6px rgba(52, 168, 83, 0.3);
+}
+
+.gd-call-fab:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+.gd-call-fab.calling {
+    background: #ea4335;
+    animation: gd-pulse 1.5s ease-in-out infinite;
+}
+
+.gd-calling-icon {
+    animation: gd-shake 0.5s ease-in-out infinite;
+}
+
+@keyframes gd-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(234, 67, 53, 0.4); }
+    50% { box-shadow: 0 0 0 16px rgba(234, 67, 53, 0); }
+}
+
+@keyframes gd-shake {
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(-8deg); }
+    75% { transform: rotate(8deg); }
+}
+
+/* Backspace */
+.gd-backspace {
+    background: none;
+    border: none;
+    color: #5f6368;
+    font-size: 1.4rem;
+    cursor: pointer;
+    padding: 12px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: background 0.15s;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.gd-backspace:active {
+    background: #e8eaed;
+}
+
+/* ============================================================
+   RECENTS TAB — Android Call Log
+   ============================================================ */
+.gd-recents {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: #ffffff;
+}
+
+.gd-recents-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 20px 12px;
     flex-shrink: 0;
-    font-size: 0.8rem;
 }
 
-.tc-inbound {
-    color: #2B5EA7;
+.gd-recents-header h1 {
+    margin: 0;
+    font-size: 1.4rem;
+    font-weight: 500;
+    color: #202124;
+    font-family: 'Google Sans', 'Roboto', -apple-system, sans-serif;
 }
 
-.tc-outbound {
-    color: #10b981;
+.gd-search-toggle {
+    background: none;
+    border: none;
+    color: #5f6368;
+    font-size: 1.1rem;
+    cursor: pointer;
+    padding: 10px;
+    border-radius: 50%;
+    display: flex;
+    transition: background 0.15s;
+    -webkit-tap-highlight-color: transparent;
 }
 
-.tc-recent-info {
+.gd-search-toggle:active {
+    background: #e8eaed;
+}
+
+/* Search Bar */
+.gd-search-bar {
+    display: flex;
+    align-items: center;
+    margin: 0 16px 8px;
+    padding: 10px 16px;
+    background: #f1f3f4;
+    border-radius: 28px;
+    gap: 12px;
+    animation: gd-slideUp 0.2s ease;
+}
+
+.gd-search-icon {
+    color: #5f6368;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+}
+
+.gd-search-bar input {
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 0.95rem;
+    color: #202124;
+    width: 100%;
+    font-family: 'Roboto', -apple-system, sans-serif;
+}
+
+.gd-search-bar input::placeholder {
+    color: #80868b;
+}
+
+.gd-search-clear {
+    background: none;
+    border: none;
+    color: #5f6368;
+    font-size: 0.85rem;
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+}
+
+/* Filter Chips */
+.gd-filter-chips {
+    display: flex;
+    gap: 8px;
+    padding: 4px 20px 12px;
+    overflow-x: auto;
+    flex-shrink: 0;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.gd-filter-chips::-webkit-scrollbar {
+    display: none;
+}
+
+.gd-chip {
+    padding: 7px 18px;
+    border: 1px solid #dadce0;
+    border-radius: 20px;
+    background: #fff;
+    color: #5f6368;
+    font-size: 0.82rem;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.gd-chip:active {
+    background: #f1f3f4;
+}
+
+.gd-chip.active {
+    background: #d3e3fd;
+    color: #1a73e8;
+    border-color: #d3e3fd;
+}
+
+/* Call List */
+.gd-call-list {
+    flex: 1;
+    overflow-y: auto;
+    padding-bottom: 8px;
+}
+
+.gd-day-group {
+    margin-bottom: 4px;
+}
+
+.gd-day-label {
+    padding: 12px 20px 6px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: #5f6368;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.gd-call-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    transition: background 0.1s;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.gd-call-item:active {
+    background: #f1f3f4;
+}
+
+.gd-call-type-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #f1f3f4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 1.1rem;
+}
+
+.gd-icon-missed {
+    color: #d93025;
+}
+
+.gd-icon-inbound {
+    color: #1a73e8;
+}
+
+.gd-icon-outbound {
+    color: #34a853;
+}
+
+.gd-call-info {
     flex: 1;
     min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 }
 
-.tc-recent-number {
-    display: block;
-    font-weight: 600;
-    font-size: 0.9rem;
-    color: #111827;
+.gd-call-number {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: #202124;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-.tc-recent-meta {
-    display: block;
-    font-size: 0.75rem;
-    color: #9ca3af;
-    text-transform: capitalize;
+.gd-call-number.missed {
+    color: #d93025;
 }
 
-.tc-recent-time {
-    font-size: 0.75rem;
-    color: #9ca3af;
+.gd-call-meta {
+    font-size: 0.78rem;
+    color: #80868b;
+}
+
+.gd-call-right {
     flex-shrink: 0;
 }
 
-/* ── Call History Tab ── */
-.tc-history {
+.gd-call-time {
+    font-size: 0.78rem;
+    color: #80868b;
+}
+
+/* Empty & Loading inline */
+.gd-loading-inline {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 4rem 0;
+    color: #5f6368;
+    font-size: 0.9rem;
+}
+
+.gd-empty {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
-}
-
-.tc-history-toolbar {
-    display: flex;
     align-items: center;
-    gap: 1rem;
-    flex-wrap: wrap;
+    justify-content: center;
+    padding: 5rem 2rem;
+    color: #80868b;
+    gap: 12px;
 }
 
-.tc-search-box {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    background: #fff;
-    border: 1px solid #e5e7eb;
-    border-radius: 10px;
-    padding: 0.6rem 1rem;
-    flex: 1;
-    min-width: 200px;
+.gd-empty-icon {
+    font-size: 3rem;
+    opacity: 0.3;
 }
 
-.tc-search-icon {
-    color: #9ca3af;
+.gd-empty p {
+    margin: 0;
+    font-size: 0.95rem;
+}
+
+/* ============================================================
+   ANALYTICS TAB
+   ============================================================ */
+.gd-analytics {
+    padding: 0 0 24px;
+    background: #ffffff;
+    min-height: 100%;
+}
+
+.gd-analytics-header {
+    padding: 20px 20px 16px;
+}
+
+.gd-analytics-header h1 {
+    margin: 0;
+    font-size: 1.4rem;
+    font-weight: 500;
+    color: #202124;
+    font-family: 'Google Sans', 'Roboto', -apple-system, sans-serif;
+}
+
+.gd-analytics-header p {
+    margin: 4px 0 0;
     font-size: 0.85rem;
+    color: #80868b;
 }
 
-.tc-search-box input {
-    border: none;
-    outline: none;
-    background: transparent;
-    font-size: 0.875rem;
-    color: #111827;
-    width: 100%;
-}
-
-.tc-filter-pills {
+/* Summary Card with Ring */
+.gd-summary-card {
     display: flex;
-    gap: 0.5rem;
-}
-
-.tc-pill {
-    padding: 0.5rem 1rem;
-    border: 1px solid #e5e7eb;
+    align-items: center;
+    gap: 28px;
+    margin: 0 16px 20px;
+    padding: 24px;
+    background: #f8f9fa;
     border-radius: 20px;
-    background: #fff;
-    color: #6b7280;
-    font-size: 0.8rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
 }
 
-.tc-pill:hover {
-    border-color: #2B5EA7;
-    color: #2B5EA7;
+.gd-summary-ring {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    flex-shrink: 0;
 }
 
-.tc-pill.active {
-    background: #2B5EA7;
-    color: #fff;
-    border-color: #2B5EA7;
+.gd-ring-svg {
+    width: 120px;
+    height: 120px;
+    transform: rotate(-90deg);
 }
 
-.tc-loading-inline {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    padding: 3rem;
-    color: #6b7280;
+.gd-ring-bg {
+    fill: none;
+    stroke: #e8eaed;
+    stroke-width: 8;
 }
 
-.tc-empty-state {
+.gd-ring-fill {
+    fill: none;
+    stroke: #1a73e8;
+    stroke-width: 8;
+    stroke-linecap: round;
+    transition: stroke-dasharray 0.6s ease;
+}
+
+.gd-ring-label {
+    position: absolute;
+    inset: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 4rem;
-    color: #9ca3af;
-    gap: 0.75rem;
 }
 
-.tc-empty-icon {
-    font-size: 2.5rem;
-    opacity: 0.4;
-}
-
-/* ── Table ── */
-.tc-call-table {
-    background: #fff;
-    border-radius: 16px;
-    border: 1px solid #e5e7eb;
-    overflow: hidden;
-}
-
-.tc-table-header {
-    display: grid;
-    grid-template-columns: 80px 1.5fr 100px 100px 100px 1fr;
-    padding: 0.75rem 1.25rem;
-    background: #f9fafb;
-    border-bottom: 1px solid #e5e7eb;
-    font-size: 0.75rem;
+.gd-ring-value {
+    font-size: 1.8rem;
     font-weight: 600;
-    color: #6b7280;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+    color: #202124;
+    line-height: 1;
 }
 
-.tc-table-row {
-    display: grid;
-    grid-template-columns: 80px 1.5fr 100px 100px 100px 1fr;
-    padding: 0.85rem 1.25rem;
-    border-bottom: 1px solid #f3f4f6;
-    font-size: 0.875rem;
-    color: #374151;
-    align-items: center;
-    transition: background 0.1s;
-}
-
-.tc-table-row:hover {
-    background: #f9fafb;
-}
-
-.tc-table-row:last-child {
-    border-bottom: none;
-}
-
-.tc-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    padding: 0.25rem 0.6rem;
-    border-radius: 6px;
-    font-size: 0.75rem;
-    font-weight: 600;
-}
-
-.tc-badge.inbound {
-    background: #eff6ff;
-    color: #2B5EA7;
-}
-
-.tc-badge.outbound {
-    background: #ecfdf5;
-    color: #059669;
-}
-
-.tc-number {
-    font-weight: 600;
-    color: #111827;
-}
-
-.tc-status-badge {
-    display: inline-block;
-    padding: 0.2rem 0.6rem;
-    border-radius: 6px;
+.gd-ring-text {
     font-size: 0.7rem;
-    font-weight: 600;
+    color: #80868b;
     text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 4px;
 }
 
-.tc-status-badge.completed {
-    background: #ecfdf5;
-    color: #059669;
-}
-
-.tc-status-badge.in-progress,
-.tc-status-badge.ringing,
-.tc-status-badge.queued {
-    background: #fef3c7;
-    color: #d97706;
-}
-
-.tc-status-badge.failed,
-.tc-status-badge.busy {
-    background: #fef2f2;
-    color: #dc2626;
-}
-
-.tc-status-badge.no-answer,
-.tc-status-badge.canceled {
-    background: #f3f4f6;
-    color: #6b7280;
-}
-
-.tc-cost {
-    font-weight: 500;
-    font-size: 0.8rem;
-}
-
-.tc-date {
-    font-size: 0.8rem;
-    color: #6b7280;
-}
-
-/* ── Stats Tab ── */
-.tc-stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 1.25rem;
-}
-
-.tc-stat-card {
-    background: #fff;
-    border-radius: 16px;
-    padding: 1.5rem;
-    border: 1px solid #e5e7eb;
-    border-top: 3px solid;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+.gd-summary-breakdown {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 14px;
+    flex: 1;
 }
 
-.tc-stat-label {
-    font-size: 0.8rem;
-    font-weight: 500;
-    color: #6b7280;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+.gd-breakdown-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
-.tc-stat-value {
-    font-size: 1.75rem;
+.gd-breakdown-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.gd-breakdown-dot.completed { background: #34a853; }
+.gd-breakdown-dot.inbound { background: #1a73e8; }
+.gd-breakdown-dot.outbound { background: #fbbc04; }
+
+.gd-breakdown-label {
+    flex: 1;
+    font-size: 0.85rem;
+    color: #5f6368;
+}
+
+.gd-breakdown-value {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #202124;
+}
+
+/* Stat Cards */
+.gd-stat-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 0 16px;
+}
+
+.gd-stat-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 18px 20px;
+    background: #f8f9fa;
+    border-radius: 16px;
+}
+
+.gd-stat-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.gd-stat-icon.duration {
+    background: #e8f0fe;
+    color: #1a73e8;
+}
+
+.gd-stat-icon.avg {
+    background: #fce8e6;
+    color: #d93025;
+}
+
+.gd-stat-icon.cost {
+    background: #e6f4ea;
+    color: #137333;
+}
+
+.gd-dollar {
+    font-size: 1.2rem;
     font-weight: 700;
 }
 
-/* ── Responsive ── */
-@media (max-width: 768px) {
-    .tc-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 1rem;
+.gd-stat-body {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.gd-stat-val {
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: #202124;
+}
+
+.gd-stat-lbl {
+    font-size: 0.78rem;
+    color: #80868b;
+}
+
+/* ============================================================
+   RESPONSIVE — Desktop adjustments
+   ============================================================ */
+@media (min-width: 769px) {
+    .gd-container {
+        max-width: 480px;
+        margin: 0 auto;
+        border-left: 1px solid #e8eaed;
+        border-right: 1px solid #e8eaed;
     }
 
-    .tc-tabs {
-        width: 100%;
-        overflow-x: auto;
+    .gd-dialpad {
+        max-width: 320px;
     }
 
-    .tc-dialer-layout {
-        grid-template-columns: 1fr;
+    .gd-action-row {
+        max-width: 320px;
     }
 
-    .tc-table-header,
-    .tc-table-row {
-        grid-template-columns: 60px 1fr 80px 70px;
+    .gd-key {
+        height: 72px;
     }
 
-    .tc-table-header span:nth-child(5),
-    .tc-table-header span:nth-child(6),
-    .tc-table-row span:nth-child(5),
-    .tc-table-row span:nth-child(6) {
-        display: none;
+    .gd-key:hover {
+        background: #f1f3f4;
     }
 
-    .tc-content {
-        padding: 1rem;
+    .gd-call-item:hover {
+        background: #f8f9fa;
     }
 
-    .tc-history-toolbar {
-        flex-direction: column;
+    .gd-summary-card {
+        max-width: 440px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+}
+
+/* Small phones */
+@media (max-height: 700px) {
+    .gd-number-display {
+        padding: 12px 24px 8px;
+        min-height: 60px;
     }
 
-    .tc-stats-grid {
-        grid-template-columns: repeat(2, 1fr);
+    .gd-key {
+        height: 56px;
+    }
+
+    .gd-key-digit {
+        font-size: 1.5rem;
+    }
+
+    .gd-dialpad {
+        padding: 4px 32px;
+        gap: 2px;
+    }
+
+    .gd-action-row {
+        padding: 8px 36px 16px;
+    }
+
+    .gd-call-fab {
+        width: 60px;
+        height: 60px;
+        font-size: 1.3rem;
     }
 }

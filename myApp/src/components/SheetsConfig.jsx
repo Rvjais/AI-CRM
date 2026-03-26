@@ -2,50 +2,41 @@ import { useState, useEffect } from 'react';
 import { IonPage, IonContent } from '@ionic/react';
 import api from '../utils/apiClient';
 import './SheetsConfig.css';
-import { FaPlus, FaTrash, FaSave, FaSync } from 'react-icons/fa';
+import { FaPlus, FaTrash, FaSave, FaSync, FaTable, FaLock, FaChevronDown, FaChevronUp, FaLink, FaColumns } from 'react-icons/fa';
 import { Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
+
 function SheetsConfig() {
     const [config, setConfig] = useState({
-        spreadsheetId: '',
-        sheetName: 'Sheet1',
-        columns: []
+        spreadsheetId: '', sheetName: 'Sheet1', columns: []
     });
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState('');
+    const [expandedSection, setExpandedSection] = useState('connection');
 
-    useEffect(() => {
-        fetchConfig();
-    }, []);
+    const toggleSection = (s) => setExpandedSection(prev => prev === s ? null : s);
+
+    useEffect(() => { fetchConfig(); }, []);
 
     const fetchConfig = async () => {
         try {
             const result = await api.get('/api/sheets/config');
             if (result.success && result.data) {
                 let columns = result.data.columns || [];
-
-                // Ensure Phone variable is always present and first
                 const phoneIndex = columns.findIndex(c => c.key === 'phone');
-                const phoneVar = {
-                    key: 'phone',
-                    header: 'Phone Number',
-                    description: 'Sender Phone Number (Auto-Added)'
-                };
-
+                const phoneVar = { key: 'phone', header: 'Phone Number', description: 'Sender Phone Number (Auto-Added)' };
                 if (phoneIndex === -1) {
                     columns = [phoneVar, ...columns];
                 } else {
-                    // Move to front if exists but not first
-                    const existingPhone = columns[phoneIndex];
+                    const existing = columns[phoneIndex];
                     columns.splice(phoneIndex, 1);
-                    columns = [existingPhone, ...columns];
+                    columns = [existing, ...columns];
                 }
-
                 setConfig({
                     spreadsheetId: result.data.spreadsheetId || '',
                     sheetName: result.data.sheetName || 'Sheet1',
-                    columns: columns
+                    columns
                 });
             }
         } catch (error) {
@@ -62,15 +53,11 @@ function SheetsConfig() {
     };
 
     const addColumn = () => {
-        setConfig({
-            ...config,
-            columns: [...config.columns, { key: '', header: '', description: '' }]
-        });
+        setConfig({ ...config, columns: [...config.columns, { key: '', header: '', description: '' }] });
     };
 
     const removeColumn = (index) => {
-        const newColumns = config.columns.filter((_, i) => i !== index);
-        setConfig({ ...config, columns: newColumns });
+        setConfig({ ...config, columns: config.columns.filter((_, i) => i !== index) });
     };
 
     const saveConfig = async () => {
@@ -78,163 +65,175 @@ function SheetsConfig() {
         try {
             const result = await api.post('/api/sheets/config', config);
             if (result.success) {
-                setMessage('Configuration saved!');
-                // Automatically sync headers after save to ensure sheet structure matches
+                setMessage('Saved & synced!');
                 await api.post('/api/sheets/sync-headers');
             } else {
                 setMessage('Failed to save.');
             }
-        } catch (error) {
-            setMessage('Error saving configuration.');
+        } catch {
+            setMessage('Error saving.');
         } finally {
             setSaving(false);
             setTimeout(() => setMessage(''), 3000);
         }
     };
+
     const handleReconnect = async () => {
         try {
             const isNative = Capacitor.isNativePlatform();
             const platformQuery = isNative ? '?platform=android' : '';
-
             const result = await api.get(`/api/auth/google${platformQuery}`);
             if (result.success && result.data.url) {
                 if (isNative) {
                     await Browser.open({ url: result.data.url });
-                    // The App.jsx listener will handle the deep link callback and close the browser
                 } else {
                     window.location.href = result.data.url;
                 }
             }
-        } catch (error) {
-            console.error('Error fetching auth url:', error);
+        } catch {
             setMessage('Error starting authentication.');
         }
     };
 
-    if (loading) return <div>Loading config...</div>;
+    if (loading) {
+        return (
+            <IonPage><IonContent>
+                <div className="sht-loading">Loading config...</div>
+            </IonContent></IonPage>
+        );
+    }
 
     return (
         <IonPage>
-            <IonContent className="ion-padding">
-                <div className="sheets-config">
-                    <div className="header-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div>
-                            <h2>Google Sheets Integration</h2>
-                            <p className="subtitle">Connect a Google Sheet to auto-extract chat data.</p>
+            <IonContent>
+                <div className="sht-container">
+                    {/* Header */}
+                    <div className="sht-header">
+                        <div className="sht-header-icon"><FaTable /></div>
+                        <div style={{ flex: 1 }}>
+                            <h1>Google Sheets</h1>
+                            <p>Auto-extract chat data to spreadsheets</p>
                         </div>
-                        <button
-                            onClick={handleReconnect}
-                            className="reconnect-btn"
-                            style={{
-                                background: '#4285f4',
-                                color: 'white',
-                                border: 'none',
-                                padding: '8px 16px',
-                                borderRadius: '4px',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '8px',
-                                fontSize: '14px'
-                            }}
-                        >
-                            <FaSync /> Re-Authorize Google
+                        <button className="sht-auth-btn" onClick={handleReconnect}>
+                            <FaSync /> Auth
                         </button>
                     </div>
 
-                    <div className="config-section">
-                        <div className="form-group">
-                            <label>Spreadsheet ID</label>
-                            <input
-                                type="text"
-                                value={config.spreadsheetId}
-                                onChange={(e) => setConfig({ ...config, spreadsheetId: e.target.value })}
-                                placeholder="e.g. 1BxiMVs0XRA5nFMdKvBdBkJ..."
-                            />
-                            <small>Found in your Google Sheet URL: docs.google.com/spreadsheets/d/<b>SpreadsheetID</b>/edit</small>
-                        </div>
-
-                        <div className="form-group">
-                            <label>Sheet Name</label>
-                            <input
-                                type="text"
-                                value={config.sheetName}
-                                onChange={(e) => setConfig({ ...config, sheetName: e.target.value })}
-                                placeholder="Sheet1"
-                            />
-                        </div>
-                    </div>
-
-                    <div className="columns-section">
-                        <h3>Extraction Variables (Columns)</h3>
-                        <p>Define what AI should extract from the chat and where it goes in the sheet.</p>
-
-                        <div className="columns-header">
-                            <span>Variable (Key)</span>
-                            <span>Sheet Header</span>
-                            <span>AI Instruction (Description)</span>
-                            <span>Action</span>
-                        </div>
-
-                        {config.columns.map((col, index) => {
-                            const isPhone = col.key === 'phone';
-                            return (
-                                <div key={index} className="column-row">
-                                    <input
-                                        type="text"
-                                        placeholder="e.g. customerName"
-                                        value={col.key}
-                                        onChange={(e) => handleColumnChange(index, 'key', e.target.value)}
-                                        disabled={isPhone}
-                                        title={isPhone ? "Default variable (cannot change)" : ""}
-                                        style={isPhone ? { backgroundColor: '#f3f4f6', cursor: 'not-allowed' } : {}}
-                                    />
-                                    <input
-                                        type="text"
-                                        placeholder="e.g. Customer Name"
-                                        value={col.header}
-                                        onChange={(e) => handleColumnChange(index, 'header', e.target.value)}
-                                        disabled={isPhone}
-                                        title={isPhone ? "Default variable (cannot change)" : ""}
-                                        style={isPhone ? { backgroundColor: '#f3f4f6', cursor: 'not-allowed' } : {}}
-                                    />
-                                    <input
-                                        type="text"
-                                        placeholder="e.g. The extracted name of the client"
-                                        value={col.description}
-                                        onChange={(e) => handleColumnChange(index, 'description', e.target.value)}
-                                        disabled={isPhone}
-                                        title={isPhone ? "Default variable (cannot change)" : ""}
-                                        style={isPhone ? { backgroundColor: '#f3f4f6', cursor: 'not-allowed' } : {}}
-                                    />
-                                    {isPhone ? (
-                                        <div style={{ width: '36px', display: 'flex', justifyContent: 'center' }}>
-                                            <span style={{ fontSize: '18px', color: '#9ca3af' }}>🔒</span>
-                                        </div>
-                                    ) : (
-                                        <button className="remove-btn" onClick={() => removeColumn(index)}>
-                                            <FaTrash />
-                                        </button>
-                                    )}
+                    {/* Connection Section */}
+                    <div className="sht-section">
+                        <button className="sht-section-header" onClick={() => toggleSection('connection')}>
+                            <div className="sht-section-left">
+                                <div className="sht-icon-wrap link"><FaLink /></div>
+                                <div>
+                                    <span className="sht-section-title">Spreadsheet Connection</span>
+                                    <span className="sht-section-sub">
+                                        {config.spreadsheetId ? 'Connected' : 'Not configured'}
+                                    </span>
                                 </div>
-                            );
-                        })}
+                            </div>
+                            {expandedSection === 'connection' ? <FaChevronUp /> : <FaChevronDown />}
+                        </button>
+                        {expandedSection === 'connection' && (
+                            <div className="sht-section-body">
+                                <label className="sht-label">Spreadsheet ID</label>
+                                <input
+                                    type="text"
+                                    value={config.spreadsheetId}
+                                    onChange={(e) => setConfig({ ...config, spreadsheetId: e.target.value })}
+                                    placeholder="1BxiMVs0XRA5nFMd..."
+                                    className="sht-input"
+                                />
+                                <div className="sht-hint">From URL: docs.google.com/spreadsheets/d/<strong>ID</strong>/edit</div>
 
-                        <button className="add-btn" onClick={addColumn}>
-                            <FaPlus /> Add Variable
+                                <label className="sht-label">Sheet Name</label>
+                                <input
+                                    type="text"
+                                    value={config.sheetName}
+                                    onChange={(e) => setConfig({ ...config, sheetName: e.target.value })}
+                                    placeholder="Sheet1"
+                                    className="sht-input"
+                                />
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Columns Section */}
+                    <div className="sht-section">
+                        <button className="sht-section-header" onClick={() => toggleSection('columns')}>
+                            <div className="sht-section-left">
+                                <div className="sht-icon-wrap cols"><FaColumns /></div>
+                                <div>
+                                    <span className="sht-section-title">Extraction Variables</span>
+                                    <span className="sht-section-sub">{config.columns.length} columns defined</span>
+                                </div>
+                            </div>
+                            {expandedSection === 'columns' ? <FaChevronUp /> : <FaChevronDown />}
+                        </button>
+                        {expandedSection === 'columns' && (
+                            <div className="sht-section-body">
+                                <p className="sht-desc">Define what AI should extract from each chat.</p>
+
+                                {config.columns.map((col, index) => {
+                                    const isPhone = col.key === 'phone';
+                                    return (
+                                        <div key={index} className={`sht-col-card ${isPhone ? 'locked' : ''}`}>
+                                            {isPhone && <div className="sht-lock-badge"><FaLock size={10} /> Default</div>}
+                                            {!isPhone && (
+                                                <button className="sht-col-delete" onClick={() => removeColumn(index)}>
+                                                    <FaTrash />
+                                                </button>
+                                            )}
+                                            <label className="sht-label-sm">Variable Key</label>
+                                            <input
+                                                type="text"
+                                                value={col.key}
+                                                onChange={(e) => handleColumnChange(index, 'key', e.target.value)}
+                                                placeholder="e.g. customerName"
+                                                disabled={isPhone}
+                                                className="sht-input-sm"
+                                            />
+                                            <label className="sht-label-sm">Sheet Header</label>
+                                            <input
+                                                type="text"
+                                                value={col.header}
+                                                onChange={(e) => handleColumnChange(index, 'header', e.target.value)}
+                                                placeholder="e.g. Customer Name"
+                                                disabled={isPhone}
+                                                className="sht-input-sm"
+                                            />
+                                            <label className="sht-label-sm">AI Instruction</label>
+                                            <input
+                                                type="text"
+                                                value={col.description}
+                                                onChange={(e) => handleColumnChange(index, 'description', e.target.value)}
+                                                placeholder="e.g. Extract the client name"
+                                                disabled={isPhone}
+                                                className="sht-input-sm"
+                                            />
+                                        </div>
+                                    );
+                                })}
+
+                                <button className="sht-add-btn" onClick={addColumn}>
+                                    <FaPlus /> Add Variable
+                                </button>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Info */}
+                    <div className="sht-info">
+                        Saving will verify your Sheet ID and sync headers automatically.
+                    </div>
+
+                    {/* Save Bar */}
+                    <div className="sht-save-bar">
+                        {message && <span className="sht-save-msg">{message}</span>}
+                        <button className={`sht-btn-save ${saving ? 'saving' : ''} ${message && !saving ? 'saved' : ''}`} onClick={saveConfig} disabled={saving}>
+                            <FaSave /> {saving ? 'Saving...' : 'Save & Sync'}
                         </button>
                     </div>
-
-                    <div className="actions">
-                        <button className="save-btn" onClick={saveConfig} disabled={saving}>
-                            {saving ? 'Saving...' : <><FaSave /> Save & Sync Headers</>}
-                        </button>
-                        {message && <span className="message success">{message}</span>}
-                    </div>
-
-                    <div className="info-box">
-                        <p><strong>Note:</strong> Saving will verify your Spreadsheet ID and automatically update the first row of your sheet with the headers defined above.</p>
-                    </div>
+                    <div style={{ height: 80 }} />
                 </div>
             </IonContent>
         </IonPage>

@@ -1,20 +1,16 @@
 import { useState, useEffect } from 'react';
 import { IonPage, IonContent } from '@ionic/react';
-import { FaDatabase, FaCloud, FaSave, FaCheckCircle, FaExclamationTriangle, FaLock, FaPhone } from 'react-icons/fa';
+import { FaDatabase, FaCloud, FaSave, FaCheckCircle, FaExclamationTriangle, FaLock, FaPhone, FaChevronDown, FaChevronUp, FaServer } from 'react-icons/fa';
 import api from '../utils/apiClient';
 import './InfrastructureConfig.css';
 
 function InfrastructureConfig({ token, onConfigSaved }) {
     const [mongoURI, setMongoURI] = useState('');
     const [cloudinaryConfig, setCloudinaryConfig] = useState({
-        cloudName: '',
-        apiKey: '',
-        apiSecret: ''
+        cloudName: '', apiKey: '', apiSecret: ''
     });
     const [twilioConfig, setTwilioConfig] = useState({
-        accountSid: '',
-        authToken: '',
-        phoneNumber: ''
+        accountSid: '', authToken: '', phoneNumber: ''
     });
 
     const [loading, setLoading] = useState(true);
@@ -22,10 +18,11 @@ function InfrastructureConfig({ token, onConfigSaved }) {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [infrastructureReady, setInfrastructureReady] = useState(false);
+    const [expandedSection, setExpandedSection] = useState('mongo');
 
-    useEffect(() => {
-        fetchConfig();
-    }, [token]);
+    const toggleSection = (s) => setExpandedSection(prev => prev === s ? null : s);
+
+    useEffect(() => { fetchConfig(); }, [token]);
 
     const fetchConfig = async () => {
         try {
@@ -49,7 +46,6 @@ function InfrastructureConfig({ token, onConfigSaved }) {
                 setInfrastructureReady(data.data.infrastructureReady);
             }
         } catch (err) {
-            console.error('Error fetching infrastructure config:', err);
             setError('Failed to load settings.');
         } finally {
             setLoading(false);
@@ -61,135 +57,195 @@ function InfrastructureConfig({ token, onConfigSaved }) {
         setSaving(true);
         setError('');
         setSuccess('');
-
         try {
-            const payload = {
-                mongoURI,
-                cloudinaryConfig
-            };
-
+            const payload = { mongoURI, cloudinaryConfig };
             if (twilioConfig.accountSid || twilioConfig.authToken || twilioConfig.phoneNumber) {
                 payload.twilioConfig = twilioConfig;
             }
-
             const data = await api.put('/api/user/infrastructure', payload);
-
             if (data.success) {
-                setSuccess('Infrastructure settings saved and verified successfully!');
+                setSuccess('Infrastructure settings saved and verified!');
                 setInfrastructureReady(true);
                 if (onConfigSaved) onConfigSaved();
             } else {
                 setError(data.message || 'Failed to save settings.');
             }
         } catch (err) {
-            console.error('Error saving settings:', err);
-            setError(err.response?.data?.message || err.message || 'Failed to save settings. Please check your credentials.');
+            setError(err.message || 'Failed to save. Check your credentials.');
         } finally {
             setSaving(false);
         }
     };
 
-    if (loading) return <div className="loading">Loading settings...</div>;
+    if (loading) {
+        return (
+            <IonPage><IonContent>
+                <div className="inf-loading">Loading settings...</div>
+            </IonContent></IonPage>
+        );
+    }
+
+    const hasMongo = !!mongoURI;
+    const hasCloudinary = !!(cloudinaryConfig.cloudName && cloudinaryConfig.apiKey);
+    const hasTwilio = !!twilioConfig.phoneNumber;
 
     return (
         <IonPage>
-            <IonContent className="ion-padding">
-                <div className="infra-config-view">
-                    <div className="view-header">
-                        <h1>Infrastructure Settings</h1>
-                        <p>Connect your own database, storage, and telephony to power your RainCRM instance.</p>
+            <IonContent>
+                <form onSubmit={handleSave} className="inf-container">
+                    {/* Header */}
+                    <div className="inf-header">
+                        <div className="inf-header-icon"><FaServer /></div>
+                        <div>
+                            <h1>Infrastructure</h1>
+                            <p>Connect your database, storage & telephony</p>
+                        </div>
                     </div>
 
-                    <div className="status-banner">
-                        {infrastructureReady ? (
-                            <div className="status-card success">
-                                <FaCheckCircle className="status-icon" />
+                    {/* Status Banner */}
+                    <div className={`inf-status ${infrastructureReady ? 'connected' : 'pending'}`}>
+                        {infrastructureReady ? <FaCheckCircle /> : <FaExclamationTriangle />}
+                        <span>{infrastructureReady ? 'System connected and ready' : 'Configuration required to enable features'}</span>
+                    </div>
+
+                    {/* MongoDB Section */}
+                    <div className="inf-section">
+                        <button type="button" className="inf-section-header" onClick={() => toggleSection('mongo')}>
+                            <div className="inf-section-left">
+                                <div className="inf-icon-wrap mongo"><FaDatabase /></div>
                                 <div>
-                                    <h3>System Connected</h3>
-                                    <p>Your MongoDB and Cloudinary are connected and ready.</p>
+                                    <span className="inf-section-title">MongoDB</span>
+                                    <span className="inf-section-sub">
+                                        {hasMongo ? <span className="inf-dot green" /> : <span className="inf-dot red" />}
+                                        {hasMongo ? 'Connected' : 'Not configured'}
+                                    </span>
                                 </div>
                             </div>
-                        ) : (
-                            <div className="status-card warning">
-                                <FaExclamationTriangle className="status-icon" />
-                                <div>
-                                    <h3>Action Required</h3>
-                                    <p>Please configure your infrastructure to enable WhatsApp and Media features.</p>
-                                </div>
+                            {expandedSection === 'mongo' ? <FaChevronUp /> : <FaChevronDown />}
+                        </button>
+                        {expandedSection === 'mongo' && (
+                            <div className="inf-section-body">
+                                <label className="inf-label">Connection URI</label>
+                                <input
+                                    type="password"
+                                    value={mongoURI}
+                                    onChange={(e) => setMongoURI(e.target.value)}
+                                    placeholder="mongodb+srv://user:pass@cluster..."
+                                    required
+                                    className="inf-input"
+                                />
+                                <div className="inf-hint"><FaLock size={10} /> Encrypted at rest</div>
                             </div>
                         )}
                     </div>
 
-                    <form onSubmit={handleSave} className="infra-form">
-                        <div className="form-section">
-                            <div className="section-header">
-                                <FaDatabase className="section-icon" />
-                                <h2>MongoDB Connection</h2>
-                            </div>
-                            <p className="section-desc">Provide your MongoDB Connection String (URI).</p>
-                            <div className="form-group">
-                                <label>MongoDB URI</label>
-                                <input type="password" value={mongoURI} onChange={(e) => setMongoURI(e.target.value)} placeholder="mongodb+srv://user:password@cluster.mongodb.net/dbname" required className="input-field" />
-                                <small className="hint"><FaLock size={10} /> Your URI is encrypted at rest.</small>
-                            </div>
-                        </div>
-
-                        <div className="form-section">
-                            <div className="section-header">
-                                <FaCloud className="section-icon" />
-                                <h2>Cloudinary Configuration</h2>
-                            </div>
-                            <p className="section-desc">Connect your Cloudinary account for media storage.</p>
-                            <div className="form-group">
-                                <label>Cloud Name</label>
-                                <input type="text" value={cloudinaryConfig.cloudName} onChange={(e) => setCloudinaryConfig({ ...cloudinaryConfig, cloudName: e.target.value })} placeholder="e.g. my-cloud-name" required className="input-field" />
-                            </div>
-                            <div className="form-row">
-                                <div className="form-group half">
-                                    <label>API Key</label>
-                                    <input type="text" value={cloudinaryConfig.apiKey} onChange={(e) => setCloudinaryConfig({ ...cloudinaryConfig, apiKey: e.target.value })} placeholder="1234567890" required className="input-field" />
-                                </div>
-                                <div className="form-group half">
-                                    <label>API Secret</label>
-                                    <input type="password" value={cloudinaryConfig.apiSecret} onChange={(e) => setCloudinaryConfig({ ...cloudinaryConfig, apiSecret: e.target.value })} placeholder="Enter API Secret" required className="input-field" />
+                    {/* Cloudinary Section */}
+                    <div className="inf-section">
+                        <button type="button" className="inf-section-header" onClick={() => toggleSection('cloud')}>
+                            <div className="inf-section-left">
+                                <div className="inf-icon-wrap cloud"><FaCloud /></div>
+                                <div>
+                                    <span className="inf-section-title">Cloudinary</span>
+                                    <span className="inf-section-sub">
+                                        {hasCloudinary ? <span className="inf-dot green" /> : <span className="inf-dot red" />}
+                                        {hasCloudinary ? 'Connected' : 'Not configured'}
+                                    </span>
                                 </div>
                             </div>
-                        </div>
+                            {expandedSection === 'cloud' ? <FaChevronUp /> : <FaChevronDown />}
+                        </button>
+                        {expandedSection === 'cloud' && (
+                            <div className="inf-section-body">
+                                <label className="inf-label">Cloud Name</label>
+                                <input
+                                    type="text"
+                                    value={cloudinaryConfig.cloudName}
+                                    onChange={(e) => setCloudinaryConfig({ ...cloudinaryConfig, cloudName: e.target.value })}
+                                    placeholder="my-cloud-name"
+                                    required
+                                    className="inf-input"
+                                />
+                                <label className="inf-label">API Key</label>
+                                <input
+                                    type="text"
+                                    value={cloudinaryConfig.apiKey}
+                                    onChange={(e) => setCloudinaryConfig({ ...cloudinaryConfig, apiKey: e.target.value })}
+                                    placeholder="123456789012"
+                                    required
+                                    className="inf-input"
+                                />
+                                <label className="inf-label">API Secret</label>
+                                <input
+                                    type="password"
+                                    value={cloudinaryConfig.apiSecret}
+                                    onChange={(e) => setCloudinaryConfig({ ...cloudinaryConfig, apiSecret: e.target.value })}
+                                    placeholder="Enter API Secret"
+                                    required
+                                    className="inf-input"
+                                />
+                            </div>
+                        )}
+                    </div>
 
-                        <div className="form-section">
-                            <div className="section-header">
-                                <FaPhone className="section-icon twilio-icon" />
-                                <h2>Twilio Configuration</h2>
+                    {/* Twilio Section */}
+                    <div className="inf-section">
+                        <button type="button" className="inf-section-header" onClick={() => toggleSection('twilio')}>
+                            <div className="inf-section-left">
+                                <div className="inf-icon-wrap twilio"><FaPhone /></div>
+                                <div>
+                                    <span className="inf-section-title">Twilio</span>
+                                    <span className="inf-section-sub">
+                                        {hasTwilio ? <span className="inf-dot green" /> : <span className="inf-dot gray" />}
+                                        {hasTwilio ? twilioConfig.phoneNumber : 'Optional'}
+                                    </span>
+                                </div>
                             </div>
-                            <p className="section-desc">Connect your Twilio account for voice calling features.</p>
-                            <div className="form-group">
-                                <label>Account SID</label>
-                                <input type="text" value={twilioConfig.accountSid} onChange={(e) => setTwilioConfig({ ...twilioConfig, accountSid: e.target.value })} placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" className="input-field" />
+                            {expandedSection === 'twilio' ? <FaChevronUp /> : <FaChevronDown />}
+                        </button>
+                        {expandedSection === 'twilio' && (
+                            <div className="inf-section-body">
+                                <label className="inf-label">Account SID</label>
+                                <input
+                                    type="text"
+                                    value={twilioConfig.accountSid}
+                                    onChange={(e) => setTwilioConfig({ ...twilioConfig, accountSid: e.target.value })}
+                                    placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                                    className="inf-input"
+                                />
+                                <label className="inf-label">Auth Token</label>
+                                <input
+                                    type="password"
+                                    value={twilioConfig.authToken}
+                                    onChange={(e) => setTwilioConfig({ ...twilioConfig, authToken: e.target.value })}
+                                    placeholder="Enter Auth Token"
+                                    className="inf-input"
+                                />
+                                <div className="inf-hint"><FaLock size={10} /> Encrypted at rest</div>
+                                <label className="inf-label">Phone Number</label>
+                                <input
+                                    type="tel"
+                                    value={twilioConfig.phoneNumber}
+                                    onChange={(e) => setTwilioConfig({ ...twilioConfig, phoneNumber: e.target.value })}
+                                    placeholder="+1234567890"
+                                    className="inf-input"
+                                />
+                                <div className="inf-hint">E.164 format (e.g. +1234567890)</div>
                             </div>
-                            <div className="form-group">
-                                <label>Auth Token</label>
-                                <input type="password" value={twilioConfig.authToken} onChange={(e) => setTwilioConfig({ ...twilioConfig, authToken: e.target.value })} placeholder="Enter Auth Token" className="input-field" />
-                                <small className="hint"><FaLock size={10} /> Your token is encrypted at rest.</small>
-                            </div>
-                            <div className="form-group">
-                                <label>Twilio Phone Number</label>
-                                <input type="tel" value={twilioConfig.phoneNumber} onChange={(e) => setTwilioConfig({ ...twilioConfig, phoneNumber: e.target.value })} placeholder="+1234567890" className="input-field" />
-                                <small className="hint">Your Twilio phone number in E.164 format</small>
-                            </div>
-                        </div>
+                        )}
+                    </div>
 
-                        {error && <div className="alert error">{error}</div>}
-                        {success && <div className="alert success">{success}</div>}
+                    {/* Alerts */}
+                    {error && <div className="inf-alert error">{error}</div>}
+                    {success && <div className="inf-alert success">{success}</div>}
 
-                        <div className="form-actions">
-                            <button type="submit" className="btn-save" disabled={saving}>
-                                {saving ? 'Verifying & Saving...' : (
-                                    <><FaSave /> Save Configuration</>
-                                )}
-                            </button>
-                        </div>
-                    </form>
-                </div>
+                    {/* Save Bar */}
+                    <div className="inf-save-bar">
+                        <button type="submit" className={`inf-btn-save ${saving ? 'saving' : ''}`} disabled={saving}>
+                            <FaSave /> {saving ? 'Verifying...' : 'Save Configuration'}
+                        </button>
+                    </div>
+                    <div style={{ height: 80 }} />
+                </form>
             </IonContent>
         </IonPage>
     );

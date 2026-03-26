@@ -67,6 +67,10 @@ function AIConfig({ token }) {
                 setMaxTokens(data.data.maxTokens || 150);
                 setAutoReply(data.data.autoReply || false);
 
+                if (data.data.keysConfigured) {
+                    setKeysConfigured(prev => ({ ...prev, ...data.data.keysConfigured }));
+                }
+
                 const savedProvider = data.data.provider || 'openai';
                 setProvider(savedProvider);
             }

@@ -1,9 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { IonPage, IonContent } from '@ionic/react';
 import {
-    FaPhoneAlt, FaPhone, FaHistory, FaChartBar,
-    FaArrowUp, FaArrowDown, FaSpinner, FaSearch,
-    FaPhoneSlash
+    FaPhoneAlt, FaHistory, FaChartBar,
+    FaSpinner,
+    FaPhoneSlash, FaBackspace, FaSearch,
+    FaPhone, FaPhoneVolume, FaTimes
 } from 'react-icons/fa';
+import { MdDialpad, MdCallMissed, MdCallMade, MdCallReceived } from 'react-icons/md';
 import api from '../utils/apiClient';
 import './TwilioCalls.css';
 
@@ -29,89 +32,117 @@ function TwilioCalls({ token }) {
         }
     };
 
-    const tabs = [
-        { id: 'dialer', icon: FaPhoneAlt, label: 'Dialer' },
-        { id: 'history', icon: FaHistory, label: 'Call History' },
-        { id: 'stats', icon: FaChartBar, label: 'Analytics' },
-    ];
-
     if (loading) {
         return (
-            <div className="tc-container">
-                <div className="tc-loading">
-                    <FaSpinner className="tc-spinner" />
-                    <p>Loading...</p>
-                </div>
-            </div>
+            <IonPage>
+                <IonContent>
+                    <div className="gd-container">
+                        <div className="gd-loading">
+                            <FaSpinner className="gd-spinner" />
+                            <p>Loading...</p>
+                        </div>
+                    </div>
+                </IonContent>
+            </IonPage>
         );
     }
 
     if (!twilioConnected) {
         return (
-            <div className="tc-container">
-                <div className="tc-not-connected">
-                    <div className="tc-not-connected-icon">
-                        <FaPhoneSlash />
+            <IonPage>
+                <IonContent>
+                    <div className="gd-container">
+                        <div className="gd-not-connected">
+                            <div className="gd-not-connected-icon">
+                                <FaPhoneSlash />
+                            </div>
+                            <h2>Twilio Not Configured</h2>
+                            <p>Go to <strong>Infrastructure Settings</strong> to add your Twilio credentials and phone number.</p>
+                        </div>
                     </div>
-                    <h2>Twilio Not Configured</h2>
-                    <p>Go to <strong>Infrastructure Settings</strong> to add your Twilio credentials and phone number.</p>
-                </div>
-            </div>
+                </IonContent>
+            </IonPage>
         );
     }
 
     return (
-        <div className="tc-container">
-            <div className="tc-header">
-                <div className="tc-header-left">
-                    <h1>Phone Calls</h1>
-                    <p>Make and manage calls via Twilio</p>
-                </div>
-                <div className="tc-tabs">
-                    {tabs.map(tab => {
-                        const Icon = tab.icon;
-                        return (
-                            <button
-                                key={tab.id}
-                                className={`tc-tab ${activeTab === tab.id ? 'active' : ''}`}
-                                onClick={() => setActiveTab(tab.id)}
-                            >
-                                <Icon />
-                                <span>{tab.label}</span>
-                            </button>
-                        );
-                    })}
-                </div>
-            </div>
+        <IonPage>
+            <IonContent scrollY={false}>
+                <div className="gd-container">
+                    <div className="gd-tab-content">
+                        {activeTab === 'dialer' && <DialerTab />}
+                        {activeTab === 'recents' && <RecentsTab />}
+                        {activeTab === 'analytics' && <AnalyticsTab />}
+                    </div>
 
-            <div className="tc-content">
-                {activeTab === 'dialer' && <DialerTab />}
-                {activeTab === 'history' && <CallHistoryTab />}
-                {activeTab === 'stats' && <StatsTab />}
-            </div>
-        </div>
+                    {/* Bottom Tab Bar — Android style */}
+                    <div className="gd-bottom-tabs">
+                        <button
+                            className={`gd-bottom-tab ${activeTab === 'recents' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('recents')}
+                        >
+                            <FaHistory />
+                            <span>Recents</span>
+                        </button>
+                        <button
+                            className={`gd-bottom-tab ${activeTab === 'dialer' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('dialer')}
+                        >
+                            <MdDialpad />
+                            <span>Keypad</span>
+                        </button>
+                        <button
+                            className={`gd-bottom-tab ${activeTab === 'analytics' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('analytics')}
+                        >
+                            <FaChartBar />
+                            <span>Analytics</span>
+                        </button>
+                    </div>
+                </div>
+            </IonContent>
+        </IonPage>
     );
 }
+
+/* ============================================================
+   DIALER TAB — Google Dialer Style
+   ============================================================ */
+const DIALPAD_KEYS = [
+    { digit: '1', letters: '' },
+    { digit: '2', letters: 'ABC' },
+    { digit: '3', letters: 'DEF' },
+    { digit: '4', letters: 'GHI' },
+    { digit: '5', letters: 'JKL' },
+    { digit: '6', letters: 'MNO' },
+    { digit: '7', letters: 'PQRS' },
+    { digit: '8', letters: 'TUV' },
+    { digit: '9', letters: 'WXYZ' },
+    { digit: '*', letters: '' },
+    { digit: '0', letters: '+' },
+    { digit: '#', letters: '' },
+];
 
 const DialerTab = () => {
     const [phoneNumber, setPhoneNumber] = useState('');
     const [calling, setCalling] = useState(false);
     const [callResult, setCallResult] = useState(null);
-    const [recentCalls, setRecentCalls] = useState([]);
+    const numberDisplayRef = useRef(null);
 
-    useEffect(() => {
-        fetchRecentCalls();
-    }, []);
-
-    const fetchRecentCalls = async () => {
-        try {
-            const res = await api.get('/api/twilio/calls?limit=5');
-            if (res.success) setRecentCalls(res.data || []);
-        } catch (e) { /* ignore */ }
+    const handleDialPad = (digit) => {
+        setPhoneNumber(prev => prev + digit);
+        setCallResult(null);
     };
 
-    const handleCall = async (e) => {
-        e.preventDefault();
+    const handleBackspace = () => {
+        setPhoneNumber(prev => prev.slice(0, -1));
+    };
+
+    const handleLongPressZero = () => {
+        setPhoneNumber(prev => prev + '+');
+    };
+
+    const handleCall = async () => {
         if (!phoneNumber.trim()) return;
         setCalling(true);
         setCallResult(null);
@@ -119,126 +150,108 @@ const DialerTab = () => {
         try {
             const res = await api.post('/api/twilio/call', { to: phoneNumber });
             if (res.success) {
-                setCallResult({ type: 'success', message: `Call initiated! SID: ${res.data?.sid || 'N/A'}` });
+                setCallResult({ type: 'success', message: 'Call initiated!' });
                 setPhoneNumber('');
-                fetchRecentCalls();
             } else {
-                setCallResult({ type: 'error', message: res.message || 'Failed to initiate call' });
+                setCallResult({ type: 'error', message: res.message || 'Call failed' });
             }
         } catch (err) {
-            setCallResult({ type: 'error', message: err.message || 'Failed to initiate call' });
+            setCallResult({ type: 'error', message: err.message || 'Call failed' });
         } finally {
             setCalling(false);
         }
     };
 
-    const handleDialPad = (digit) => {
-        setPhoneNumber(prev => prev + digit);
+    // Auto-resize font for long numbers
+    const getFontSize = () => {
+        const len = phoneNumber.length;
+        if (len > 18) return '1.4rem';
+        if (len > 14) return '1.8rem';
+        if (len > 10) return '2.2rem';
+        return '2.6rem';
     };
-
-    const handleBackspace = () => {
-        setPhoneNumber(prev => prev.slice(0, -1));
-    };
-
-    const dialPadKeys = [
-        ['1', '2', '3'],
-        ['4', '5', '6'],
-        ['7', '8', '9'],
-        ['+', '0', 'DEL'],
-    ];
 
     return (
-        <div className="tc-dialer-layout">
-            <div className="tc-dialer-card">
-                <h3>Make a Call</h3>
-                <form onSubmit={handleCall}>
-                    <div className="tc-phone-input-wrapper">
-                        <input
-                            type="tel"
-                            value={phoneNumber}
-                            onChange={(e) => setPhoneNumber(e.target.value)}
-                            placeholder="+1 (234) 567-8900"
-                            className="tc-phone-input"
-                        />
-                    </div>
-
-                    <div className="tc-dialpad">
-                        {dialPadKeys.map((row, i) => (
-                            <div key={i} className="tc-dialpad-row">
-                                {row.map(key => (
-                                    <button
-                                        key={key}
-                                        type="button"
-                                        className="tc-dialpad-key"
-                                        onClick={() => key === 'DEL' ? handleBackspace() : handleDialPad(key)}
-                                    >
-                                        {key === 'DEL' ? '\u232B' : key}
-                                    </button>
-                                ))}
-                            </div>
-                        ))}
-                    </div>
-
-                    <button
-                        type="submit"
-                        className="tc-call-btn"
-                        disabled={calling || !phoneNumber.trim()}
-                    >
-                        {calling ? (
-                            <><FaSpinner className="tc-spinner" /> Calling...</>
-                        ) : (
-                            <><FaPhoneAlt /> Call</>
-                        )}
-                    </button>
-                </form>
-
-                {callResult && (
-                    <div className={`tc-result ${callResult.type}`}>
-                        {callResult.message}
-                    </div>
-                )}
+        <div className="gd-dialer">
+            {/* Number Display */}
+            <div className="gd-number-display">
+                <div
+                    className="gd-number-text"
+                    ref={numberDisplayRef}
+                    style={{ fontSize: getFontSize() }}
+                >
+                    {phoneNumber || <span className="gd-number-placeholder">Enter a number</span>}
+                </div>
             </div>
 
-            <div className="tc-recent-sidebar">
-                <h3>Recent Calls</h3>
-                {recentCalls.length === 0 ? (
-                    <p className="tc-empty">No recent calls</p>
-                ) : (
-                    <div className="tc-recent-list">
-                        {recentCalls.map(call => (
-                            <div key={call.sid} className="tc-recent-item" onClick={() => setPhoneNumber(call.direction === 'inbound' ? call.from : call.to)}>
-                                <div className="tc-recent-icon">
-                                    {call.direction === 'inbound' ? (
-                                        <FaArrowDown className="tc-inbound" />
-                                    ) : (
-                                        <FaArrowUp className="tc-outbound" />
-                                    )}
-                                </div>
-                                <div className="tc-recent-info">
-                                    <span className="tc-recent-number">
-                                        {call.direction === 'inbound' ? (call.fromFormatted || call.from) : (call.toFormatted || call.to)}
-                                    </span>
-                                    <span className="tc-recent-meta">
-                                        {call.status} {call.duration ? `- ${formatDuration(call.duration)}` : ''}
-                                    </span>
-                                </div>
-                                <span className="tc-recent-time">
-                                    {call.dateCreated ? formatTimeAgo(call.dateCreated) : ''}
-                                </span>
-                            </div>
-                        ))}
-                    </div>
-                )}
+            {/* Call Result Toast */}
+            {callResult && (
+                <div className={`gd-toast ${callResult.type}`}>
+                    {callResult.message}
+                    <button className="gd-toast-close" onClick={() => setCallResult(null)}>
+                        <FaTimes />
+                    </button>
+                </div>
+            )}
+
+            {/* Dial Pad Grid */}
+            <div className="gd-dialpad">
+                {DIALPAD_KEYS.map(({ digit, letters }) => (
+                    <button
+                        key={digit}
+                        className="gd-key"
+                        onClick={() => handleDialPad(digit)}
+                        onContextMenu={(e) => {
+                            if (digit === '0') {
+                                e.preventDefault();
+                                handleLongPressZero();
+                            }
+                        }}
+                    >
+                        <span className="gd-key-digit">{digit}</span>
+                        {letters && <span className="gd-key-letters">{letters}</span>}
+                    </button>
+                ))}
+            </div>
+
+            {/* Action Row: Call + Backspace */}
+            <div className="gd-action-row">
+                <div className="gd-action-spacer" />
+                <button
+                    className={`gd-call-fab ${calling ? 'calling' : ''}`}
+                    onClick={handleCall}
+                    disabled={calling || !phoneNumber.trim()}
+                >
+                    {calling ? <FaPhoneVolume className="gd-calling-icon" /> : <FaPhone />}
+                </button>
+                <div className="gd-action-right">
+                    {phoneNumber && (
+                        <button
+                            className="gd-backspace"
+                            onClick={handleBackspace}
+                            onContextMenu={(e) => {
+                                e.preventDefault();
+                                setPhoneNumber('');
+                            }}
+                        >
+                            <FaBackspace />
+                        </button>
+                    )}
+                </div>
             </div>
         </div>
     );
 };
 
-const CallHistoryTab = () => {
+/* ============================================================
+   RECENTS TAB — Android Call Log Style
+   ============================================================ */
+const RecentsTab = () => {
     const [calls, setCalls] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('all');
     const [search, setSearch] = useState('');
+    const [showSearch, setShowSearch] = useState(false);
 
     useEffect(() => {
         fetchCalls();
@@ -266,79 +279,111 @@ const CallHistoryTab = () => {
         return true;
     });
 
+    // Group calls by date
+    const groupedCalls = groupByDate(filtered);
+
+    const isMissed = (call) =>
+        call.status === 'no-answer' || call.status === 'busy' || call.status === 'canceled';
+
     return (
-        <div className="tc-history">
-            <div className="tc-history-toolbar">
-                <div className="tc-search-box">
-                    <FaSearch className="tc-search-icon" />
-                    <input
-                        type="text"
-                        placeholder="Search by phone number..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                    />
-                </div>
-                <div className="tc-filter-pills">
-                    {['all', 'inbound', 'outbound', 'missed'].map(f => (
-                        <button
-                            key={f}
-                            className={`tc-pill ${filter === f ? 'active' : ''}`}
-                            onClick={() => setFilter(f)}
-                        >
-                            {f.charAt(0).toUpperCase() + f.slice(1)}
-                        </button>
-                    ))}
-                </div>
+        <div className="gd-recents">
+            {/* Header */}
+            <div className="gd-recents-header">
+                <h1>Call Log</h1>
+                <button className="gd-search-toggle" onClick={() => setShowSearch(!showSearch)}>
+                    {showSearch ? <FaTimes /> : <FaSearch />}
+                </button>
             </div>
 
-            {loading ? (
-                <div className="tc-loading-inline"><FaSpinner className="tc-spinner" /> Loading calls...</div>
-            ) : filtered.length === 0 ? (
-                <div className="tc-empty-state">
-                    <FaHistory className="tc-empty-icon" />
-                    <p>No calls found</p>
-                </div>
-            ) : (
-                <div className="tc-call-table">
-                    <div className="tc-table-header">
-                        <span>Direction</span>
-                        <span>Number</span>
-                        <span>Status</span>
-                        <span>Duration</span>
-                        <span>Cost</span>
-                        <span>Date</span>
-                    </div>
-                    {filtered.map(call => (
-                        <div key={call.sid} className="tc-table-row">
-                            <span className="tc-direction">
-                                {call.direction === 'inbound' ? (
-                                    <span className="tc-badge inbound"><FaArrowDown /> In</span>
-                                ) : (
-                                    <span className="tc-badge outbound"><FaArrowUp /> Out</span>
-                                )}
-                            </span>
-                            <span className="tc-number">
-                                {call.direction === 'inbound' ? (call.fromFormatted || call.from) : (call.toFormatted || call.to)}
-                            </span>
-                            <span>
-                                <span className={`tc-status-badge ${call.status}`}>
-                                    {call.status}
-                                </span>
-                            </span>
-                            <span>{call.duration ? formatDuration(call.duration) : '-'}</span>
-                            <span className="tc-cost">{call.price ? `${call.price} ${call.priceUnit || ''}` : '-'}</span>
-                            <span className="tc-date">
-                                {call.dateCreated ? new Date(call.dateCreated).toLocaleString() : '-'}
-                            </span>
-                        </div>
-                    ))}
+            {showSearch && (
+                <div className="gd-search-bar">
+                    <FaSearch className="gd-search-icon" />
+                    <input
+                        type="text"
+                        placeholder="Search calls..."
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        autoFocus
+                    />
+                    {search && (
+                        <button className="gd-search-clear" onClick={() => setSearch('')}>
+                            <FaTimes />
+                        </button>
+                    )}
                 </div>
             )}
+
+            {/* Filter Chips */}
+            <div className="gd-filter-chips">
+                {['all', 'missed', 'inbound', 'outbound'].map(f => (
+                    <button
+                        key={f}
+                        className={`gd-chip ${filter === f ? 'active' : ''}`}
+                        onClick={() => setFilter(f)}
+                    >
+                        {f === 'all' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1)}
+                    </button>
+                ))}
+            </div>
+
+            {/* Call List */}
+            <div className="gd-call-list">
+                {loading ? (
+                    <div className="gd-loading-inline"><FaSpinner className="gd-spinner" /> Loading...</div>
+                ) : filtered.length === 0 ? (
+                    <div className="gd-empty">
+                        <FaHistory className="gd-empty-icon" />
+                        <p>No calls found</p>
+                    </div>
+                ) : (
+                    Object.entries(groupedCalls).map(([dateLabel, dayCalls]) => (
+                        <div key={dateLabel} className="gd-day-group">
+                            <div className="gd-day-label">{dateLabel}</div>
+                            {dayCalls.map(call => {
+                                const missed = isMissed(call);
+                                const number = call.direction === 'inbound'
+                                    ? (call.fromFormatted || call.from)
+                                    : (call.toFormatted || call.to);
+                                return (
+                                    <div key={call.sid} className={`gd-call-item ${missed ? 'missed' : ''}`}>
+                                        <div className="gd-call-type-icon">
+                                            {missed ? (
+                                                <MdCallMissed className="gd-icon-missed" />
+                                            ) : call.direction === 'inbound' ? (
+                                                <MdCallReceived className="gd-icon-inbound" />
+                                            ) : (
+                                                <MdCallMade className="gd-icon-outbound" />
+                                            )}
+                                        </div>
+                                        <div className="gd-call-info">
+                                            <span className={`gd-call-number ${missed ? 'missed' : ''}`}>
+                                                {number || 'Unknown'}
+                                            </span>
+                                            <span className="gd-call-meta">
+                                                {call.direction === 'inbound' ? 'Incoming' : 'Outgoing'}
+                                                {call.duration ? ` · ${formatDuration(call.duration)}` : ''}
+                                            </span>
+                                        </div>
+                                        <div className="gd-call-right">
+                                            <span className="gd-call-time">
+                                                {call.dateCreated ? formatTime(call.dateCreated) : ''}
+                                            </span>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    ))
+                )}
+            </div>
         </div>
     );
 };
 
-const StatsTab = () => {
+/* ============================================================
+   ANALYTICS TAB
+   ============================================================ */
+const AnalyticsTab = () => {
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
 
@@ -358,54 +403,133 @@ const StatsTab = () => {
     };
 
     if (loading) {
-        return <div className="tc-loading-inline"><FaSpinner className="tc-spinner" /> Loading analytics...</div>;
+        return <div className="gd-loading-inline"><FaSpinner className="gd-spinner" /> Loading analytics...</div>;
     }
 
     if (!stats) {
-        return <div className="tc-empty-state"><p>Unable to load analytics</p></div>;
+        return (
+            <div className="gd-empty">
+                <FaChartBar className="gd-empty-icon" />
+                <p>Unable to load analytics</p>
+            </div>
+        );
     }
 
-    const statCards = [
-        { label: 'Total Calls', value: stats.totalCalls, color: '#2B5EA7' },
-        { label: 'Completed', value: stats.completedCalls, color: '#10b981' },
-        { label: 'Inbound', value: stats.inboundCalls, color: '#8b5cf6' },
-        { label: 'Outbound', value: stats.outboundCalls, color: '#f59e0b' },
-        { label: 'Total Duration', value: formatDuration(stats.totalDuration), color: '#06b6d4' },
-        { label: 'Avg Duration', value: formatDuration(stats.avgDuration), color: '#ec4899' },
-        { label: 'Total Cost', value: `$${stats.totalCost}`, color: '#ef4444' },
-    ];
-
     return (
-        <div className="tc-stats">
-            <div className="tc-stats-grid">
-                {statCards.map((card, i) => (
-                    <div key={i} className="tc-stat-card" style={{ borderTopColor: card.color }}>
-                        <span className="tc-stat-label">{card.label}</span>
-                        <span className="tc-stat-value" style={{ color: card.color }}>{card.value}</span>
+        <div className="gd-analytics">
+            <div className="gd-analytics-header">
+                <h1>Analytics</h1>
+                <p>Call performance overview</p>
+            </div>
+
+            {/* Summary Ring */}
+            <div className="gd-summary-card">
+                <div className="gd-summary-ring">
+                    <svg viewBox="0 0 120 120" className="gd-ring-svg">
+                        <circle cx="60" cy="60" r="52" className="gd-ring-bg" />
+                        <circle
+                            cx="60" cy="60" r="52"
+                            className="gd-ring-fill"
+                            strokeDasharray={`${((stats.completedCalls || 0) / Math.max(stats.totalCalls || 1, 1)) * 327} 327`}
+                        />
+                    </svg>
+                    <div className="gd-ring-label">
+                        <span className="gd-ring-value">{stats.totalCalls || 0}</span>
+                        <span className="gd-ring-text">Total</span>
                     </div>
-                ))}
+                </div>
+                <div className="gd-summary-breakdown">
+                    <div className="gd-breakdown-item">
+                        <div className="gd-breakdown-dot completed" />
+                        <span className="gd-breakdown-label">Completed</span>
+                        <span className="gd-breakdown-value">{stats.completedCalls || 0}</span>
+                    </div>
+                    <div className="gd-breakdown-item">
+                        <div className="gd-breakdown-dot inbound" />
+                        <span className="gd-breakdown-label">Inbound</span>
+                        <span className="gd-breakdown-value">{stats.inboundCalls || 0}</span>
+                    </div>
+                    <div className="gd-breakdown-item">
+                        <div className="gd-breakdown-dot outbound" />
+                        <span className="gd-breakdown-label">Outbound</span>
+                        <span className="gd-breakdown-value">{stats.outboundCalls || 0}</span>
+                    </div>
+                </div>
+            </div>
+
+            {/* Stat Cards */}
+            <div className="gd-stat-cards">
+                <div className="gd-stat-card">
+                    <div className="gd-stat-icon duration">
+                        <FaPhoneAlt />
+                    </div>
+                    <div className="gd-stat-body">
+                        <span className="gd-stat-val">{formatDuration(stats.totalDuration)}</span>
+                        <span className="gd-stat-lbl">Total Duration</span>
+                    </div>
+                </div>
+                <div className="gd-stat-card">
+                    <div className="gd-stat-icon avg">
+                        <FaHistory />
+                    </div>
+                    <div className="gd-stat-body">
+                        <span className="gd-stat-val">{formatDuration(stats.avgDuration)}</span>
+                        <span className="gd-stat-lbl">Avg Duration</span>
+                    </div>
+                </div>
+                <div className="gd-stat-card">
+                    <div className="gd-stat-icon cost">
+                        <span className="gd-dollar">$</span>
+                    </div>
+                    <div className="gd-stat-body">
+                        <span className="gd-stat-val">${stats.totalCost || '0.00'}</span>
+                        <span className="gd-stat-lbl">Total Cost</span>
+                    </div>
+                </div>
             </div>
         </div>
     );
 };
 
-// Helpers
+/* ============================================================
+   HELPERS
+   ============================================================ */
 function formatDuration(seconds) {
     const s = parseInt(seconds || '0', 10);
     if (s === 0) return '0s';
-    const m = Math.floor(s / 60);
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
     const sec = s % 60;
+    if (h > 0) return `${h}h ${m}m`;
     return m > 0 ? `${m}m ${sec}s` : `${sec}s`;
 }
 
-function formatTimeAgo(dateStr) {
+function formatTime(dateStr) {
+    const date = new Date(dateStr);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+function formatDateLabel(dateStr) {
     const date = new Date(dateStr);
     const now = new Date();
-    const diff = Math.floor((now - date) / 1000);
-    if (diff < 60) return 'now';
-    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-    return date.toLocaleDateString();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const callDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+    if (callDate.getTime() === today.getTime()) return 'Today';
+    if (callDate.getTime() === yesterday.getTime()) return 'Yesterday';
+    return date.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' });
+}
+
+function groupByDate(calls) {
+    const groups = {};
+    for (const call of calls) {
+        const label = call.dateCreated ? formatDateLabel(call.dateCreated) : 'Unknown';
+        if (!groups[label]) groups[label] = [];
+        groups[label].push(call);
+    }
+    return groups;
 }
 
 export default TwilioCalls;

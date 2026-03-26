@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { IonPage, IonContent } from '@ionic/react';
-import { FaRobot, FaSave, FaUndo, FaCheckCircle, FaExclamationTriangle, FaPen, FaTimes } from 'react-icons/fa';
+import { FaRobot, FaSave, FaUndo, FaCheckCircle, FaExclamationTriangle, FaPen, FaTimes, FaChevronDown, FaChevronUp, FaMagic, FaKey, FaCog, FaLightbulb } from 'react-icons/fa';
 import api from '../utils/apiClient';
 import './AIConfig.css';
 
@@ -8,36 +8,24 @@ function AIConfig({ token }) {
     const [systemPrompt, setSystemPrompt] = useState(
         "You are a helpful customer support assistant for RainCRM. Be professional, concise, and friendly."
     );
-    // Provider state
     const [provider, setProvider] = useState('openai');
-    const [providers, setProviders] = useState([
-        { id: 'openai', name: 'OpenAI (GPT-3.5/4)' },
-        { id: 'gemini', name: 'Google Gemini' },
-        { id: 'anthropic', name: 'Anthropic Claude' },
-        { id: 'openrouter', name: 'OpenRouter (All Models)' },
-        { id: 'ollama', name: 'Self-Hosted AI (Ollama)' }
+    const [providers] = useState([
+        { id: 'openai', name: 'OpenAI (GPT-3.5/4)', icon: '🤖' },
+        { id: 'gemini', name: 'Google Gemini', icon: '✨' },
+        { id: 'anthropic', name: 'Anthropic Claude', icon: '🧠' },
+        { id: 'openrouter', name: 'OpenRouter (All Models)', icon: '🔀' },
+        { id: 'ollama', name: 'Self-Hosted AI (Ollama)', icon: '🖥️' }
     ]);
 
-    // API Keys state
     const [apiKeysInput, setApiKeysInput] = useState({
-        openai: '',
-        gemini: '',
-        anthropic: '',
-        openrouter: '',
-        ollama: ''
+        openai: '', gemini: '', anthropic: '', openrouter: '', ollama: ''
     });
 
-    // Configured state - which keys are actually set on backend
     const [keysConfigured, setKeysConfigured] = useState({
-        openai: false,
-        gemini: false,
-        anthropic: false,
-        openrouter: false,
-        ollama: false
+        openai: false, gemini: false, anthropic: false, openrouter: false, ollama: false
     });
 
     const [isEditingKey, setIsEditingKey] = useState(true);
-
     const [temperature, setTemperature] = useState(0.7);
     const [maxTokens, setMaxTokens] = useState(150);
     const [saved, setSaved] = useState(false);
@@ -46,40 +34,32 @@ function AIConfig({ token }) {
     const [autoReply, setAutoReply] = useState(false);
     const [bulkLoading, setBulkLoading] = useState(false);
 
-    useEffect(() => {
-        fetchConfig();
-    }, [token]);
+    // Collapsible sections for mobile
+    const [expandedSection, setExpandedSection] = useState('provider');
 
-    // Update editing state when provider changes
+    const toggleSection = (section) => {
+        setExpandedSection(prev => prev === section ? null : section);
+    };
+
+    useEffect(() => { fetchConfig(); }, [token]);
+
     useEffect(() => {
-        // If key is configured, default to NOT editing (show "Change" button)
-        // If key is missing, default to editing (show input)
         setIsEditingKey(!keysConfigured[provider]);
-        // Also reset input for this provider if we are switching away? 
-        // Actually best to keep input state if user typed but didn't save, but for simplicity:
     }, [provider, keysConfigured]);
 
     const fetchConfig = async () => {
         if (!token) return;
         try {
             const data = await api.get('/api/ai/config');
-
             if (data.success && data.data) {
                 setSystemPrompt(data.data.systemPrompt || "You are a helpful customer support assistant for RainCRM. Be professional, concise, and friendly.");
                 setTemperature(data.data.temperature || 0.7);
                 setMaxTokens(data.data.maxTokens || 150);
                 setAutoReply(data.data.autoReply || false);
-
                 if (data.data.keysConfigured) {
-                    setKeysConfigured(data.data.keysConfigured);
-                } else if (data.data.hasApiKey) {
-                    // Fallback regarding legacy key
-                    setKeysConfigured(prev => ({ ...prev, openai: true }));
+                    setKeysConfigured(prev => ({ ...prev, ...data.data.keysConfigured }));
                 }
-
-                if (data.data.provider) {
-                    setProvider(data.data.provider);
-                }
+                if (data.data.provider) setProvider(data.data.provider);
             }
         } catch (error) {
             console.error('Error fetching AI config:', error);
@@ -91,17 +71,10 @@ function AIConfig({ token }) {
     const handleSave = async () => {
         try {
             const payload = {
-                systemPrompt,
-                temperature,
-                maxTokens,
-                enabled: true, // Always true blindly, as we don't expose a master kill switch anymore
-                autoReply,
-                provider,
+                systemPrompt, temperature, maxTokens,
+                enabled: true, autoReply, provider,
                 apiKeys: {}
             };
-
-
-            // Only send keys that have been typed in
             Object.keys(apiKeysInput).forEach(key => {
                 if (apiKeysInput[key] && apiKeysInput[key].trim() !== '') {
                     payload.apiKeys[key] = apiKeysInput[key].trim();
@@ -109,37 +82,15 @@ function AIConfig({ token }) {
             });
 
             const data = await api.put('/api/ai/config', payload);
-
             if (data.success) {
                 setSaved(true);
-                const providerName = providers.find(p => p.id === provider)?.name || provider;
-                setSaveMessage(`API Key for ${providerName} Saved!`);
-
-                // Update local configured state based on response
+                setSaveMessage('Configuration Saved!');
                 if (data.data.keysConfigured) {
-                    setKeysConfigured(data.data.keysConfigured);
+                    setKeysConfigured(prev => ({ ...prev, ...data.data.keysConfigured }));
                 }
-
-                // Clear inputs for security
-                setApiKeysInput({
-                    openai: '',
-                    gemini: '',
-                    anthropic: '',
-                    openrouter: '',
-                    ollama: ''
-                });
-
-                // Exit edit mode if we just saved a key for the current provider
-                if (payload.apiKeys[provider]) {
-                    setIsEditingKey(false);
-                }
-
-                setTimeout(() => {
-                    setSaved(false);
-                    setSaveMessage('Save Configuration');
-                }, 3000);
-            } else {
-                console.error('Failed to save AI config');
+                setApiKeysInput({ openai: '', gemini: '', anthropic: '', openrouter: '', ollama: '' });
+                if (payload.apiKeys[provider]) setIsEditingKey(false);
+                setTimeout(() => { setSaved(false); setSaveMessage('Save Configuration'); }, 3000);
             }
         } catch (error) {
             console.error('Error saving AI config:', error);
@@ -154,20 +105,15 @@ function AIConfig({ token }) {
     };
 
     const handleBulkToggle = async (enabled) => {
-        if (!window.confirm(`Are you sure you want to ${enabled ? 'enable' : 'disable'} AI for ALL existing chats? This will also ${enabled ? 'enable' : 'disable'} auto-reply for new chats.`)) {
-            return;
-        }
-
+        if (!window.confirm(`Are you sure you want to ${enabled ? 'enable' : 'disable'} AI for ALL existing chats?`)) return;
         setBulkLoading(true);
         try {
             const data = await api.post('/api/messages/bulk-toggle-ai', { enabled });
             if (data.success) {
                 alert(`AI successfully ${enabled ? 'enabled' : 'disabled'} for all chats.`);
-                // Sync local state
                 setAutoReply(enabled);
             }
         } catch (error) {
-            console.error('Error bulk toggling AI:', error);
             alert('Failed to update all chats.');
         } finally {
             setBulkLoading(false);
@@ -175,229 +121,251 @@ function AIConfig({ token }) {
     };
 
     const handleKeyChange = (providerId, value) => {
-        setApiKeysInput(prev => ({
-            ...prev,
-            [providerId]: value
-        }));
+        setApiKeysInput(prev => ({ ...prev, [providerId]: value }));
     };
 
     if (loading) {
-        return <div className="loading">Loading configuration...</div>;
+        return (
+            <IonPage>
+                <IonContent>
+                    <div className="aic-loading">Loading configuration...</div>
+                </IonContent>
+            </IonPage>
+        );
     }
 
-    const currentProviderName = providers.find(p => p.id === provider)?.name;
+    const currentProvider = providers.find(p => p.id === provider);
 
     return (
         <IonPage>
-            <IonContent className="ion-padding">
-                <div className="ai-config-view">
-                    <div className="view-header">
-                        <h1>AI Configuration</h1>
-                        <p>Configure how your AI bot interacts with customers</p>
+            <IonContent>
+                <div className="aic-container">
+                    {/* Header */}
+                    <div className="aic-header">
+                        <div className="aic-header-icon"><FaRobot /></div>
+                        <div>
+                            <h1>AI Configuration</h1>
+                            <p>Configure your AI assistant</p>
+                        </div>
                     </div>
 
-                    <div className="config-container">
-                        <div className="config-left">
-                            <div className="config-card">
-                                <div className="card-header">
-                                    <FaRobot className="card-icon" />
-                                    <h2>Bot Settings</h2>
+                    {/* Section 1: Provider & API Key */}
+                    <div className="aic-section">
+                        <button className="aic-section-header" onClick={() => toggleSection('provider')}>
+                            <div className="aic-section-left">
+                                <FaKey className="aic-section-icon" />
+                                <div>
+                                    <span className="aic-section-title">Provider & API Key</span>
+                                    <span className="aic-section-subtitle">
+                                        {currentProvider?.name}
+                                        {keysConfigured[provider]
+                                            ? <span className="aic-badge configured">Active</span>
+                                            : <span className="aic-badge missing">Not Set</span>
+                                        }
+                                    </span>
+                                </div>
+                            </div>
+                            {expandedSection === 'provider' ? <FaChevronUp /> : <FaChevronDown />}
+                        </button>
+
+                        {expandedSection === 'provider' && (
+                            <div className="aic-section-body">
+                                {/* Provider Selector */}
+                                <label className="aic-label">AI Provider</label>
+                                <div className="aic-provider-grid">
+                                    {providers.map(p => (
+                                        <button
+                                            key={p.id}
+                                            className={`aic-provider-chip ${provider === p.id ? 'active' : ''}`}
+                                            onClick={() => setProvider(p.id)}
+                                        >
+                                            <span className="aic-provider-emoji">{p.icon}</span>
+                                            <span className="aic-provider-name">{p.name}</span>
+                                            {keysConfigured[p.id] && <FaCheckCircle className="aic-provider-check" />}
+                                        </button>
+                                    ))}
                                 </div>
 
-                                <p className="description">
-                                    Define the persona, provider, and behavior of your AI agent.
-                                </p>
+                                {/* API Key */}
+                                <label className="aic-label" style={{ marginTop: 16 }}>
+                                    {provider === 'ollama' ? 'Status' : `API Key`}
+                                </label>
 
-                                <div className="form-group">
-                                    <label>AI Provider</label>
-                                    <select
-                                        value={provider}
-                                        onChange={(e) => setProvider(e.target.value)}
-                                        className="provider-select"
-                                    >
-                                        {providers.map(p => (
-                                            <option key={p.id} value={p.id}>{p.name}</option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <div className="form-group">
-                                    <label>
-                                        {provider === 'ollama' ? 'Status' : `API Key for ${currentProviderName}`}
+                                {provider === 'ollama' ? (
+                                    <div className="aic-ollama-status">
+                                        <span>Runs locally on VPS — no API key required</span>
+                                    </div>
+                                ) : !isEditingKey && keysConfigured[provider] ? (
+                                    <div className="aic-key-configured">
+                                        <div className="aic-key-mask">
+                                            <FaCheckCircle className="aic-key-check" />
+                                            <span>API key is configured and active</span>
+                                        </div>
+                                        <button className="aic-btn-outline" onClick={() => setIsEditingKey(true)}>
+                                            <FaPen size={11} /> Change Key
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="aic-key-input-row">
+                                        <input
+                                            type="password"
+                                            value={apiKeysInput[provider]}
+                                            onChange={(e) => handleKeyChange(provider, e.target.value)}
+                                            placeholder={keysConfigured[provider] ? "Enter new key..." : `Paste your ${currentProvider?.name} key`}
+                                            className="aic-input"
+                                        />
                                         {keysConfigured[provider] && (
-                                            <span className="key-status configured">
-                                                <FaCheckCircle /> {provider === 'ollama' ? 'Active' : 'Configured'}
-                                            </span>
-                                        )}
-                                        {!keysConfigured[provider] && (
-                                            <span className="key-status missing">
-                                                <FaExclamationTriangle /> {provider === 'ollama' ? 'Unavailable' : 'Not Configured'}
-                                            </span>
-                                        )}
-                                    </label>
-
-                                    {provider === 'ollama' ? (
-                                        <div className="ollama-status-view">
-                                            <div className="status-badge active">
-                                                Runs locally on VPS
-                                            </div>
-                                            <p className="description-small">
-                                                Ollama is managed by the administrator. No API key required.
-                                            </p>
-                                        </div>
-                                    ) : !isEditingKey && keysConfigured[provider] ? (
-                                        <div className="configured-key-view">
-                                            <div className="key-masked-display">
-                                                ••••••••••••••••••••
-                                            </div>
-                                            <button
-                                                className="btn-change-key"
-                                                onClick={() => setIsEditingKey(true)}
-                                            >
-                                                <FaPen size={12} /> Change API Key
+                                            <button className="aic-btn-icon" onClick={() => { setIsEditingKey(false); handleKeyChange(provider, ''); }}>
+                                                <FaTimes />
                                             </button>
-                                        </div>
-                                    ) : (
-                                        <div className="key-input-wrapper">
-                                            <input
-                                                type="password"
-                                                value={apiKeysInput[provider]}
-                                                onChange={(e) => handleKeyChange(provider, e.target.value)}
-                                                placeholder={keysConfigured[provider] ? "Enter new key to update..." : `Enter ${currentProviderName} API Key`}
-                                                className="api-key-input"
-                                                autoFocus={isEditingKey && keysConfigured[provider]}
-                                            />
-                                            {keysConfigured[provider] && (
-                                                <button
-                                                    className="btn-cancel-edit"
-                                                    onClick={() => {
-                                                        setIsEditingKey(false);
-                                                        handleKeyChange(provider, ''); // Clear input on cancel
-                                                    }}
-                                                    title="Cancel changing key"
-                                                >
-                                                    <FaTimes />
-                                                </button>
-                                            )}
-                                        </div>
-                                    )}
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
 
-                                    {provider !== 'ollama' && (
-                                        <small className="field-hint">
-                                            {isEditingKey
-                                                ? "Enter your API key above. It will be encrypted and stored securely."
-                                                : "API key is configured and active."}
-                                        </small>
-                                    )}
+                    {/* Section 2: Behavior */}
+                    <div className="aic-section">
+                        <button className="aic-section-header" onClick={() => toggleSection('behavior')}>
+                            <div className="aic-section-left">
+                                <FaCog className="aic-section-icon" />
+                                <div>
+                                    <span className="aic-section-title">Behavior</span>
+                                    <span className="aic-section-subtitle">Auto-reply, creativity, length</span>
                                 </div>
+                            </div>
+                            {expandedSection === 'behavior' ? <FaChevronUp /> : <FaChevronDown />}
+                        </button>
 
-                                <div className="form-group checkbox-group">
-                                    <label className="checkbox-label">
-                                        <input
-                                            type="checkbox"
-                                            checked={autoReply}
-                                            onChange={(e) => setAutoReply(e.target.checked)}
-                                        />
-                                        <span className="label-text">Enable Auto-Reply for New Chats</span>
+                        {expandedSection === 'behavior' && (
+                            <div className="aic-section-body">
+                                {/* Auto Reply Toggle */}
+                                <div className="aic-toggle-row">
+                                    <div>
+                                        <span className="aic-toggle-label">Auto-Reply for New Chats</span>
+                                        <span className="aic-toggle-desc">AI replies automatically to first message</span>
+                                    </div>
+                                    <label className="aic-switch">
+                                        <input type="checkbox" checked={autoReply} onChange={(e) => setAutoReply(e.target.checked)} />
+                                        <span className="aic-switch-slider" />
                                     </label>
-                                    <p className="description-small">
-                                        If enabled, the AI will automatically reply to the first message in new conversations.
-                                    </p>
                                 </div>
 
-
-                                <div className="controls">
-                                    <div className="slider-group">
-                                        <label>Creativity (Temperature): {temperature}</label>
-                                        <input
-                                            type="range"
-                                            min="0"
-                                            max="1"
-                                            step="0.1"
-                                            value={temperature}
-                                            onChange={(e) => setTemperature(parseFloat(e.target.value))}
-                                        />
-                                        <div className="slider-labels">
-                                            <span>Precise</span>
-                                            <span>Creative</span>
-                                        </div>
+                                {/* Temperature */}
+                                <div className="aic-slider-group">
+                                    <div className="aic-slider-header">
+                                        <span className="aic-label">Creativity</span>
+                                        <span className="aic-slider-value">{temperature}</span>
                                     </div>
-
-                                    <div className="slider-group">
-                                        <label>Max Reply Length (Tokens): {maxTokens}</label>
-                                        <input
-                                            type="range"
-                                            min="50"
-                                            max="1000"
-                                            step="50"
-                                            value={maxTokens}
-                                            onChange={(e) => setMaxTokens(parseInt(e.target.value))}
-                                        />
-                                        <div className="slider-labels">
-                                            <span>Short</span>
-                                            <span>Long</span>
-                                        </div>
+                                    <input
+                                        type="range" min="0" max="1" step="0.1"
+                                        value={temperature}
+                                        onChange={(e) => setTemperature(parseFloat(e.target.value))}
+                                        className="aic-range"
+                                    />
+                                    <div className="aic-slider-labels">
+                                        <span>Precise</span><span>Creative</span>
                                     </div>
                                 </div>
 
-
-                                <div className="action-buttons">
-                                    <button className="btn-secondary" onClick={handleReset}>
-                                        <FaUndo /> Reset to Default
-                                    </button>
-                                    <button className="btn-primary" onClick={handleSave}>
-                                        <FaSave /> {saved ? saveMessage : 'Save Configuration'}
-                                    </button>
-                                </div>
-
-                                <div className="bulk-actions-section">
-                                    <div className="divider"></div>
-                                    <h3>Bulk Actions</h3>
-                                    <p className="description">
-                                        Apply AI settings to your <strong>existing</strong> chat history.
-                                    </p>
-                                    <div className="bulk-buttons">
-                                        <button
-                                            className="btn-bulk btn-enable-all"
-                                            onClick={() => handleBulkToggle(true)}
-                                            disabled={bulkLoading}
-                                        >
-                                            {bulkLoading ? 'Processing...' : 'Turn On AI for Existing Chats'}
-                                        </button>
-                                        <button
-                                            className="btn-bulk btn-disable-all"
-                                            onClick={() => handleBulkToggle(false)}
-                                            disabled={bulkLoading}
-                                        >
-                                            {bulkLoading ? 'Processing...' : 'Turn Off AI for Existing Chats'}
-                                        </button>
+                                {/* Max Tokens */}
+                                <div className="aic-slider-group">
+                                    <div className="aic-slider-header">
+                                        <span className="aic-label">Max Reply Length</span>
+                                        <span className="aic-slider-value">{maxTokens} tokens</span>
+                                    </div>
+                                    <input
+                                        type="range" min="50" max="1000" step="50"
+                                        value={maxTokens}
+                                        onChange={(e) => setMaxTokens(parseInt(e.target.value))}
+                                        className="aic-range"
+                                    />
+                                    <div className="aic-slider-labels">
+                                        <span>Short</span><span>Long</span>
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        )}
+                    </div>
 
-                        <div className="config-right">
-                            <div className="config-card full-height-card">
-                                <label className="section-label">System Prompt</label>
+                    {/* Section 3: System Prompt */}
+                    <div className="aic-section">
+                        <button className="aic-section-header" onClick={() => toggleSection('prompt')}>
+                            <div className="aic-section-left">
+                                <FaMagic className="aic-section-icon" />
+                                <div>
+                                    <span className="aic-section-title">System Prompt</span>
+                                    <span className="aic-section-subtitle">Define your AI's personality</span>
+                                </div>
+                            </div>
+                            {expandedSection === 'prompt' ? <FaChevronUp /> : <FaChevronDown />}
+                        </button>
+
+                        {expandedSection === 'prompt' && (
+                            <div className="aic-section-body">
                                 <textarea
                                     value={systemPrompt}
                                     onChange={(e) => setSystemPrompt(e.target.value)}
                                     placeholder="e.g., You are a sales representative..."
-                                    className="prompt-textarea"
+                                    className="aic-textarea"
+                                    rows={6}
                                 />
+                                <div className="aic-tips">
+                                    <FaLightbulb className="aic-tips-icon" />
+                                    <div>
+                                        <strong>Tips:</strong> Be specific about the role, set boundaries (what NOT to do), specify tone, and provide business context.
+                                    </div>
+                                </div>
                             </div>
-
-                            <div className="info-card">
-                                <h3>Tips for effective prompts</h3>
-                                <ul>
-                                    <li><strong>Be specific:</strong> Define the role clearly (e.g., "Senior Sales Agent").</li>
-                                    <li><strong>Set boundaries:</strong> Tell the AI what NOT to do (e.g., "Do not promise delivery dates").</li>
-                                    <li><strong>Tone:</strong> Specify the desired tone (e.g., "Friendly but professional").</li>
-                                    <li><strong>Context:</strong> Provide key business details the AI should know.</li>
-                                </ul>
-                            </div>
-                        </div>
+                        )}
                     </div>
+
+                    {/* Section 4: Bulk Actions */}
+                    <div className="aic-section">
+                        <button className="aic-section-header" onClick={() => toggleSection('bulk')}>
+                            <div className="aic-section-left">
+                                <FaRobot className="aic-section-icon" />
+                                <div>
+                                    <span className="aic-section-title">Bulk Actions</span>
+                                    <span className="aic-section-subtitle">Apply AI to existing chats</span>
+                                </div>
+                            </div>
+                            {expandedSection === 'bulk' ? <FaChevronUp /> : <FaChevronDown />}
+                        </button>
+
+                        {expandedSection === 'bulk' && (
+                            <div className="aic-section-body">
+                                <button
+                                    className="aic-bulk-btn enable"
+                                    onClick={() => handleBulkToggle(true)}
+                                    disabled={bulkLoading}
+                                >
+                                    {bulkLoading ? 'Processing...' : 'Enable AI for All Chats'}
+                                </button>
+                                <button
+                                    className="aic-bulk-btn disable"
+                                    onClick={() => handleBulkToggle(false)}
+                                    disabled={bulkLoading}
+                                >
+                                    {bulkLoading ? 'Processing...' : 'Disable AI for All Chats'}
+                                </button>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Sticky Save Bar */}
+                    <div className="aic-save-bar">
+                        <button className="aic-btn-reset" onClick={handleReset}>
+                            <FaUndo /> Reset
+                        </button>
+                        <button className={`aic-btn-save ${saved ? 'saved' : ''}`} onClick={handleSave}>
+                            <FaSave /> {saved ? saveMessage : 'Save'}
+                        </button>
+                    </div>
+
+                    {/* Bottom spacer for save bar */}
+                    <div style={{ height: 80 }} />
                 </div>
             </IonContent>
         </IonPage>
