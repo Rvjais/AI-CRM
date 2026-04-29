@@ -240,6 +240,8 @@ function WhatsAppView({ token, onLogout, isActive }) {
                     sentiment: updatedChat.sentiment,
                     summary: updatedChat.summary,
                     suggestions: updatedChat.suggestions,
+                    extractedData: updatedChat.extractedData,
+                    lastSummaryAt: updatedChat.lastSummaryAt,
                     aiEnabled: updatedChat.aiEnabled
                 };
 
@@ -256,6 +258,8 @@ function WhatsAppView({ token, onLogout, isActive }) {
                     sentiment: updatedChat.sentiment,
                     summary: updatedChat.summary,
                     suggestions: updatedChat.suggestions,
+                    extractedData: updatedChat.extractedData,
+                    lastSummaryAt: updatedChat.lastSummaryAt,
                     aiEnabled: updatedChat.aiEnabled
                 }));
             }
@@ -492,6 +496,23 @@ function WhatsAppView({ token, onLogout, isActive }) {
         fetchChats();
     };
 
+    const handleWhatsAppLogout = async () => {
+        try {
+            await api.post('/api/whatsapp/disconnect');
+            setIsConnected(false);
+            setChats([]);
+            setSelectedChat(null);
+            setMessages([]);
+            messagesCacheRef.current = {};
+            if (storeRef.current) {
+                await storeRef.current.remove('chats');
+                await storeRef.current.remove('messagesCache');
+            }
+        } catch (error) {
+            console.error('WhatsApp disconnect failed:', error);
+        }
+    };
+
     const handleForwardRequest = (message) => {
         setMsgToForward(message);
         setIsForwardModalOpen(true);
@@ -557,7 +578,7 @@ function WhatsAppView({ token, onLogout, isActive }) {
                         onSelectChat={handleSelectChat}
                         aiEnabled={aiEnabled}
                         onToggleAI={setAiEnabled}
-                        onLogout={onLogout}
+                        onLogout={handleWhatsAppLogout}
                         globalAiEnabled={globalAiEnabled}
                     />
                     <ChatWindow

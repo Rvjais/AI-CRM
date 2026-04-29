@@ -15,12 +15,13 @@ export const startAiCron = () => {
             const users = await User.find({}).select('_id sheetsConfig aiSettings');
 
             for (const user of users) {
-                // Find chats active in the last 30 minutes
-                const thirtyMinsAgo = new Date(Date.now() - 30 * 60 * 1000);
-
+                // Find chats where a message arrived AFTER the last summary, or never summarized
                 const activeChats = await Chat.find({
                     userId: user._id,
-                    lastMessageAt: { $gte: thirtyMinsAgo }
+                    $or: [
+                        { lastSummaryAt: null },
+                        { $expr: { $gt: ["$lastMessageAt", "$lastSummaryAt"] } }
+                    ]
                 });
 
                 if (activeChats.length === 0) continue;

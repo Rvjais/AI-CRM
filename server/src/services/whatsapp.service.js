@@ -189,7 +189,7 @@ export const connectWhatsApp = async (userId, io) => {
         console.log(`👂 [connectWhatsApp] Attaching 'messages.upsert' listener for user ${userId}`);
         sock.ev.on('messages.upsert', async ({ messages, type }) => {
             console.log(`🔔 [messages.upsert] Event triggered! Type: ${type}, Messages:`, messages.length);
-            if (type === 'notify' || type === 'append') {
+            if (type === 'notify') {
                 for (const msg of messages) {
                     console.log(`📨 [messages.upsert] Processing message (FULL_LOG):`, JSON.stringify(msg, null, 2));
 

@@ -1,5 +1,7 @@
 import { getClientModels } from "../utils/database.factory.js";
-export const processImport = async (userId, file, type = 'WHATSAPP', mappingStr = '{}') => {
+import { parseCsv, normalizeData } from "../utils/csv.util.js";
+import logger from "../utils/logger.util.js";
+export const processImport = async (userId, file, type = 'WHATSAPP', mappingStr = '{}', defaultCountryCode = '91') => {
     let batchId = null;
     const mapping = typeof mappingStr === 'string' ? JSON.parse(mappingStr) : mappingStr;
 
@@ -68,8 +70,27 @@ export const processImport = async (userId, file, type = 'WHATSAPP', mappingStr 
                 // Construct JID
                 let jid = null;
                 if (phoneNumber) {
-                    const cleanPhone = String(phoneNumber).replace(/\D/g, ''); // Ensure phoneNumber is string
-                    if (cleanPhone.length < 10) throw new Error('Invalid Phone Number');
+                    let cleanPhone = String(phoneNumber).replace(/\D/g, ''); // Ensure phoneNumber is string
+                    const originalPhoneStr = String(phoneNumber).trim();
+                    
+                    if (cleanPhone.length < 5) throw new Error('Invalid Phone Number'); // Too short to be any number
+                    
+                    if (!originalPhoneStr.startsWith('+') && defaultCountryCode) {
+                        let strippedPhone = cleanPhone;
+                        while(strippedPhone.startsWith('0')) {
+                            strippedPhone = strippedPhone.substring(1);
+                        }
+                        
+                        if (strippedPhone.length <= 10) {
+                            cleanPhone = `${defaultCountryCode}${strippedPhone}`;
+                        } else if (!strippedPhone.startsWith(defaultCountryCode)) {
+                            // If it's longer than 10 but doesn't start with the CC, safely prepend it
+                            cleanPhone = `${defaultCountryCode}${strippedPhone}`;
+                        } else {
+                            cleanPhone = strippedPhone;
+                        }
+                    }
+
                     jid = `${cleanPhone}@s.whatsapp.net`;
                     phoneNumber = cleanPhone;
                 }

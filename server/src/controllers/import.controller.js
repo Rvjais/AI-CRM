@@ -10,8 +10,9 @@ export const uploadCsv = asyncHandler(async (req, res) => {
     // Type from body (WHATSAPP or EMAIL)
     const type = req.body.type || 'WHATSAPP';
     const mapping = req.body.mapping || '{}';
+    const defaultCountryCode = req.body.defaultCountryCode !== undefined ? req.body.defaultCountryCode : '91';
 
-    const result = await importService.processImport(req.userId, req.file, type, mapping);
+    const result = await importService.processImport(req.userId, req.file, type, mapping, defaultCountryCode);
 
     return successResponse(res, 201, 'Import processed successfully', result);
 });

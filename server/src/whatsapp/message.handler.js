@@ -294,7 +294,7 @@ export const handleIncomingMessage = async (userId, msg, io, sendResponse, hostN
                     console.log(`🧠 [handleIncomingMessage] AI Analysis: Sentiment=${analysisResult.sentiment}`);
 
                     // Update Chat with analysis results
-                    await Chat.findOneAndUpdate(
+                    const updatedChat = await Chat.findOneAndUpdate(
                         { userId, chatJid },
                         {
                             sentiment: analysisResult.sentiment,
@@ -302,8 +302,13 @@ export const handleIncomingMessage = async (userId, msg, io, sendResponse, hostN
                             suggestions: analysisResult.suggestions || [],
                             extractedData: analysisResult.extractedData || {},
                             lastSummaryAt: new Date()
-                        }
+                        },
+                        { new: true }
                     );
+
+                    if (updatedChat) {
+                        io.to(userId.toString()).emit('chat:update', { chat: updatedChat });
+                    }
 
                     // [SHEETS SYNC]
                     // Sync if automation is enabled (or default true) and we have data
