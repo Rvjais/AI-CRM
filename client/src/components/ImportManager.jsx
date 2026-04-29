@@ -14,6 +14,7 @@ function ImportManager() {
     const [selectedFile, setSelectedFile] = useState(null);
     const [csvHeaders, setCsvHeaders] = useState([]);
     const [mapping, setMapping] = useState({ phone: '', name: '', email: '' });
+    const [defaultCountryCode, setDefaultCountryCode] = useState('91');
 
     useEffect(() => {
         fetchBatches();
@@ -80,6 +81,7 @@ function ImportManager() {
         formData.append('file', selectedFile);
         formData.append('type', selectedType);
         formData.append('mapping', JSON.stringify(mapping));
+        formData.append('defaultCountryCode', defaultCountryCode);
 
         try {
             const res = await api.post('/api/imports/upload', formData);
@@ -133,6 +135,29 @@ function ImportManager() {
                                 </button>
                             </div>
                         </div>
+
+                        {selectedType === 'WHATSAPP' && (
+                            <div className="upload-options" style={{ marginTop: '15px' }}>
+                                <label>Default Country Code:</label>
+                                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                    <select 
+                                        value={defaultCountryCode} 
+                                        onChange={e => setDefaultCountryCode(e.target.value)}
+                                        style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)', backgroundColor: 'var(--card-bg)', color: 'var(--text-color)', width: '100%', maxWidth: '300px' }}
+                                    >
+                                        <option value="91">India (+91)</option>
+                                        <option value="1">USA/Canada (+1)</option>
+                                        <option value="44">UK (+44)</option>
+                                        <option value="61">Australia (+61)</option>
+                                        <option value="971">UAE (+971)</option>
+                                        <option value="">Other (I included country codes in CSV)</option>
+                                    </select>
+                                    <small style={{ marginTop: '5px', color: 'var(--text-muted)' }}>
+                                        This code will be automatically added to local numbers.
+                                    </small>
+                                </div>
+                            </div>
+                        )}
 
                         <div className="file-drop-area">
                             <input

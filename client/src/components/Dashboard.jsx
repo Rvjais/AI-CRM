@@ -168,8 +168,8 @@ function Dashboard() {
                         </div>
                         <div className="dash-stat-body">
                             <span className="dash-stat-label">AI Messages</span>
-                            <span className="dash-stat-value">{stats.aiInteractions}</span>
-                            <span className="dash-stat-sub">Auto-replies sent</span>
+                            <span className="dash-stat-value">{stats.isConnected ? stats.aiInteractions : '--'}</span>
+                            <span className="dash-stat-sub">{stats.isConnected ? 'Auto-replies sent' : 'Not connected'}</span>
                         </div>
                     </div>
                 </div>
