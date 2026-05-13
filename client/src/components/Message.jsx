@@ -1,7 +1,7 @@
 import './Message.css';
 import api from '../utils/apiClient';
 
-function Message({ message, onForward, onReply, isGroup, onReact, activeReactionMsgId, setActiveReactionMsgId }) {
+function Message({ message, onForward, onReply, isGroup, onReact, activeReactionMsgId, setActiveReactionMsgId, onPin, onStar, onDelete, onEdit }) {
     const msgId = message._id || message.messageId;
     const showReactions = activeReactionMsgId === msgId;
     const formatTime = (timestamp) => {
@@ -12,6 +12,14 @@ function Message({ message, onForward, onReply, isGroup, onReact, activeReaction
             minute: '2-digit',
             hour12: true
         });
+    };
+
+    const renderStatus = () => {
+        if (!message.fromMe) return null;
+        if (message.status === 'read') return <span className="message-status read">✓✓</span>;
+        if (message.status === 'delivered') return <span className="message-status delivered">✓✓</span>;
+        if (message.status === 'sent') return <span className="message-status sent">✓</span>;
+        return <span className="message-status pending">⌛</span>;
     };
 
     const ensureHttps = (url) => {
@@ -197,20 +205,38 @@ function Message({ message, onForward, onReply, isGroup, onReact, activeReaction
                     )}
 
                     {renderContent()}
-                    <span className="message-time">{formatTime(message.timestamp)}</span>
+                    {/* Indicators */}
+                    <div className="message-indicators">
+                        {message.isPinned && <span className="pin-indicator">📌</span>}
+                        {message.isStarred && <span className="star-indicator">⭐</span>}
+                        <span className="message-time">{formatTime(message.timestamp)}</span>
+                        {renderStatus()}
+                    </div>
 
-                    {/* Reaction Picker */}
+                    {/* Reaction & Action Picker */}
                     {showReactions && (
                         <div className="reaction-actions show" onClick={(e) => e.stopPropagation()}>
-                            <button onClick={() => handleReaction('👍')}>👍</button>
-                            <button onClick={() => handleReaction('❤️')}>❤️</button>
-                            <button onClick={() => handleReaction('😂')}>😂</button>
-                            <button onClick={() => handleReaction('😮')}>😮</button>
-                            <button onClick={() => handleReaction('😢')}>😢</button>
-                            <button onClick={() => handleReaction('🙏')}>🙏</button>
+                            <div className="reaction-row">
+                                <button onClick={() => handleReaction('👍')}>👍</button>
+                                <button onClick={() => handleReaction('❤️')}>❤️</button>
+                                <button onClick={() => handleReaction('😂')}>😂</button>
+                                <button onClick={() => handleReaction('😮')}>😮</button>
+                                <button onClick={() => handleReaction('😢')}>😢</button>
+                                <button onClick={() => handleReaction('🙏')}>🙏</button>
+                            </div>
                             <div className="reaction-divider"></div>
-                            <button onClick={() => { setActiveReactionMsgId(null); onReply && onReply(message); }} title="Reply">↩️</button>
-                            <button onClick={() => { setActiveReactionMsgId(null); onForward && onForward(message); }} title="Forward">↪️</button>
+                            <div className="action-row">
+                                <button onClick={() => { setActiveReactionMsgId(null); onReply && onReply(message); }} title="Reply">↩️</button>
+                                <button onClick={() => { setActiveReactionMsgId(null); onForward && onForward(message); }} title="Forward">↪️</button>
+                                <button onClick={() => { setActiveReactionMsgId(null); onPin && onPin(message); }} title={message.isPinned ? "Unpin" : "Pin"}>{message.isPinned ? '📌❌' : '📌'}</button>
+                                <button onClick={() => { setActiveReactionMsgId(null); onStar && onStar(message); }} title={message.isStarred ? "Unstar" : "Star"}>{message.isStarred ? '⭐❌' : '⭐'}</button>
+                                {message.fromMe && message.type === 'text' && (
+                                    <button onClick={() => { setActiveReactionMsgId(null); onEdit && onEdit(message); }} title="Edit">✏️</button>
+                                )}
+                                {message.fromMe && (
+                                    <button onClick={() => { setActiveReactionMsgId(null); onDelete && onDelete(message); }} title="Delete for everyone">🗑️</button>
+                                )}
+                            </div>
                         </div>
                     )}
                 </div>

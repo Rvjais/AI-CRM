@@ -5,6 +5,7 @@ import { getClientModels } from '../utils/database.factory.js';
 import { successResponse, createdResponse, noContentResponse, badRequestResponse } from '../utils/response.util.js';
 import { asyncHandler } from '../middleware/error.middleware.js';
 import { MESSAGE_TYPES, MESSAGE_STATUS } from '../config/constants.js';
+import logger from '../utils/logger.util.js';
 
 /**
  * Message controller
@@ -192,28 +193,78 @@ export const getChatMessages = asyncHandler(async (req, res) => {
 });
 
 /**
- * Delete message
+ * Delete message — removes from DB AND sends WA delete for everyone
  * DELETE /api/messages/:messageId
  */
 export const deleteMessage = asyncHandler(async (req, res) => {
     const { messageId } = req.params;
+    const userId = req.userId;
 
-    await messageService.deleteMessage(messageId, req.userId);
+    const sock = whatsappService.getConnection(userId);
+    const hostNumber = sock?.user?.id?.split(':')[0];
+    const { Message } = await getClientModels(userId, hostNumber);
+
+    // Fetch message to get its WhatsApp key
+    const message = await Message.findOne({ _id: messageId, userId });
+    if (!message) throw new Error('Message not found');
+
+    // Only delete for everyone if it's our own message (fromMe)
+    if (sock && message.fromMe && message.messageId) {
+        try {
+            await whatsappService.sendMessage(userId, message.chatJid, {
+                delete: {
+                    remoteJid: message.chatJid,
+                    fromMe: message.fromMe,
+                    id: message.messageId,
+                    participant: message.participant
+                }
+            });
+        } catch (waErr) {
+            logger.warn('WA delete failed (continuing with DB delete):', waErr.message);
+        }
+    }
+
+    // Mark as deleted in DB
+    await messageService.deleteMessage(messageId, userId);
 
     return successResponse(res, 200, 'Message deleted successfully');
 });
 
 /**
- * Edit message
+ * Edit message — updates DB AND sends WA edit command
  * PUT /api/messages/:messageId/edit
  */
 export const editMessage = asyncHandler(async (req, res) => {
     const { messageId } = req.params;
     const { text } = req.body;
+    const userId = req.userId;
 
-    const message = await messageService.editMessage(messageId, req.userId, text);
+    const sock = whatsappService.getConnection(userId);
+    const hostNumber = sock?.user?.id?.split(':')[0];
+    const { Message } = await getClientModels(userId, hostNumber);
 
-    return successResponse(res, 200, 'Message edited successfully', message);
+    const message = await Message.findOne({ _id: messageId, userId, fromMe: true, type: 'text' });
+    if (!message) throw new Error('Message not found or cannot be edited');
+
+    // Send edit to WhatsApp
+    if (sock && message.messageId) {
+        try {
+            await whatsappService.sendMessage(userId, message.chatJid, {
+                text,
+                edit: {
+                    remoteJid: message.chatJid,
+                    fromMe: true,
+                    id: message.messageId
+                }
+            });
+        } catch (waErr) {
+            logger.warn('WA edit failed (continuing with DB edit):', waErr.message);
+        }
+    }
+
+    // Update DB
+    const updated = await messageService.editMessage(messageId, userId, text);
+    return successResponse(res, 200, 'Message edited successfully', updated);
 });
 
 /**
@@ -362,13 +413,43 @@ export const getUnreadCount = asyncHandler(async (req, res) => {
 });
 
 /**
- * Mark messages as read
+ * Mark messages as read — DB + sends blue ticks to WhatsApp
  * POST /api/messages/mark-read
  */
 export const markAsRead = asyncHandler(async (req, res) => {
     const { chatJid } = req.body;
+    const userId = req.userId;
 
-    await messageService.markMessagesAsRead(req.userId, chatJid);
+    // Mark read in DB
+    await messageService.markMessagesAsRead(userId, chatJid);
+
+    // Send blue ticks via Baileys
+    const sock = whatsappService.getConnection(userId);
+    if (sock) {
+        try {
+            const hostNumber = sock.user?.id?.split(':')[0];
+            const { Message } = await getClientModels(userId, hostNumber);
+            // Get unread messages with their keys
+            const unreadMsgs = await Message.find({
+                userId,
+                chatJid,
+                fromMe: false,
+                status: { $ne: 'read' }
+            }).select('messageId chatJid participant').lean();
+
+            if (unreadMsgs.length > 0) {
+                const keys = unreadMsgs.map(m => ({
+                    remoteJid: m.chatJid,
+                    id: m.messageId,
+                    fromMe: false,
+                    participant: m.participant
+                }));
+                await whatsappService.readMessages(userId, keys);
+            }
+        } catch (readErr) {
+            logger.warn('WA readMessages failed (DB already updated):', readErr.message);
+        }
+    }
 
     return successResponse(res, 200, 'Messages marked as read');
 });
@@ -539,28 +620,231 @@ export const bulkToggleAI = asyncHandler(async (req, res) => {
     const hostNumber = session?.status === 'connected' ? session.phoneNumber : null;
     const { Chat } = await getClientModels(userId, hostNumber);
 
-    // Update all chats
-    await Chat.updateMany(
-        { userId },
-        { aiEnabled: enabled }
-    );
+    await Chat.updateMany({ userId }, { aiEnabled: enabled });
 
-    // Also update the User's default autoReply setting to match
     const User = (await import('../models/User.js')).default;
-    await User.findByIdAndUpdate(userId, {
-        'aiSettings.autoReply': enabled
-    });
+    await User.findByIdAndUpdate(userId, { 'aiSettings.autoReply': enabled });
 
-    // Notify frontend via socket
     const io = req.app.get('io');
     if (io) {
-        // Fetch all updated chats to notify frontend
         const chats = await Chat.find({ userId }).lean();
         io.to(userId.toString()).emit('chats:updated', { chats });
-
-        // Also emit config update so settings page refreshes if open
         io.to(userId.toString()).emit('config:updated', { autoReply: enabled });
     }
 
     return successResponse(res, 200, `AI ${enabled ? 'enabled' : 'disabled'} for all chats`, { enabled });
+});
+
+/**
+ * Mute or unmute a chat
+ * POST /api/messages/:chatJid/mute
+ */
+export const muteChat = asyncHandler(async (req, res) => {
+    const { chatJid } = req.params;
+    const { mute, duration } = req.body; // mute: boolean, duration: milliseconds (null = unmute)
+    const userId = req.userId;
+
+    const { WhatsAppSession } = await getClientModels(userId);
+    const session = await WhatsAppSession.findOne({ userId });
+    const hostNumber = session?.status === 'connected' ? session.phoneNumber : null;
+    const { Chat } = await getClientModels(userId, hostNumber);
+
+    // Update DB
+    await Chat.findOneAndUpdate(
+        { userId, chatJid },
+        { isMuted: mute, mutedUntil: mute ? new Date(Date.now() + (duration || 8 * 3600 * 1000)) : null },
+        { upsert: true }
+    );
+
+    // Sync to WhatsApp
+    const sock = whatsappService.getConnection(userId);
+    if (sock) {
+        try {
+            await whatsappService.chatModify(userId, { mute: mute ? (duration || 8 * 60 * 60 * 1000) : null }, chatJid);
+        } catch (e) {
+            logger.warn('WA mute sync failed:', e.message);
+        }
+    }
+
+    return successResponse(res, 200, `Chat ${mute ? 'muted' : 'unmuted'}`);
+});
+
+/**
+ * Pin or unpin a chat
+ * POST /api/messages/:chatJid/pin
+ */
+export const pinChat = asyncHandler(async (req, res) => {
+    const { chatJid } = req.params;
+    const { pinned } = req.body;
+    const userId = req.userId;
+
+    const { WhatsAppSession } = await getClientModels(userId);
+    const session = await WhatsAppSession.findOne({ userId });
+    const hostNumber = session?.status === 'connected' ? session.phoneNumber : null;
+    const { Chat } = await getClientModels(userId, hostNumber);
+
+    await Chat.findOneAndUpdate(
+        { userId, chatJid },
+        { isPinned: pinned },
+        { upsert: true }
+    );
+
+    // Sync to WhatsApp
+    const sock = whatsappService.getConnection(userId);
+    if (sock) {
+        try {
+            await whatsappService.chatModify(userId, { pin: pinned }, chatJid);
+        } catch (e) {
+            logger.warn('WA pin chat sync failed:', e.message);
+        }
+    }
+
+    return successResponse(res, 200, `Chat ${pinned ? 'pinned' : 'unpinned'}`);
+});
+
+/**
+ * Pin or unpin a message
+ * POST /api/messages/:messageId/pin
+ */
+export const pinMessage = asyncHandler(async (req, res) => {
+    const { messageId } = req.params;
+    const { pin, time } = req.body; // pin: boolean, time: seconds (86400 | 604800 | 2592000)
+    const userId = req.userId;
+
+    const sock = whatsappService.getConnection(userId);
+    const hostNumber = sock?.user?.id?.split(':')[0];
+    const { Message } = await getClientModels(userId, hostNumber);
+
+    const message = await Message.findOne({ _id: messageId, userId });
+    if (!message) throw new Error('Message not found');
+
+    // Send pin to WhatsApp
+    if (sock) {
+        await whatsappService.sendMessage(userId, message.chatJid, {
+            pin: {
+                type: pin ? 1 : 0,
+                time: time || 86400,
+                key: {
+                    remoteJid: message.chatJid,
+                    fromMe: message.fromMe,
+                    id: message.messageId,
+                    participant: message.participant
+                }
+            }
+        });
+    }
+
+    // Update DB
+    await Message.findOneAndUpdate({ _id: messageId, userId }, { isPinned: pin });
+
+    return successResponse(res, 200, `Message ${pin ? 'pinned' : 'unpinned'}`);
+});
+
+/**
+ * Star or unstar a message
+ * POST /api/messages/:messageId/star
+ */
+export const starMessage = asyncHandler(async (req, res) => {
+    const { messageId } = req.params;
+    const { star } = req.body;
+    const userId = req.userId;
+
+    const sock = whatsappService.getConnection(userId);
+    const hostNumber = sock?.user?.id?.split(':')[0];
+    const { Message } = await getClientModels(userId, hostNumber);
+
+    const message = await Message.findOne({ _id: messageId, userId });
+    if (!message) throw new Error('Message not found');
+
+    // Sync to WhatsApp via chatModify
+    if (sock) {
+        try {
+            await whatsappService.chatModify(userId, {
+                star: {
+                    messages: [{ id: message.messageId, fromMe: message.fromMe }],
+                    star
+                }
+            }, message.chatJid);
+        } catch (e) {
+            logger.warn('WA star sync failed:', e.message);
+        }
+    }
+
+    // Update DB
+    const updated = await Message.findOneAndUpdate({ _id: messageId, userId }, { isStarred: star }, { new: true });
+
+    return successResponse(res, 200, `Message ${star ? 'starred' : 'unstarred'}`, updated);
+});
+
+/**
+ * Send a poll message
+ * POST /api/messages/send-poll
+ */
+export const sendPoll = asyncHandler(async (req, res) => {
+    const { chatJid, name, values, selectableCount } = req.body;
+    const userId = req.userId;
+
+    const sock = whatsappService.getConnection(userId);
+    if (!sock) throw new Error('WhatsApp not connected');
+
+    const sentMessage = await whatsappService.sendMessage(userId, chatJid, {
+        poll: {
+            name,
+            values,
+            selectableCount: selectableCount || 1
+        }
+    });
+
+    return successResponse(res, 200, 'Poll sent', { messageId: sentMessage.key.id });
+});
+
+/**
+ * Toggle disappearing messages for a chat
+ * POST /api/messages/:chatJid/disappearing
+ */
+export const setDisappearingMessages = asyncHandler(async (req, res) => {
+    const { chatJid } = req.params;
+    const { ephemeral } = req.body; // seconds: 0 (off), 86400, 604800, 7776000
+    const userId = req.userId;
+
+    const sock = whatsappService.getConnection(userId);
+    if (!sock) throw new Error('WhatsApp not connected');
+
+    await whatsappService.sendMessage(userId, chatJid, {
+        disappearingMessagesInChat: ephemeral === 0 ? false : ephemeral
+    });
+
+    return successResponse(res, 200, `Disappearing messages ${ephemeral ? 'enabled' : 'disabled'}`);
+});
+
+/**
+ * Send a WhatsApp Story / Status
+ * POST /api/messages/send-story
+ */
+export const sendStory = asyncHandler(async (req, res) => {
+    const { type, mediaUrl, caption, text, statusJidList, backgroundColor, font } = req.body;
+    const userId = req.userId;
+
+    const sock = whatsappService.getConnection(userId);
+    if (!sock) throw new Error('WhatsApp not connected');
+
+    let content = {};
+    if (type === 'text') {
+        content = { text: text || caption || '' };
+    } else if (type === 'image') {
+        content = { image: { url: mediaUrl }, caption: caption || '' };
+    } else if (type === 'video') {
+        content = { video: { url: mediaUrl }, caption: caption || '' };
+    } else {
+        throw new Error('Unsupported story type. Use text, image, or video.');
+    }
+
+    await whatsappService.sendMessage(userId, 'status@broadcast', content, {
+        backgroundColor: backgroundColor || '#000000',
+        font: font || 0,
+        statusJidList: statusJidList || [],
+        broadcast: true
+    });
+
+    return successResponse(res, 200, 'Story/Status sent');
 });

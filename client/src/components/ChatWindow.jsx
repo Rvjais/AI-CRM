@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { FaPaperPlane, FaArchive, FaTable, FaSpinner, FaArrowLeft, FaBrain } from 'react-icons/fa';
+import { FaPaperPlane, FaArchive, FaTable, FaSpinner, FaArrowLeft, FaBrain, FaBellSlash, FaThumbtack } from 'react-icons/fa';
 import Message from './Message';
 import api from '../utils/apiClient';
+import ContactInfoModal from './modals/ContactInfoModal';
 import './ChatWindow.css';
 import Loader from './Loader';
 
@@ -15,7 +16,9 @@ function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat, 
     const [isGif, setIsGif] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [replyingTo, setReplyingTo] = useState(null);
+    const [editingMsg, setEditingMsg] = useState(null);
     const [activeReactionMsgId, setActiveReactionMsgId] = useState(null);
+    const [showContactInfo, setShowContactInfo] = useState(false);
     const messagesEndRef = useRef(null);
     const fileInputRef = useRef(null);
     const prevChatIdRef = useRef(null);
@@ -67,6 +70,40 @@ function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat, 
         }
     };
 
+    const toggleMute = async () => {
+        if (!selectedChat) return;
+
+        const newStatus = !selectedChat.isMuted;
+        const updatedChat = { ...selectedChat, isMuted: newStatus };
+
+        if (onUpdateChat) onUpdateChat(updatedChat);
+
+        try {
+            const jidToUse = selectedChat.jid || (selectedChat.phone.includes('@') ? selectedChat.phone : `${selectedChat.phone}@s.whatsapp.net`);
+            await api.post(`/api/messages/${encodeURIComponent(jidToUse)}/mute`, { mute: newStatus });
+        } catch (error) {
+            console.error('Error toggling mute:', error);
+            if (onUpdateChat) onUpdateChat({ ...selectedChat, isMuted: !newStatus });
+        }
+    };
+
+    const togglePinChat = async () => {
+        if (!selectedChat) return;
+
+        const newStatus = !selectedChat.isPinned;
+        const updatedChat = { ...selectedChat, isPinned: newStatus };
+
+        if (onUpdateChat) onUpdateChat(updatedChat);
+
+        try {
+            const jidToUse = selectedChat.jid || (selectedChat.phone.includes('@') ? selectedChat.phone : `${selectedChat.phone}@s.whatsapp.net`);
+            await api.post(`/api/messages/${encodeURIComponent(jidToUse)}/pin`, { pinned: newStatus });
+        } catch (error) {
+            console.error('Error toggling pin:', error);
+            if (onUpdateChat) onUpdateChat({ ...selectedChat, isPinned: !newStatus });
+        }
+    };
+
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
@@ -112,6 +149,36 @@ function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat, 
             return msg;
         });
         setMessages(updatedMessages, chatJid);
+    };
+
+    const handlePinMessage = async (msg) => {
+        try {
+            const isPinned = !msg.isPinned;
+            await api.post(`/api/messages/${msg._id}/pin`, { pin: isPinned, time: 86400 });
+            setMessages(messages.map(m => m._id === msg._id ? { ...m, isPinned } : m), selectedChat.jid || selectedChat.phone);
+        } catch (e) { console.error('Pin error', e); }
+    };
+
+    const handleStarMessage = async (msg) => {
+        try {
+            const isStarred = !msg.isStarred;
+            await api.post(`/api/messages/${msg._id}/star`, { star: isStarred });
+            setMessages(messages.map(m => m._id === msg._id ? { ...m, isStarred } : m), selectedChat.jid || selectedChat.phone);
+        } catch (e) { console.error('Star error', e); }
+    };
+
+    const handleDeleteMessage = async (msg) => {
+        if (!window.confirm('Delete this message for everyone?')) return;
+        try {
+            await api.delete(`/api/messages/${msg._id}`);
+            setMessages(messages.filter(m => m._id !== msg._id), selectedChat.jid || selectedChat.phone);
+        } catch (e) { console.error('Delete error', e); }
+    };
+
+    const handleEditMessage = (msg) => {
+        setEditingMsg(msg);
+        setNewMessage(msg.content?.text || msg.text || '');
+        setReplyingTo(null);
     };
 
     useEffect(() => {
@@ -239,6 +306,26 @@ function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat, 
         }
     };
 
+    const handleEditSubmit = async (e) => {
+        e.preventDefault();
+        if (!editingMsg || !newMessage.trim() || loading) return;
+
+        setLoading(true);
+        try {
+            const data = await api.put(`/api/messages/${editingMsg._id}/edit`, { text: newMessage });
+            if (data.success) {
+                const updatedMessages = messages.map(m => m._id === editingMsg._id ? { ...m, content: { ...m.content, text: newMessage } } : m);
+                setMessages(updatedMessages, selectedChat.jid || selectedChat.phone);
+                setEditingMsg(null);
+                setNewMessage('');
+            }
+        } catch (e) {
+            console.error('Edit error:', e);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleSyncToSheet = async () => {
         if (!selectedChat || syncing) return;
 
@@ -291,9 +378,13 @@ function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat, 
                         <FaArrowLeft />
                     </button>
                 )}
-                <div className="header-info">
+                <div className="header-info" onClick={() => setShowContactInfo(true)} style={{ cursor: 'pointer' }}>
                     <div className="avatar-large">
-                        {(selectedChat.contactName || selectedChat.name || selectedChat.phoneNumber || selectedChat.phone || 'U')[0].toUpperCase()}
+                        {selectedChat.profilePicture ? (
+                            <img src={selectedChat.profilePicture} alt="Profile" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+                        ) : (
+                            (selectedChat.contactName || selectedChat.name || selectedChat.phoneNumber || selectedChat.phone || 'U')[0].toUpperCase()
+                        )}
                     </div>
                     <div className="user-details">
                         <h3 className="user-name">
@@ -309,6 +400,20 @@ function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat, 
                 </div>
 
                 <div className="header-actions">
+                    <button
+                        className={`action-btn ${selectedChat.isMuted ? 'active' : ''}`}
+                        onClick={toggleMute}
+                        title={selectedChat.isMuted ? "Unmute Chat" : "Mute Chat"}
+                    >
+                        <FaBellSlash />
+                    </button>
+                    <button
+                        className={`action-btn ${selectedChat.isPinned ? 'active' : ''}`}
+                        onClick={togglePinChat}
+                        title={selectedChat.isPinned ? "Unpin Chat" : "Pin Chat"}
+                    >
+                        <FaThumbtack />
+                    </button>
                     <button
                         className={`action-btn ${selectedChat.isArchived ? 'active' : ''}`}
                         onClick={toggleArchive}
@@ -366,11 +471,33 @@ function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat, 
                             onReact={handleReact}
                             activeReactionMsgId={activeReactionMsgId}
                             setActiveReactionMsgId={setActiveReactionMsgId}
+                            onPin={handlePinMessage}
+                            onStar={handleStarMessage}
+                            onDelete={handleDeleteMessage}
+                            onEdit={handleEditMessage}
                         />
                     ))
                 )}
                 <div ref={messagesEndRef} />
             </div>
+
+            {/* Editing Preview */}
+            {
+                editingMsg && (
+                    <div className="reply-preview">
+                        <div className="reply-content">
+                            <span className="reply-bar" style={{ backgroundColor: '#25D366' }}></span>
+                            <div style={{ flex: 1 }}>
+                                <div className="reply-sender">Editing Message</div>
+                                <div className="reply-text">
+                                    {editingMsg.content?.text || editingMsg.text}
+                                </div>
+                            </div>
+                            <button className="close-reply" onClick={() => { setEditingMsg(null); setNewMessage(''); }}>×</button>
+                        </div>
+                    </div>
+                )
+            }
 
             {/* Reply Preview */}
             {
@@ -427,7 +554,7 @@ function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat, 
                 )
             }
 
-            <form className="message-input-container" onSubmit={handleSendMessage}>
+            <form className="message-input-container" onSubmit={editingMsg ? handleEditSubmit : handleSendMessage}>
                 <input
                     type="file"
                     ref={fileInputRef}
@@ -460,6 +587,14 @@ function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat, 
                     <FaPaperPlane />
                 </button>
             </form>
+
+            {showContactInfo && (
+                <ContactInfoModal 
+                    chat={selectedChat} 
+                    onClose={() => setShowContactInfo(false)} 
+                    onUpdateChat={onUpdateChat}
+                />
+            )}
         </div >
     );
 }

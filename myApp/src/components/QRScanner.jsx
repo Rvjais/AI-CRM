@@ -9,6 +9,10 @@ function QRScanner({ token, onConnected, onLogout }) {
     const [qrCode, setQrCode] = useState(null);
     const [status, setStatus] = useState('initializing'); // initializing, idle, scanning, connected, exhausted
     const [socket, setSocket] = useState(null);
+    const [usePairingCode, setUsePairingCode] = useState(false);
+    const [phoneNumber, setPhoneNumber] = useState('');
+    const [pairingCode, setPairingCode] = useState('');
+    const [requestingCode, setRequestingCode] = useState(false);
     const isCheckingRef = useRef(false);
 
     useEffect(() => {
@@ -35,6 +39,7 @@ function QRScanner({ token, onConnected, onLogout }) {
         newSocket.on('whatsapp:disconnected', () => {
             setStatus('idle');
             setQrCode(null);
+            setPairingCode('');
         });
 
         newSocket.on('connect_error', async (err) => {
@@ -126,6 +131,39 @@ function QRScanner({ token, onConnected, onLogout }) {
         initiateConnection();
     };
 
+    const handleRequestPairingCode = async () => {
+        if (!phoneNumber) {
+            alert('Please enter your phone number with country code (e.g., +1234567890)');
+            return;
+        }
+        setRequestingCode(true);
+        setStatus('initializing');
+        setPairingCode('');
+        
+        try {
+            // Initiate connection first, then request code
+            await api.post('/api/whatsapp/connect');
+            
+            // Wait a brief moment for socket to initialize
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            
+            const res = await api.post('/api/whatsapp/pairing-code', { phoneNumber });
+            if (res.success && res.data && res.data.code) {
+                setPairingCode(res.data.code);
+                setStatus('scanning');
+            } else {
+                alert('Failed to get pairing code');
+                setStatus('idle');
+            }
+        } catch (error) {
+            console.error('Pairing code request failed:', error);
+            alert(error.response?.data?.message || 'Error requesting pairing code');
+            setStatus('idle');
+        } finally {
+            setRequestingCode(false);
+        }
+    };
+
     return (
         <div className="qr-scanner-container">
             <div className="qr-card">
@@ -138,6 +176,39 @@ function QRScanner({ token, onConnected, onLogout }) {
                     {status === 'connected' ? (
                         <div className="status-message success">
                             Connected Successfully! Redirecting...
+                        </div>
+                    ) : usePairingCode ? (
+                        <div className="pairing-code-container">
+                            {pairingCode ? (
+                                <div className="pairing-code-display">
+                                    <h3>Your Pairing Code</h3>
+                                    <div className="code-box">
+                                        {pairingCode.split('').map((char, index) => (
+                                            <span key={index} className="code-char">{char}</span>
+                                        ))}
+                                    </div>
+                                    <p className="code-instruction">Enter this code on your phone when prompted.</p>
+                                </div>
+                            ) : (
+                                <div className="qr-action-container">
+                                    <p className="qr-status-text">Enter phone number with country code</p>
+                                    <input 
+                                        type="text" 
+                                        placeholder="+1234567890" 
+                                        value={phoneNumber}
+                                        onChange={(e) => setPhoneNumber(e.target.value)}
+                                        className="phone-input"
+                                        disabled={requestingCode}
+                                    />
+                                    <button 
+                                        className="generate-btn" 
+                                        onClick={handleRequestPairingCode}
+                                        disabled={requestingCode || !phoneNumber}
+                                    >
+                                        {requestingCode ? 'Requesting...' : 'Get Pairing Code'}
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     ) : (status === 'idle' || status === 'exhausted') ? (
                         <div className="qr-action-container">
@@ -161,12 +232,26 @@ function QRScanner({ token, onConnected, onLogout }) {
                     )}
                 </div>
 
+                <div className="toggle-method-container" style={{ textAlign: 'center', marginTop: '1rem' }}>
+                    <button 
+                        className="text-btn toggle-method-btn" 
+                        onClick={() => setUsePairingCode(!usePairingCode)}
+                        style={{ background: 'none', border: 'none', color: '#128C7E', cursor: 'pointer', textDecoration: 'underline' }}
+                    >
+                        {usePairingCode ? 'Link with QR Code instead' : 'Link with phone number instead'}
+                    </button>
+                </div>
+
                 <div className="qr-instructions">
                     <ol>
                         <li>Open WhatsApp on your phone</li>
                         <li>Tap Menu or Settings and select <b>Linked Devices</b></li>
                         <li>Tap on <b>Link a Device</b></li>
-                        <li>Point your phone to this screen to capture the code</li>
+                        {usePairingCode ? (
+                            <li>Tap <b>Link with phone number instead</b> and enter the code above</li>
+                        ) : (
+                            <li>Point your phone to this screen to capture the code</li>
+                        )}
                     </ol>
                 </div>
             </div>

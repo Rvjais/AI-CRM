@@ -41,6 +41,8 @@ function ChatItem({ chat, isSelected, onClick }) {
                             <span className={`sentiment-dot ${chat.sentiment}`} title={`Sentiment: ${chat.sentiment}`} />
                         )}
                         {chat.aiEnabled && <span className="ai-icon" title="AI Enabled">🤖</span>}
+                        {chat.isPinned && <span className="ai-icon" title="Pinned">📌</span>}
+                        {chat.isMuted && <span className="ai-icon" title="Muted">🔇</span>}
                     </h4>
                     <span className="chat-time">{getLastMessageTime()}</span>
                 </div>

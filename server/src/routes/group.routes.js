@@ -16,6 +16,7 @@ router.use(authenticate);
 router.post('/create', validate(schemas.createGroup), groupController.createGroup);
 router.get('/', groupController.getAllGroups);
 router.post('/join/:code', groupController.joinGroup);
+router.get('/invite-info/:code', groupController.getGroupByInviteCode);
 router.get('/:groupJid', groupController.getGroupDetails);
 router.put('/:groupJid', validate(schemas.updateGroup), groupController.updateGroupSettings);
 router.delete('/:groupJid/leave', groupController.leaveGroup);
@@ -24,5 +25,9 @@ router.put('/:groupJid/participants/:jid/promote', groupController.promoteToAdmi
 router.put('/:groupJid/participants/:jid/demote', groupController.demoteFromAdmin);
 router.get('/:groupJid/invite-code', groupController.getInviteCode);
 router.post('/:groupJid/revoke-code', groupController.revokeInviteCode);
+router.post('/:groupJid/ephemeral', groupController.toggleEphemeral);
+router.post('/:groupJid/member-add-mode', groupController.updateMemberAddMode);
+router.get('/:groupJid/join-requests', groupController.getJoinRequests);
+router.post('/:groupJid/join-requests', groupController.handleJoinRequests);
 
 export default router;

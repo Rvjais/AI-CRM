@@ -325,6 +325,7 @@ function WhatsAppView({ token, onLogout, isActive }) {
                         profilePicture: chat.profilePicture, // If available
                         isArchived: chat.isArchived || false,
                         isMuted: chat.isMuted || false,
+                        isPinned: chat.isPinned || false,
                         isGroup: chat.chatJid.includes('@g.us'),
                         aiEnabled: chat.aiEnabled || false,
                         sentiment: chat.sentiment || 'neutral',

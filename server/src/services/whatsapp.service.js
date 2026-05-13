@@ -2,9 +2,11 @@ import makeWASocket, {
     DisconnectReason,
     useMultiFileAuthState,
     fetchLatestBaileysVersion,
+    getAggregateVotesInPollMessage,
 } from '@whiskeysockets/baileys';
 import { Boom } from '@hapi/boom';
 import pino from 'pino';
+import NodeCache from 'node-cache';
 import User from '../models/User.js';
 import { CONNECTION_STATUS } from '../config/constants.js';
 import { encryptObject, decryptObject } from '../utils/encryption.util.js';
@@ -48,6 +50,9 @@ export const connectWhatsApp = async (userId, io) => {
         // Import contact handler dynamically
         const { handleContactsUpsert, handleContactsUpdate } = await import('../whatsapp/contact.handler.js');
 
+        // Group metadata cache (recommended by Baileys for group chats)
+        const groupCache = new NodeCache({ stdTTL: 5 * 60, useClones: false });
+
         // Create socket
         const sock = makeWASocket({
             version,
@@ -55,7 +60,11 @@ export const connectWhatsApp = async (userId, io) => {
             printQRInTerminal: false,
             auth: state,
             browser: ['Ubuntu', 'Chrome', '20.0.04'],
-            retryRequestDelayMs: 250, // Enable retries
+            retryRequestDelayMs: 250,
+            // [FIX] Receive phone notifications when app is open
+            markOnlineOnConnect: false,
+            // [FIX] Cache group metadata to avoid repeated fetches
+            cachedGroupMetadata: async (jid) => groupCache.get(jid),
             getMessage: async (key) => {
                 try {
                     // [FIX] Implement getMessage for retries/decryption
@@ -228,6 +237,11 @@ export const connectWhatsApp = async (userId, io) => {
 
                     await handleIncomingMessage(userId, msg, io, sendResponse, hostNumber);
                 }
+            } else if (type === 'append') {
+                // 'append' type = messages appended (e.g. synced messages from phone history)
+                for (const msg of messages) {
+                    await handleIncomingMessage(userId, msg, io, null, hostNumber);
+                }
             } else {
                 console.log(`⏭️  [messages.upsert] Skipping type: ${type}`);
             }
@@ -246,13 +260,83 @@ export const connectWhatsApp = async (userId, io) => {
             await handleContactsUpdate(userId, updates);
         });
 
-        // Handle message updates (read, delivered, etc.)
+        // Handle message updates (read receipts, delivered, poll votes, edits)
         sock.ev.on('messages.update', async (updates) => {
             for (const update of updates) {
-                if (update.update.status) {
+                if (update.update.status !== undefined) {
                     io.to(userId.toString()).emit('message:update', {
                         messageId: update.key.id,
                         status: update.update.status,
+                    });
+                }
+                // Decrypt poll votes
+                if (update.update.pollUpdates) {
+                    try {
+                        const { Message } = await getClientModels(userId);
+                        const pollCreation = await Message.findOne({ messageId: update.key.id, userId });
+                        if (pollCreation && pollCreation.rawMessage) {
+                            const aggregated = getAggregateVotesInPollMessage({
+                                message: pollCreation.rawMessage,
+                                pollUpdates: update.update.pollUpdates,
+                            });
+                            io.to(userId.toString()).emit('poll:update', {
+                                messageId: update.key.id,
+                                votes: aggregated,
+                            });
+                        }
+                    } catch (pollErr) {
+                        logger.error('Poll vote decryption error:', pollErr);
+                    }
+                }
+            }
+        });
+
+        // ── Group metadata events — keep cache fresh ─────────────────────────
+        sock.ev.on('groups.update', async ([event]) => {
+            try {
+                const metadata = await sock.groupMetadata(event.id);
+                groupCache.set(event.id, metadata);
+                io.to(userId.toString()).emit('group:update', { groupJid: event.id, metadata });
+                // Update DB
+                const Group = (await import('../models/Group.js')).default;
+                await Group.findOneAndUpdate(
+                    { userId, groupJid: event.id },
+                    {
+                        name: metadata.subject,
+                        description: metadata.desc,
+                        participants: metadata.participants
+                    },
+                    { upsert: false }
+                );
+            } catch (e) { logger.error('groups.update error:', e); }
+        });
+
+        sock.ev.on('group-participants.update', async (event) => {
+            try {
+                const metadata = await sock.groupMetadata(event.id);
+                groupCache.set(event.id, metadata);
+                io.to(userId.toString()).emit('group:participant_update', {
+                    groupJid: event.id,
+                    action: event.action,
+                    participants: event.participants
+                });
+            } catch (e) { logger.error('group-participants.update error:', e); }
+        });
+
+        // ── Presence updates (typing/online indicators) ──────────────────────
+        sock.ev.on('presence.update', ({ id, presences }) => {
+            io.to(userId.toString()).emit('presence:update', { jid: id, presences });
+        });
+
+        // ── Incoming call event — notify frontend ─────────────────────────────
+        sock.ev.on('call', async (calls) => {
+            for (const call of calls) {
+                if (call.status === 'offer') {
+                    console.log(`📞 [call] Incoming call from ${call.from} (id: ${call.id}) for user ${userId}`);
+                    io.to(userId.toString()).emit('call:incoming', {
+                        callId: call.id,
+                        callFrom: call.from,
+                        isVideo: call.isVideo
                     });
                 }
             }
@@ -539,6 +623,318 @@ async function updateUserWhatsAppStatus(userId, connected) {
     await User.findByIdAndUpdate(userId, { whatsappConnected: connected });
 }
 
+/**
+ * Request pairing code for phone-number based login
+ * @param {String} userId
+ * @param {String} phoneNumber - digits only, with country code, no +
+ */
+export const requestPairingCode = async (userId, phoneNumber) => {
+    const sock = getConnection(userId);
+    if (!sock) throw new Error('WhatsApp socket not initialized. Call connect first.');
+    // Make sure creds are NOT yet registered
+    if (sock.authState?.creds?.registered) {
+        throw new Error('Already registered/connected. Disconnect first.');
+    }
+    const code = await sock.requestPairingCode(phoneNumber);
+    return code;
+};
+
+/**
+ * Reject an incoming call
+ * @param {String} userId
+ * @param {String} callId
+ * @param {String} callFrom
+ */
+export const rejectCall = async (userId, callId, callFrom) => {
+    const sock = getConnection(userId);
+    if (!sock) throw new Error('WhatsApp not connected');
+    await sock.rejectCall(callId, callFrom);
+};
+
+/**
+ * Subscribe to presence updates for a JID (enables typing indicators)
+ */
+export const presenceSubscribe = async (userId, jid) => {
+    const sock = getConnection(userId);
+    if (!sock) throw new Error('WhatsApp not connected');
+    await sock.presenceSubscribe(jid);
+};
+
+/**
+ * Send presence update (available, composing, paused, unavailable)
+ */
+export const sendPresenceUpdate = async (userId, presence, jid) => {
+    const sock = getConnection(userId);
+    if (!sock) throw new Error('WhatsApp not connected');
+    await sock.sendPresenceUpdate(presence, jid);
+};
+
+/**
+ * Mark WhatsApp messages as read (sends blue ticks)
+ */
+export const readMessages = async (userId, keys) => {
+    const sock = getConnection(userId);
+    if (!sock) throw new Error('WhatsApp not connected');
+    await sock.readMessages(keys);
+};
+
+/**
+ * Check if phone number exists on WhatsApp
+ */
+export const checkOnWhatsApp = async (userId, jid) => {
+    const sock = getConnection(userId);
+    if (!sock) throw new Error('WhatsApp not connected');
+    const [result] = await sock.onWhatsApp(jid);
+    return result;
+};
+
+/**
+ * Fetch profile picture URL
+ */
+export const fetchProfilePicture = async (userId, jid, type = 'image') => {
+    const sock = getConnection(userId);
+    if (!sock) throw new Error('WhatsApp not connected');
+    try {
+        return await sock.profilePictureUrl(jid, type);
+    } catch (e) {
+        return null; // Profile pic may be private
+    }
+};
+
+/**
+ * Fetch status text
+ */
+export const fetchStatus = async (userId, jid) => {
+    const sock = getConnection(userId);
+    if (!sock) throw new Error('WhatsApp not connected');
+    return await sock.fetchStatus(jid);
+};
+
+/**
+ * Fetch business profile
+ */
+export const getBusinessProfile = async (userId, jid) => {
+    const sock = getConnection(userId);
+    if (!sock) throw new Error('WhatsApp not connected');
+    return await sock.getBusinessProfile(jid);
+};
+
+/**
+ * Update own profile status
+ */
+export const updateProfileStatus = async (userId, status) => {
+    const sock = getConnection(userId);
+    if (!sock) throw new Error('WhatsApp not connected');
+    await sock.updateProfileStatus(status);
+};
+
+/**
+ * Update own profile name
+ */
+export const updateProfileName = async (userId, name) => {
+    const sock = getConnection(userId);
+    if (!sock) throw new Error('WhatsApp not connected');
+    await sock.updateProfileName(name);
+};
+
+/**
+ * Update profile picture
+ */
+export const updateProfilePicture = async (userId, jid, imageBuffer) => {
+    const sock = getConnection(userId);
+    if (!sock) throw new Error('WhatsApp not connected');
+    await sock.updateProfilePicture(jid, imageBuffer);
+};
+
+/**
+ * Remove profile picture
+ */
+export const removeProfilePicture = async (userId, jid) => {
+    const sock = getConnection(userId);
+    if (!sock) throw new Error('WhatsApp not connected');
+    await sock.removeProfilePicture(jid);
+};
+
+/**
+ * Block or unblock a user
+ */
+export const updateBlockStatus = async (userId, jid, action) => {
+    const sock = getConnection(userId);
+    if (!sock) throw new Error('WhatsApp not connected');
+    await sock.updateBlockStatus(jid, action); // 'block' | 'unblock'
+};
+
+/**
+ * Fetch privacy settings
+ */
+export const fetchPrivacySettings = async (userId) => {
+    const sock = getConnection(userId);
+    if (!sock) throw new Error('WhatsApp not connected');
+    return await sock.fetchPrivacySettings(true);
+};
+
+/**
+ * Fetch block list
+ */
+export const fetchBlocklist = async (userId) => {
+    const sock = getConnection(userId);
+    if (!sock) throw new Error('WhatsApp not connected');
+    return await sock.fetchBlocklist();
+};
+
+/**
+ * Update last-seen privacy
+ */
+export const updateLastSeenPrivacy = async (userId, value) => {
+    const sock = getConnection(userId);
+    if (!sock) throw new Error('WhatsApp not connected');
+    await sock.updateLastSeenPrivacy(value);
+};
+
+/**
+ * Update online privacy
+ */
+export const updateOnlinePrivacy = async (userId, value) => {
+    const sock = getConnection(userId);
+    if (!sock) throw new Error('WhatsApp not connected');
+    await sock.updateOnlinePrivacy(value);
+};
+
+/**
+ * Update profile picture privacy
+ */
+export const updateProfilePicturePrivacy = async (userId, value) => {
+    const sock = getConnection(userId);
+    if (!sock) throw new Error('WhatsApp not connected');
+    await sock.updateProfilePicturePrivacy(value);
+};
+
+/**
+ * Update status privacy
+ */
+export const updateStatusPrivacy = async (userId, value) => {
+    const sock = getConnection(userId);
+    if (!sock) throw new Error('WhatsApp not connected');
+    await sock.updateStatusPrivacy(value);
+};
+
+/**
+ * Update read receipts privacy
+ */
+export const updateReadReceiptsPrivacy = async (userId, value) => {
+    const sock = getConnection(userId);
+    if (!sock) throw new Error('WhatsApp not connected');
+    await sock.updateReadReceiptsPrivacy(value);
+};
+
+/**
+ * Update groups-add privacy
+ */
+export const updateGroupsAddPrivacy = async (userId, value) => {
+    const sock = getConnection(userId);
+    if (!sock) throw new Error('WhatsApp not connected');
+    await sock.updateGroupsAddPrivacy(value);
+};
+
+/**
+ * Update default disappearing mode
+ */
+export const updateDefaultDisappearingMode = async (userId, ephemeral) => {
+    const sock = getConnection(userId);
+    if (!sock) throw new Error('WhatsApp not connected');
+    await sock.updateDefaultDisappearingMode(ephemeral);
+};
+
+/**
+ * chatModify helper — archive, mute, pin, star, delete, markRead
+ */
+export const chatModify = async (userId, modification, jid) => {
+    const sock = getConnection(userId);
+    if (!sock) throw new Error('WhatsApp not connected');
+    await sock.chatModify(modification, jid);
+};
+
+/**
+ * Re-upload expired media message
+ */
+export const updateMediaMessage = async (userId, msg) => {
+    const sock = getConnection(userId);
+    if (!sock) throw new Error('WhatsApp not connected');
+    return await sock.updateMediaMessage(msg);
+};
+
+/**
+ * Fetch message history from WhatsApp servers
+ */
+export const fetchMessageHistory = async (userId, count, oldestMsgKey, oldestMsgTs) => {
+    const sock = getConnection(userId);
+    if (!sock) throw new Error('WhatsApp not connected');
+    await sock.fetchMessageHistory(count, oldestMsgKey, oldestMsgTs);
+};
+
+/**
+ * Get broadcast list info
+ */
+export const getBroadcastListInfo = async (userId, broadcastJid) => {
+    const sock = getConnection(userId);
+    if (!sock) throw new Error('WhatsApp not connected');
+    return await sock.getBroadcastListInfo(broadcastJid);
+};
+
+/**
+ * Update group settings (announce/locked)
+ */
+export const groupSettingUpdate = async (userId, jid, setting) => {
+    const sock = getConnection(userId);
+    if (!sock) throw new Error('WhatsApp not connected');
+    await sock.groupSettingUpdate(jid, setting);
+};
+
+/**
+ * Toggle ephemeral messages in group
+ */
+export const groupToggleEphemeral = async (userId, jid, ephemeral) => {
+    const sock = getConnection(userId);
+    if (!sock) throw new Error('WhatsApp not connected');
+    await sock.groupToggleEphemeral(jid, ephemeral);
+};
+
+/**
+ * Change who can add members to group
+ */
+export const groupMemberAddMode = async (userId, jid, mode) => {
+    const sock = getConnection(userId);
+    if (!sock) throw new Error('WhatsApp not connected');
+    await sock.groupMemberAddMode(jid, mode);
+};
+
+/**
+ * Get list of pending join requests
+ */
+export const groupRequestParticipantsList = async (userId, jid) => {
+    const sock = getConnection(userId);
+    if (!sock) throw new Error('WhatsApp not connected');
+    return await sock.groupRequestParticipantsList(jid);
+};
+
+/**
+ * Approve or reject join requests
+ */
+export const groupRequestParticipantsUpdate = async (userId, jid, participants, action) => {
+    const sock = getConnection(userId);
+    if (!sock) throw new Error('WhatsApp not connected');
+    return await sock.groupRequestParticipantsUpdate(jid, participants, action);
+};
+
+/**
+ * Get group info by invite code (without joining)
+ */
+export const groupGetInviteInfo = async (userId, code) => {
+    const sock = getConnection(userId);
+    if (!sock) throw new Error('WhatsApp not connected');
+    return await sock.groupGetInviteInfo(code);
+};
+
 export default {
     connectWhatsApp,
     disconnectWhatsApp,
@@ -548,4 +944,37 @@ export default {
     sendTextMessage,
     sendMediaMessage,
     getSelfJid,
+    requestPairingCode,
+    rejectCall,
+    presenceSubscribe,
+    sendPresenceUpdate,
+    readMessages,
+    checkOnWhatsApp,
+    fetchProfilePicture,
+    fetchStatus,
+    getBusinessProfile,
+    updateProfileStatus,
+    updateProfileName,
+    updateProfilePicture,
+    removeProfilePicture,
+    updateBlockStatus,
+    fetchPrivacySettings,
+    fetchBlocklist,
+    updateLastSeenPrivacy,
+    updateOnlinePrivacy,
+    updateProfilePicturePrivacy,
+    updateStatusPrivacy,
+    updateReadReceiptsPrivacy,
+    updateGroupsAddPrivacy,
+    updateDefaultDisappearingMode,
+    chatModify,
+    updateMediaMessage,
+    fetchMessageHistory,
+    getBroadcastListInfo,
+    groupSettingUpdate,
+    groupToggleEphemeral,
+    groupMemberAddMode,
+    groupRequestParticipantsList,
+    groupRequestParticipantsUpdate,
+    groupGetInviteInfo,
 };

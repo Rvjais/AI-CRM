@@ -157,6 +157,23 @@
     border-radius: 50%;
 }
 
+/* Privacy Select */
+.privacy-select {
+    padding: 0.4rem 0.5rem;
+    border-radius: 6px;
+    border: 1px solid #d1d5db;
+    background-color: white;
+    font-size: 0.8rem;
+    color: #374151;
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.15s;
+}
+
+.privacy-select:focus {
+    border-color: #2B5EA7;
+}
+
 /* Credits Card */
 .credits-card {
     background: #fffbeb;

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaRobot, FaFileExcel, FaWpforms, FaEnvelope, FaSave, FaCoins } from 'react-icons/fa';
+import { FaRobot, FaFileExcel, FaWpforms, FaEnvelope, FaSave, FaCoins, FaLock } from 'react-icons/fa';
 import api from '../utils/apiClient';
 import './Settings.css';
 
@@ -14,10 +14,23 @@ function Settings({ onLogout }) {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState('');
+    
+    // WhatsApp Privacy Settings
+    const [privacySettings, setPrivacySettings] = useState({
+        readreceipts: 'all',
+        profile: 'all',
+        status: 'all',
+        online: 'all',
+        last: 'all',
+        groupadd: 'all',
+        calladd: 'all'
+    });
+    const [privacyLoading, setPrivacyLoading] = useState(false);
 
     useEffect(() => {
         fetchSettings();
         fetchCredits();
+        fetchPrivacySettings();
     }, []);
 
     const fetchCredits = async () => {
@@ -41,6 +54,37 @@ function Settings({ onLogout }) {
             console.error('Failed to fetch settings:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchPrivacySettings = async () => {
+        setPrivacyLoading(true);
+        try {
+            const res = await api.get('/api/whatsapp/privacy');
+            if (res.success && res.data) {
+                setPrivacySettings(res.data);
+            }
+        } catch (error) {
+            console.error('Failed to fetch WhatsApp privacy settings:', error);
+        } finally {
+            setPrivacyLoading(false);
+        }
+    };
+
+    const handlePrivacyChange = async (key, value) => {
+        const newSettings = { ...privacySettings, [key]: value };
+        setPrivacySettings(newSettings);
+        
+        try {
+            await api.put('/api/whatsapp/privacy', { [key]: value });
+            setMessage('Privacy setting updated!');
+            setTimeout(() => setMessage(''), 2000);
+        } catch (error) {
+            console.error('Failed to update privacy:', error);
+            setMessage('Failed to update privacy.');
+            // Revert
+            fetchPrivacySettings();
+            setTimeout(() => setMessage(''), 3000);
         }
     };
 
@@ -174,7 +218,103 @@ function Settings({ onLogout }) {
                 {message && <span className="settings-message">{message}</span>}
             </div>
 
-            <div className="settings-danger-zone">
+            {/* WhatsApp Privacy Settings */}
+            <header className="settings-header" style={{ marginTop: '2rem' }}>
+                <h2>WhatsApp Privacy Settings</h2>
+                <p>Manage who can see your WhatsApp profile and activity.</p>
+            </header>
+            
+            {privacyLoading ? (
+                <div className="settings-loading">Loading privacy settings...</div>
+            ) : (
+                <div className="settings-grid">
+                    <div className="setting-card">
+                        <div className="setting-icon" style={{ background: '#e8f5e9', color: '#4caf50' }}>
+                            <FaLock />
+                        </div>
+                        <div className="setting-info">
+                            <h3>Read Receipts</h3>
+                            <p>Let others know when you've read their messages.</p>
+                        </div>
+                        <div className="setting-toggle">
+                            <select 
+                                value={privacySettings.readreceipts} 
+                                onChange={(e) => handlePrivacyChange('readreceipts', e.target.value)}
+                                className="privacy-select"
+                            >
+                                <option value="all">Everyone</option>
+                                <option value="none">Nobody</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div className="setting-card">
+                        <div className="setting-icon" style={{ background: '#e8f5e9', color: '#4caf50' }}>
+                            <FaLock />
+                        </div>
+                        <div className="setting-info">
+                            <h3>Last Seen</h3>
+                            <p>Who can see your last seen time.</p>
+                        </div>
+                        <div className="setting-toggle">
+                            <select 
+                                value={privacySettings.last} 
+                                onChange={(e) => handlePrivacyChange('last', e.target.value)}
+                                className="privacy-select"
+                            >
+                                <option value="all">Everyone</option>
+                                <option value="contacts">My Contacts</option>
+                                <option value="contact_blacklist">My Contacts Except...</option>
+                                <option value="none">Nobody</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div className="setting-card">
+                        <div className="setting-icon" style={{ background: '#e8f5e9', color: '#4caf50' }}>
+                            <FaLock />
+                        </div>
+                        <div className="setting-info">
+                            <h3>Profile Photo</h3>
+                            <p>Who can see your profile picture.</p>
+                        </div>
+                        <div className="setting-toggle">
+                            <select 
+                                value={privacySettings.profile} 
+                                onChange={(e) => handlePrivacyChange('profile', e.target.value)}
+                                className="privacy-select"
+                            >
+                                <option value="all">Everyone</option>
+                                <option value="contacts">My Contacts</option>
+                                <option value="contact_blacklist">My Contacts Except...</option>
+                                <option value="none">Nobody</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div className="setting-card">
+                        <div className="setting-icon" style={{ background: '#e8f5e9', color: '#4caf50' }}>
+                            <FaLock />
+                        </div>
+                        <div className="setting-info">
+                            <h3>Online Status</h3>
+                            <p>Who can see when you are online.</p>
+                        </div>
+                        <div className="setting-toggle">
+                            <select 
+                                value={privacySettings.online} 
+                                onChange={(e) => handlePrivacyChange('online', e.target.value)}
+                                className="privacy-select"
+                            >
+                                <option value="all">Everyone</option>
+                                <option value="match_last_seen">Same as Last Seen</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <div className="settings-danger-zone" style={{ marginTop: '2rem' }}>
                 <h3>Account Actions</h3>
                 <button className="logout-btn" onClick={onLogout}>
                     Logout

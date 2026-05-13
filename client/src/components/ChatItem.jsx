@@ -44,6 +44,8 @@ function ChatItem({ chat, isSelected, onClick }) {
                             />
                         )}
                         {chat.aiEnabled && <span title="AI Enabled">🤖</span>}
+                        {chat.isPinned && <span title="Pinned">📌</span>}
+                        {chat.isMuted && <span title="Muted">🔇</span>}
                     </div>
                     <span className="chat-time">{getLastMessageTime()}</span>
                 </div>

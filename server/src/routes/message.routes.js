@@ -15,19 +15,26 @@ const router = express.Router();
 router.use(authenticate);
 
 router.post('/send', messageLimiter, validate(schemas.sendMessage), messageController.sendMessage);
+router.post('/send-poll', messageLimiter, messageController.sendPoll);
+router.post('/send-story', messageLimiter, messageController.sendStory);
 router.get('/', validate(schemas.pagination), messageController.getAllChats);
 router.get('/unread', messageController.getUnreadCount);
 router.post('/mark-read', messageController.markAsRead);
+router.post('/bulk-toggle-ai', messageController.bulkToggleAI);
+router.post('/normalize', messageController.normalizeChats);
 router.get('/:chatJid', validate(schemas.getMessages), messageController.getChatMessages);
 router.delete('/:messageId', validate(schemas.idParam), messageController.deleteMessage);
 router.put('/:messageId/edit', validate(schemas.editMessage), messageController.editMessage);
 router.post('/:messageId/react', validate(schemas.reactToMessage), messageController.reactToMessage);
 router.post('/:messageId/forward', validate(schemas.forwardMessage), messageController.forwardMessage);
+router.post('/:messageId/pin', messageController.pinMessage);
+router.post('/:messageId/star', messageController.starMessage);
 router.post('/:chatJid/summarize', messageController.summarizeChat);
-router.post('/bulk-toggle-ai', messageController.bulkToggleAI);
 router.post('/:chatJid/toggle-ai', messageController.toggleAI);
-router.post('/normalize', messageController.normalizeChats);
 router.post('/:chatJid/archive', messageController.toggleArchive);
 router.post('/:chatJid/move', messageController.moveChat);
+router.post('/:chatJid/mute', messageController.muteChat);
+router.post('/:chatJid/pin', messageController.pinChat);
+router.post('/:chatJid/disappearing', messageController.setDisappearingMessages);
 
 export default router;

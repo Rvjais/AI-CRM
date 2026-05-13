@@ -9,122 +9,233 @@ import logger from '../utils/logger.util.js';
  * Handles WhatsApp connection endpoints
  */
 
-/**
- * Initialize WhatsApp connection
- * POST /api/whatsapp/connect
- */
+/** POST /api/whatsapp/connect */
 export const connect = asyncHandler(async (req, res) => {
     const io = req.app.get('io');
-
     const result = await whatsappService.connectWhatsApp(req.userId, io);
-
     return successResponse(res, 200, 'WhatsApp connection initiated', result);
 });
 
-/**
- * Get current QR code
- * GET /api/whatsapp/qr
- */
+/** GET /api/whatsapp/qr */
 export const getQRCode = asyncHandler(async (req, res) => {
-    logger.info(`Getting QR code for user: ${req.userId}`);
-
-    // [FIX] Use dynamic client database to get correct multi-tenant session
     const { getClientModels } = await import('../utils/database.factory.js');
     const { WhatsAppSession } = await getClientModels(req.userId);
-
     const session = await WhatsAppSession.findOne({ userId: req.userId });
-
-    logger.info(`Session found:`, {
-        exists: !!session,
-        status: session?.status,
-        hasQR: !!session?.qrCode,
-        qrLength: session?.qrCode?.length
-    });
-
     if (!session || !session.qrCode) {
         return successResponse(res, 200, 'No QR code available', { qrCode: null });
     }
-
     return successResponse(res, 200, 'QR code retrieved', { qrCode: session.qrCode });
 });
 
-/**
- * Request pairing code
- * POST /api/whatsapp/pairing-code
- */
+/** POST /api/whatsapp/pairing-code */
 export const requestPairingCode = asyncHandler(async (req, res) => {
     const { phoneNumber } = req.body;
+    const io = req.app.get('io');
 
-    // This would require additional Baileys logic for pairing code
-    // For now, return not implemented
-    return successResponse(res, 501, 'Pairing code not yet implemented');
+    // Ensure socket is initialized first
+    if (!whatsappService.isConnected(req.userId)) {
+        await whatsappService.connectWhatsApp(req.userId, io);
+        // Give a moment for socket to initialize
+        await new Promise(r => setTimeout(r, 2000));
+    }
+
+    const code = await whatsappService.requestPairingCode(req.userId, phoneNumber);
+    return successResponse(res, 200, 'Pairing code generated', { code });
 });
 
-/**
- * Disconnect WhatsApp
- * POST /api/whatsapp/disconnect
- */
+/** POST /api/whatsapp/disconnect */
 export const disconnect = asyncHandler(async (req, res) => {
     await whatsappService.disconnectWhatsApp(req.userId);
-
     return successResponse(res, 200, 'WhatsApp disconnected successfully');
 });
 
-/**
- * Get connection status
- * GET /api/whatsapp/status
- */
+/** GET /api/whatsapp/status */
 export const getStatus = asyncHandler(async (req, res) => {
-    // [FIX] Use dynamic client database to get correct multi-tenant session
     const { getClientModels } = await import('../utils/database.factory.js');
     const { WhatsAppSession } = await getClientModels(req.userId);
-
     const session = await WhatsAppSession.findOne({ userId: req.userId });
 
-    // Check real connection status from session
     const isAuthenticating = whatsappService.isConnected(req.userId);
     const isTrulyConnected = session?.status === 'connected';
 
-    const status = {
+    return successResponse(res, 200, 'Status retrieved', {
         connected: isTrulyConnected,
         status: session?.status || 'disconnected',
         phoneNumber: session?.phoneNumber || null,
         lastConnected: session?.lastConnected || null,
-        isAuthenticating // helper flag if needed
-    };
-
-    return successResponse(res, 200, 'Status retrieved', status);
+        isAuthenticating
+    });
 });
 
-/**
- * Get connected phone info
- * GET /api/whatsapp/phone-info
- */
+/** GET /api/whatsapp/phone-info */
 export const getPhoneInfo = asyncHandler(async (req, res) => {
     const sock = whatsappService.getConnection(req.userId);
-
     if (!sock || !sock.user) {
         return successResponse(res, 200, 'Not connected', { phoneInfo: null });
     }
-
-    const phoneInfo = {
+    return successResponse(res, 200, 'Phone info retrieved', {
         phoneNumber: sock.user.id.split(':')[0],
         name: sock.user.name || '',
-    };
-
-    return successResponse(res, 200, 'Phone info retrieved', phoneInfo);
+    });
 });
 
-/**
- * Logout from all devices
- * POST /api/whatsapp/logout-devices
- */
+/** POST /api/whatsapp/logout-devices */
 export const logoutDevices = asyncHandler(async (req, res) => {
     const sock = whatsappService.getConnection(req.userId);
-
-    if (sock) {
-        await sock.logout();
-    }
-
+    if (sock) await sock.logout();
     return successResponse(res, 200, 'Logged out from all devices');
+});
+
+/** POST /api/whatsapp/reject-call */
+export const rejectCall = asyncHandler(async (req, res) => {
+    const { callId, callFrom } = req.body;
+    await whatsappService.rejectCall(req.userId, callId, callFrom);
+    return successResponse(res, 200, 'Call rejected');
+});
+
+/** POST /api/whatsapp/presence/subscribe */
+export const subscribePresence = asyncHandler(async (req, res) => {
+    const { jid } = req.body;
+    await whatsappService.presenceSubscribe(req.userId, jid);
+    return successResponse(res, 200, 'Subscribed to presence');
+});
+
+/** POST /api/whatsapp/presence/update */
+export const updatePresence = asyncHandler(async (req, res) => {
+    const { presence, jid } = req.body;
+    await whatsappService.sendPresenceUpdate(req.userId, presence, jid);
+    return successResponse(res, 200, 'Presence updated');
+});
+
+/** POST /api/whatsapp/read-messages */
+export const readMessages = asyncHandler(async (req, res) => {
+    const { keys } = req.body; // array of WAMessageKey objects
+    await whatsappService.readMessages(req.userId, keys);
+    return successResponse(res, 200, 'Messages marked as read on WhatsApp');
+});
+
+/** GET /api/whatsapp/check/:phoneNumber */
+export const checkOnWhatsApp = asyncHandler(async (req, res) => {
+    const { phoneNumber } = req.params;
+    const jid = `${phoneNumber}@s.whatsapp.net`;
+    const result = await whatsappService.checkOnWhatsApp(req.userId, jid);
+    return successResponse(res, 200, 'Check complete', { exists: result?.exists || false, jid: result?.jid });
+});
+
+/** GET /api/whatsapp/profile-picture/:jid */
+export const getProfilePicture = asyncHandler(async (req, res) => {
+    const { jid } = req.params;
+    const url = await whatsappService.fetchProfilePicture(req.userId, decodeURIComponent(jid));
+    return successResponse(res, 200, 'Profile picture fetched', { url });
+});
+
+/** GET /api/whatsapp/status-text/:jid */
+export const getStatusText = asyncHandler(async (req, res) => {
+    const { jid } = req.params;
+    const status = await whatsappService.fetchStatus(req.userId, decodeURIComponent(jid));
+    return successResponse(res, 200, 'Status fetched', { status });
+});
+
+/** GET /api/whatsapp/business-profile/:jid */
+export const getBusinessProfile = asyncHandler(async (req, res) => {
+    const { jid } = req.params;
+    const profile = await whatsappService.getBusinessProfile(req.userId, decodeURIComponent(jid));
+    return successResponse(res, 200, 'Business profile fetched', profile);
+});
+
+/** PUT /api/whatsapp/profile/status */
+export const updateProfileStatus = asyncHandler(async (req, res) => {
+    const { status } = req.body;
+    await whatsappService.updateProfileStatus(req.userId, status);
+    return successResponse(res, 200, 'Profile status updated');
+});
+
+/** PUT /api/whatsapp/profile/name */
+export const updateProfileName = asyncHandler(async (req, res) => {
+    const { name } = req.body;
+    await whatsappService.updateProfileName(req.userId, name);
+    return successResponse(res, 200, 'Profile name updated');
+});
+
+/** POST /api/whatsapp/profile/picture */
+export const updateProfilePicture = asyncHandler(async (req, res) => {
+    // Expect image as base64 in body
+    const { imageBase64, jid } = req.body;
+    const buffer = Buffer.from(imageBase64, 'base64');
+    const targetJid = jid || `${whatsappService.getConnection(req.userId)?.user?.id?.split(':')[0]}@s.whatsapp.net`;
+    await whatsappService.updateProfilePicture(req.userId, targetJid, buffer);
+    return successResponse(res, 200, 'Profile picture updated');
+});
+
+/** DELETE /api/whatsapp/profile/picture */
+export const removeProfilePicture = asyncHandler(async (req, res) => {
+    const sock = whatsappService.getConnection(req.userId);
+    const selfJid = sock?.user?.id;
+    if (!selfJid) throw new Error('Not connected');
+    await whatsappService.removeProfilePicture(req.userId, selfJid);
+    return successResponse(res, 200, 'Profile picture removed');
+});
+
+/** POST /api/whatsapp/block */
+export const blockUser = asyncHandler(async (req, res) => {
+    const { jid } = req.body;
+    await whatsappService.updateBlockStatus(req.userId, jid, 'block');
+    return successResponse(res, 200, 'User blocked');
+});
+
+/** POST /api/whatsapp/unblock */
+export const unblockUser = asyncHandler(async (req, res) => {
+    const { jid } = req.body;
+    await whatsappService.updateBlockStatus(req.userId, jid, 'unblock');
+    return successResponse(res, 200, 'User unblocked');
+});
+
+/** GET /api/whatsapp/blocklist */
+export const getBlocklist = asyncHandler(async (req, res) => {
+    const list = await whatsappService.fetchBlocklist(req.userId);
+    return successResponse(res, 200, 'Block list retrieved', { list });
+});
+
+/** GET /api/whatsapp/privacy */
+export const getPrivacySettings = asyncHandler(async (req, res) => {
+    const settings = await whatsappService.fetchPrivacySettings(req.userId);
+    return successResponse(res, 200, 'Privacy settings retrieved', settings);
+});
+
+/** PUT /api/whatsapp/privacy */
+export const updatePrivacySettings = asyncHandler(async (req, res) => {
+    const { type, value } = req.body;
+    const updateMap = {
+        lastSeen: whatsappService.updateLastSeenPrivacy,
+        online: whatsappService.updateOnlinePrivacy,
+        profilePicture: whatsappService.updateProfilePicturePrivacy,
+        status: whatsappService.updateStatusPrivacy,
+        readReceipts: whatsappService.updateReadReceiptsPrivacy,
+        groupsAdd: whatsappService.updateGroupsAddPrivacy,
+    };
+    const fn = updateMap[type];
+    if (!fn) throw new Error(`Unknown privacy type: ${type}`);
+    await fn(req.userId, value);
+    return successResponse(res, 200, `Privacy setting '${type}' updated`);
+});
+
+/** PUT /api/whatsapp/privacy/disappearing */
+export const updateDefaultDisappearing = asyncHandler(async (req, res) => {
+    const { ephemeral } = req.body; // seconds: 0, 86400, 604800, 7776000
+    await whatsappService.updateDefaultDisappearingMode(req.userId, ephemeral);
+    return successResponse(res, 200, 'Default disappearing mode updated');
+});
+
+/** POST /api/whatsapp/chat-modify */
+export const chatModify = asyncHandler(async (req, res) => {
+    const { modification, jid } = req.body;
+    await whatsappService.chatModify(req.userId, modification, jid);
+    return successResponse(res, 200, 'Chat modified');
+});
+
+/** GET /api/whatsapp/broadcast/:broadcastJid */
+export const getBroadcastInfo = asyncHandler(async (req, res) => {
+    const { broadcastJid } = req.params;
+    const info = await whatsappService.getBroadcastListInfo(req.userId, broadcastJid);
+    return successResponse(res, 200, 'Broadcast info retrieved', info);
 });
