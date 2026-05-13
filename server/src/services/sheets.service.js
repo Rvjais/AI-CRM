@@ -80,16 +80,20 @@ export const syncChatToSheet = async (userId, chatJid, extractedData) => {
             c.key.toLowerCase().includes('number')
         );
 
-        if (phoneColIndex === -1) {
-            // No unique identifier column? Fallback to append, but warn
-            console.warn('[Sync] No phone/number column found to dedup. Appending.');
-        } else {
-            // We found a phone column. We no longer deduplicate here as per user request
-            // We just append a new row for every new extraction.
-            console.log(`[Sync] Appending new row for ${enrichedData.phone}`);
+        if (phoneColIndex !== -1) {
+            // TRY TO FIND EXISTING ROW BY PHONE
+            console.log(`[Sync] Searching for existing row with phone: ${enrichedData.phone}`);
+            const existingRowIndex = await findRowIndex(userId, phoneColIndex, enrichedData.phone);
+
+            if (existingRowIndex !== -1) {
+                console.log(`[Sync] Found existing row at index ${existingRowIndex}. Updating...`);
+                await updateRow(userId, existingRowIndex, enrichedData);
+                return true;
+            }
         }
 
-        // Always append new row based on user request instead of updating the existing one
+        // If no unique column found OR no existing row, APPEND
+        console.log(`[Sync] Appending new row for ${enrichedData.phone}`);
         await appendRow(userId, enrichedData);
 
         return true;

@@ -28,6 +28,8 @@ function AIConfig({ token }) {
     const [isEditingKey, setIsEditingKey] = useState(true);
     const [temperature, setTemperature] = useState(0.7);
     const [maxTokens, setMaxTokens] = useState(150);
+    const [messageLimit, setMessageLimit] = useState(15);
+    const [timeLimitHours, setTimeLimitHours] = useState(0);
     const [saved, setSaved] = useState(false);
     const [saveMessage, setSaveMessage] = useState('Save Configuration');
     const [loading, setLoading] = useState(true);
@@ -55,6 +57,8 @@ function AIConfig({ token }) {
                 setSystemPrompt(data.data.systemPrompt || "You are a helpful customer support assistant for RainCRM. Be professional, concise, and friendly.");
                 setTemperature(data.data.temperature || 0.7);
                 setMaxTokens(data.data.maxTokens || 150);
+                setMessageLimit(data.data.messageLimit || 15);
+                setTimeLimitHours(data.data.timeLimitHours || 0);
                 setAutoReply(data.data.autoReply || false);
                 if (data.data.keysConfigured) {
                     setKeysConfigured(prev => ({ ...prev, ...data.data.keysConfigured }));
@@ -67,11 +71,12 @@ function AIConfig({ token }) {
             setLoading(false);
         }
     };
-
+ 
     const handleSave = async () => {
         try {
             const payload = {
                 systemPrompt, temperature, maxTokens,
+                messageLimit, timeLimitHours,
                 enabled: true, autoReply, provider,
                 apiKeys: {}
             };
@@ -283,6 +288,47 @@ function AIConfig({ token }) {
                                     />
                                     <div className="aic-slider-labels">
                                         <span>Short</span><span>Long</span>
+                                    </div>
+                                </div>
+
+                                {/* Data Extraction Limits */}
+                                <div className="aic-divider" />
+                                <div className="aic-label-group">
+                                    <span className="aic-label">Data Extraction History</span>
+                                    <p className="aic-sub-desc">Limit how far back AI looks when extracting lead info.</p>
+                                </div>
+
+                                <div className="aic-slider-group">
+                                    <div className="aic-slider-header">
+                                        <span className="aic-label">Message Count</span>
+                                        <span className="aic-slider-value">{messageLimit} messages</span>
+                                    </div>
+                                    <input
+                                        type="range" min="15" max="100" step="5"
+                                        value={messageLimit}
+                                        onChange={(e) => setMessageLimit(parseInt(e.target.value))}
+                                        className="aic-range"
+                                    />
+                                    <div className="aic-slider-labels">
+                                        <span>15</span><span>100</span>
+                                    </div>
+                                </div>
+
+                                <div className="aic-slider-group">
+                                    <div className="aic-slider-header">
+                                        <span className="aic-label">Time Window</span>
+                                        <span className="aic-slider-value">
+                                            {timeLimitHours === 0 ? 'No Limit' : `${timeLimitHours} hours`}
+                                        </span>
+                                    </div>
+                                    <input
+                                        type="range" min="0" max="48" step="1"
+                                        value={timeLimitHours}
+                                        onChange={(e) => setTimeLimitHours(parseInt(e.target.value))}
+                                        className="aic-range"
+                                    />
+                                    <div className="aic-slider-labels">
+                                        <span>Unlimited</span><span>48 hrs</span>
                                     </div>
                                 </div>
                             </div>

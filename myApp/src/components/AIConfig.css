@@ -301,6 +301,23 @@
     font-weight: 500;
 }
 
+/* ── Divider & Labels ── */
+.aic-divider {
+    height: 1px;
+    background: #e8eaed;
+    margin: 16px 0;
+}
+
+.aic-label-group {
+    margin-bottom: 16px;
+}
+
+.aic-sub-desc {
+    font-size: 0.75rem;
+    color: #80868b;
+    margin-top: 4px;
+}
+
 /* ── Toggle Row ── */
 .aic-toggle-row {
     display: flex;
