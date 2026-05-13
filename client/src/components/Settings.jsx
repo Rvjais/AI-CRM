@@ -103,12 +103,28 @@ function Settings({ onLogout }) {
             setTimeout(() => setMessage(''), 2000);
         } catch (error) {
             console.error('Failed to auto-save settings:', error);
-            setMessage('Failed to save settings. Reverting...');
+            setMessage('Failed to auto-save settings. Reverting...');
             // Revert on failure
             setSettings(settings);
             setTimeout(() => setMessage(''), 3000);
         } finally {
             setSaving(false);
+        }
+    };
+
+    const handleAIParamChange = async (key, value) => {
+        try {
+            // Update AI config via the specific endpoint
+            await api.put('/api/ai/config', { [key]: value });
+            setMessage('AI setting updated!');
+            setTimeout(() => setMessage(''), 2000);
+            
+            // Note: We don't have local state for these in Settings.jsx yet, 
+            // but we could fetch them or just let the user know it saved.
+            // For now, let's just trigger a re-fetch of general settings if needed
+        } catch (error) {
+            console.error('Failed to update AI setting:', error);
+            setMessage('Failed to update AI setting.');
         }
     };
 

@@ -37,6 +37,8 @@ function AIConfig({ token }) {
 
     const [temperature, setTemperature] = useState(0.7);
     const [maxTokens, setMaxTokens] = useState(150);
+    const [messageLimit, setMessageLimit] = useState(15);
+    const [timeLimitHours, setTimeLimitHours] = useState(0);
     const [saved, setSaved] = useState(false);
     const [saveMessage, setSaveMessage] = useState('Save Configuration');
     const [loading, setLoading] = useState(true);
@@ -65,6 +67,8 @@ function AIConfig({ token }) {
                 setSystemPrompt(data.data.systemPrompt || "You are a helpful customer support assistant for RainCRM. Be professional, concise, and friendly.");
                 setTemperature(data.data.temperature || 0.7);
                 setMaxTokens(data.data.maxTokens || 150);
+                setMessageLimit(data.data.messageLimit || 15);
+                setTimeLimitHours(data.data.timeLimitHours || 0);
                 setAutoReply(data.data.autoReply || false);
 
                 if (data.data.keysConfigured) {
@@ -87,6 +91,8 @@ function AIConfig({ token }) {
                 systemPrompt,
                 temperature,
                 maxTokens,
+                messageLimit,
+                timeLimitHours,
                 enabled: true, // Always true blindly, as we don't expose a master kill switch anymore
                 autoReply,
                 provider,
@@ -143,6 +149,8 @@ function AIConfig({ token }) {
         setSystemPrompt("You are a helpful customer support assistant for RainCRM. Be professional, concise, and friendly.");
         setTemperature(0.7);
         setMaxTokens(150);
+        setMessageLimit(15);
+        setTimeLimitHours(0);
         setProvider('openai');
     };
 
@@ -318,6 +326,38 @@ function AIConfig({ token }) {
                                 <div className="slider-labels">
                                     <span>Short</span>
                                     <span>Long</span>
+                                </div>
+                            </div>
+
+                            <div className="slider-group">
+                                <label>Message History Limit: {messageLimit}</label>
+                                <input
+                                    type="range"
+                                    min="1"
+                                    max="100"
+                                    step="1"
+                                    value={messageLimit}
+                                    onChange={(e) => setMessageLimit(parseInt(e.target.value))}
+                                />
+                                <div className="slider-labels">
+                                    <span>Less Context (1)</span>
+                                    <span>More Context (100)</span>
+                                </div>
+                            </div>
+
+                            <div className="slider-group">
+                                <label>Time Limit for Data Extraction: {timeLimitHours === 0 ? 'No Limit' : `${timeLimitHours} Hours`}</label>
+                                <input
+                                    type="range"
+                                    min="0"
+                                    max="48"
+                                    step="1"
+                                    value={timeLimitHours}
+                                    onChange={(e) => setTimeLimitHours(parseInt(e.target.value))}
+                                />
+                                <div className="slider-labels">
+                                    <span>No Limit</span>
+                                    <span>48 Hours</span>
                                 </div>
                             </div>
                         </div>

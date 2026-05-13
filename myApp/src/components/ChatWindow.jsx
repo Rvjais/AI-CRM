@@ -259,7 +259,8 @@ function ChatWindow({ selectedChat, messages, setMessages, token, onUpdateChat, 
 
                 if (!uploadRes.success) throw new Error('Upload failed');
 
-                const { url, type: mediaType, mimetype } = uploadRes.data;
+                const { url, type: mediaType, mimetype: uploadMimetype } = uploadRes.data;
+                const mimetype = uploadMimetype || mediaFile.type;
 
                 type = mediaType;
                 if (isGif && mediaType === 'video') type = 'gif';

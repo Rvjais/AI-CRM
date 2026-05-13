@@ -18,6 +18,30 @@ function Message({ message, onForward, onReply, isGroup, onReact, activeReaction
         });
     };
 
+    const [swipeOffset, setSwipeOffset] = useState(0);
+    const [touchStartX, setTouchStartX] = useState(0);
+    const [isSwiping, setIsSwiping] = useState(false);
+
+    const handleTouchStart = (e) => {
+        setTouchStartX(e.touches[0].clientX);
+    };
+
+    const handleTouchMove = (e) => {
+        const diff = e.touches[0].clientX - touchStartX;
+        if (diff > 0 && diff < 80) { // Swipe right
+            setSwipeOffset(diff);
+            setIsSwiping(true);
+        }
+    };
+
+    const handleTouchEnd = () => {
+        if (swipeOffset > 50) {
+            onReply && onReply(message);
+        }
+        setSwipeOffset(0);
+        setIsSwiping(false);
+    };
+
     const renderStatus = () => {
         if (!message.fromMe) return null;
         if (message.status === 'read') return <span className="message-status read">✓✓</span>;
@@ -40,7 +64,6 @@ function Message({ message, onForward, onReply, isGroup, onReact, activeReaction
         }
 
         const { type, content } = message;
-
 
         // Sticker
         if (type === 'sticker' || content.mimeType?.includes('webp')) {
@@ -65,7 +88,8 @@ function Message({ message, onForward, onReply, isGroup, onReact, activeReaction
                         src={url}
                         alt={content.caption || 'Image'}
                         className="message-media message-media-clickable"
-                        onClick={() => {
+                        onClick={(e) => {
+                            e.stopPropagation();
                             setModalMediaUrl(url);
                             setIsModalOpen(true);
                         }}
@@ -108,7 +132,7 @@ function Message({ message, onForward, onReply, isGroup, onReact, activeReaction
             if (url) return (
                 <div className="message-document">
                     <span className="doc-icon">📄</span>
-                    <a href={url} target="_blank" rel="noopener noreferrer" className="doc-link">
+                    <a href={url} target="_blank" rel="noopener noreferrer" className="doc-link" onClick={(e) => e.stopPropagation()}>
                         {fileName}
                     </a>
                 </div>
@@ -196,7 +220,12 @@ function Message({ message, onForward, onReply, isGroup, onReact, activeReaction
     }
 
     return (
-        <div className={`message ${message.fromMe ? 'sent' : 'received'}`}>
+        <div 
+            className={`message ${message.fromMe ? 'sent' : 'received'} ${isSwiping ? 'swiping' : ''}`}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+        >
             {!message.fromMe && (
                 <div className="message-avatar">
                     <div className="avatar-small">
@@ -205,11 +234,16 @@ function Message({ message, onForward, onReply, isGroup, onReact, activeReaction
                 </div>
             )}
 
-            <div className="message-content-wrapper">
+            <div className="message-content-wrapper" style={{ transform: `translateX(${swipeOffset}px)` }}>
+                {swipeOffset > 20 && (
+                    <div className="swipe-reply-indicator" style={{ opacity: swipeOffset / 50 }}>
+                        ↩️
+                    </div>
+                )}
                 <div
-                className={`message-bubble group ${message.fromMe ? 'sent-bubble' : 'received-bubble'}`}
-                onClick={() => setActiveReactionMsgId(showReactions ? null : msgId)}
-            >
+                    className={`message-bubble group ${message.fromMe ? 'sent-bubble' : 'received-bubble'}`}
+                    onClick={() => setActiveReactionMsgId(showReactions ? null : msgId)}
+                >
                     {/* Show Sender Name in Group Chats */}
                     {isGroup && !message.fromMe && message.senderName && (
                         <div className="message-sender-name">

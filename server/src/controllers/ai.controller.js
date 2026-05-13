@@ -25,6 +25,8 @@ export const getAIConfig = async (req, res) => {
             model: aiSettings.model || 'gpt-3.5-turbo',
             maxTokens: aiSettings.maxTokens || 500,
             temperature: aiSettings.temperature || 0.7,
+            messageLimit: aiSettings.messageLimit || 15,
+            timeLimitHours: aiSettings.timeLimitHours || 0,
             autoReply: !!aiSettings.autoReply,
 
             hasApiKey: !!aiSettings.apiKey,
@@ -42,7 +44,7 @@ export const getAIConfig = async (req, res) => {
 
 export const updateAIConfig = async (req, res) => {
     try {
-        const { systemPrompt, enabled, autoReply, maxTokens, temperature, apiKey, provider, apiKeys, model } = req.body;
+        const { systemPrompt, enabled, autoReply, maxTokens, temperature, messageLimit, timeLimitHours, apiKey, provider, apiKeys, model } = req.body;
         const updateOps = {};
 
         if (systemPrompt !== undefined) updateOps['aiSettings.systemPrompt'] = systemPrompt;
@@ -50,6 +52,8 @@ export const updateAIConfig = async (req, res) => {
         if (autoReply !== undefined) updateOps['aiSettings.autoReply'] = autoReply;
         if (maxTokens !== undefined) updateOps['aiSettings.maxTokens'] = maxTokens;
         if (temperature !== undefined) updateOps['aiSettings.temperature'] = temperature;
+        if (messageLimit !== undefined) updateOps['aiSettings.messageLimit'] = messageLimit;
+        if (timeLimitHours !== undefined) updateOps['aiSettings.timeLimitHours'] = timeLimitHours;
         if (provider) updateOps['aiSettings.provider'] = provider;
         if (model) updateOps['aiSettings.model'] = model;
 
@@ -79,6 +83,8 @@ export const updateAIConfig = async (req, res) => {
             model: newSettings.model || 'gpt-3.5-turbo',
             maxTokens: newSettings.maxTokens || 500,
             temperature: newSettings.temperature || 0.7,
+            messageLimit: newSettings.messageLimit || 15,
+            timeLimitHours: newSettings.timeLimitHours || 0,
             autoReply: !!newSettings.autoReply,
 
             hasApiKey: !!newSettings.apiKey,

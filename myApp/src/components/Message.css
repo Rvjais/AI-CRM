@@ -392,3 +392,22 @@
         width: 100%;
     }
 }
+
+.swipe-reply-indicator {
+    position: absolute;
+    left: -40px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 20px;
+    color: #2B5EA7;
+    pointer-events: none;
+    transition: opacity 0.1s;
+}
+
+.message.swiping .message-content-wrapper {
+    transition: none;
+}
+
+.message-content-wrapper {
+    transition: transform 0.2s ease-out;
+}

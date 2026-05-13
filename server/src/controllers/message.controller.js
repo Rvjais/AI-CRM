@@ -42,7 +42,7 @@ export const sendMessage = asyncHandler(async (req, res) => {
         messageContent = {
             [mediaType]: { url: content.mediaUrl || content.url },
             caption: content.caption,
-            mimetype: content.mimetype
+            mimetype: content.mimetype || (type === 'image' ? 'image/jpeg' : type === 'video' ? 'video/mp4' : 'application/octet-stream')
         };
 
         if (type === 'gif') {
@@ -77,36 +77,41 @@ export const sendMessage = asyncHandler(async (req, res) => {
         const qId = quotedData.messageId || quotedMessageId;
 
         if (qId) {
-            quotedMsgDoc = await Message.findOne({ messageId: qId, userId });
+            // Select rawMessage specifically since it's hidden by default
+            quotedMsgDoc = await Message.findOne({ messageId: qId, userId }).select('+rawMessage');
         }
 
         const qMsg = quotedMsgDoc || quotedData;
 
-        if (qMsg && (qMsg.messageId || qMsg.id)) { // Support both id formats just in case
-            const stanzaId = qMsg.messageId || qMsg.id;
+        if (qMsg) {
+            // If we have the full Baileys rawMessage, use it directly (best fidelity)
+            if (qMsg.rawMessage) {
+                messageOptions.quoted = qMsg.rawMessage;
+            } else if (qMsg.messageId || qMsg.id) {
+                // Fallback: Manual construction
+                const stanzaId = qMsg.messageId || qMsg.id;
 
-            let quotedContent = {};
-            if (qMsg.type === MESSAGE_TYPES.TEXT) {
-                quotedContent = { conversation: qMsg.content?.text || '' };
-            } else if (qMsg.type === MESSAGE_TYPES.IMAGE) {
-                quotedContent = { imageMessage: { caption: qMsg.content?.caption || '' } };
-            } else if (qMsg.type === MESSAGE_TYPES.VIDEO) {
-                quotedContent = { videoMessage: { caption: qMsg.content?.caption || '' } };
-            } else {
-                quotedContent = { conversation: '[Media]' };
+                let quotedContent = {};
+                if (qMsg.type === MESSAGE_TYPES.TEXT) {
+                    quotedContent = { conversation: qMsg.content?.text || '' };
+                } else if (qMsg.type === MESSAGE_TYPES.IMAGE) {
+                    quotedContent = { imageMessage: { caption: qMsg.content?.caption || '' } };
+                } else if (qMsg.type === MESSAGE_TYPES.VIDEO) {
+                    quotedContent = { videoMessage: { caption: qMsg.content?.caption || '' } };
+                } else {
+                    quotedContent = { conversation: '[Media]' };
+                }
+
+                messageOptions.quoted = {
+                    key: {
+                        remoteJid: qMsg.chatJid,
+                        fromMe: qMsg.fromMe,
+                        id: stanzaId,
+                        participant: qMsg.participant
+                    },
+                    message: quotedContent
+                };
             }
-
-            messageOptions.quoted = {
-                key: {
-                    remoteJid: qMsg.chatJid,
-                    fromMe: qMsg.fromMe,
-                    id: stanzaId,
-                    participant: qMsg.participant
-                },
-                message: quotedContent
-            };
-        } else {
-            // Could not verify quoted message structure.
         }
     }
 

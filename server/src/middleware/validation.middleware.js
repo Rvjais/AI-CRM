@@ -156,6 +156,8 @@ export const schemas = {
             autoReply: Joi.boolean(),
             maxTokens: Joi.number(),
             temperature: Joi.number().min(0).max(1),
+            messageLimit: Joi.number().min(1).max(100),
+            timeLimitHours: Joi.number().min(0).max(48),
             provider: Joi.string().valid('openai', 'gemini', 'anthropic', 'openrouter'),
             apiKeys: Joi.object({
                 openai: Joi.string().allow(''),

@@ -91,7 +91,7 @@ export const uploadToCloudinary = async (fileBuffer, fileName, mimeType, userId,
 
         logger.info(`Media uploaded to Cloudinary: ${result.public_id} (Stored in Tenant DB)`);
 
-        return media;
+        return { ...media.toObject(), mimetype };
     } catch (error) {
         logger.error('Cloudinary upload error:', error);
         throw new Error(`Failed to upload media: ${error.message}`);

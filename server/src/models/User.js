@@ -92,6 +92,18 @@ const userSchema = new mongoose.Schema(
                 type: Boolean,
                 default: false,
             },
+            messageLimit: {
+                type: Number,
+                default: 15,
+                min: 1,
+                max: 100
+            },
+            timeLimitHours: {
+                type: Number,
+                default: 0, // 0 means no time limit
+                min: 0,
+                max: 48
+            }
         },
         bolnaAgentIds: [{
             type: String

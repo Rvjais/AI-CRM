@@ -90,10 +90,13 @@
 }
 
 .setting-info h3 {
-    font-size: 0.9rem;
-    font-weight: 600;
+    font-size: 0.85rem;
+    font-weight: 700;
     margin: 0 0 2px;
     color: #111827;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .setting-info p {

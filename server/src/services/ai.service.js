@@ -31,7 +31,9 @@ const getUserAIConfig = async (userId) => {
         model,
         systemPrompt: settings.systemPrompt || "You are a helpful customer support assistant.",
         maxTokens: settings.maxTokens || 150,
-        temperature: settings.temperature !== undefined ? settings.temperature : 0.7
+        temperature: settings.temperature !== undefined ? settings.temperature : 0.7,
+        messageLimit: settings.messageLimit || 15,
+        timeLimitHours: settings.timeLimitHours || 0
     };
 };
 
@@ -380,12 +382,22 @@ export const extractData = async (userId, chatJid, schema) => {
             .limit(100)
             .lean();
 
-        // Optimized: Filter out noise to prevent AI Token exhaustion, taking only the 15 most recent valid nodes
+        // Optimized: Filter out noise to prevent AI Token exhaustion, taking only the recent valid nodes based on config limit
         const relevantMessages = rawMessages.filter(m => {
             const text = m.content.text || '';
             const isMedia = !text && (m.type === 'image' || m.type === 'video' || m.type === 'document');
+
+            if (config.timeLimitHours > 0) {
+                const messageTime = new Date(m.timestamp).getTime();
+                const now = new Date().getTime();
+                const hoursDiff = (now - messageTime) / (1000 * 60 * 60);
+                if (hoursDiff > config.timeLimitHours) {
+                    return false;
+                }
+            }
+
             return (text.length > 3) || (isMedia && m.content.caption);
-        }).slice(0, 15);
+        }).slice(0, config.messageLimit);
 
         relevantMessages.reverse();
 
@@ -463,12 +475,23 @@ export const analyzeMessage = async (userId, chatJid, messageText, schema = []) 
             .limit(100)
             .lean();
 
-        // Strictly optimize token bounds: Filter noise and take only the 15 most recent text-heavy nodes
+        // Strictly optimize token bounds: Filter noise and take only the N most recent text-heavy nodes
         let recentMessages = rawMessages.filter(m => {
             const text = m.content.text || '';
             const isMedia = !text && (m.type === 'image' || m.type === 'video' || m.type === 'document');
+            
+            // Time limit filter
+            if (config.timeLimitHours > 0) {
+                const messageTime = new Date(m.timestamp).getTime();
+                const now = new Date().getTime();
+                const hoursDiff = (now - messageTime) / (1000 * 60 * 60);
+                if (hoursDiff > config.timeLimitHours) {
+                    return false; // Skip messages older than time limit
+                }
+            }
+
             return (text.length > 3) || (isMedia && m.content.caption) || text.includes('?'); // Keep questions even if short
-        }).slice(0, 15);
+        }).slice(0, config.messageLimit);
 
         recentMessages.reverse();
 
